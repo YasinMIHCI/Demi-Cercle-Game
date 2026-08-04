@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>LE DEMI-CERCLE — Phantom Wave</title>
+<meta name="theme-color" content="#0a0a0a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --red:#E60012;
+  --red-bright:#FF0033;
+  --black:#0a0a0a;
+  --panel:#151515;
+  --white:#ffffff;
+  --yellow:#FFE600;
+  --font-display:'Bebas Neue',sans-serif;
+  --font-hand:'Permanent Marker',cursive;
+  --font-body:'Oswald',sans-serif;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--black);
+  background-image:
+    repeating-linear-gradient(135deg, rgba(230,0,18,0.07) 0 2px, transparent 2px 42px),
+    radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1.2px);
+  background-size:auto, 7px 7px;
+  color:var(--white);
+  font-family:var(--font-body);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+#app{max-width:900px;margin:0 auto;padding:0 16px 60px;}
+
+.topbar{
+  display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;
+  gap:14px;padding:18px 0 6px;
+}
+.logo-block{display:flex;flex-direction:column;gap:8px;}
+.logo{
+  font-family:var(--font-display);
+  font-size:clamp(1.3rem,4vw,2.2rem);
+  letter-spacing:2px;
+  background:var(--red);
+  color:var(--black);
+  padding:6px 20px;
+  transform:skewX(-12deg);
+  border:3px solid #000;
+  box-shadow:6px 6px 0 #000;
+  white-space:nowrap;
+}
+.logo span{display:inline-block;transform:skewX(12deg);}
+.logo em{font-style:normal;color:var(--yellow);}
+.badge-round{
+  font-family:var(--font-display);
+  font-size:0.95rem;
+  letter-spacing:1.5px;
+  color:var(--yellow);
+  background:#000;
+  border:1px solid var(--red-bright);
+  padding:3px 12px;
+  width:fit-content;
+}
+
+.scoreboard{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.score-chip{
+  display:flex;align-items:center;gap:8px;
+  background:var(--panel);
+  border:2px solid var(--red);
+  padding:6px 12px;
+  transform:skewX(-8deg);
+}
+.score-chip>*{transform:skewX(8deg);display:inline-block;}
+.score-role{font-size:1.05rem;}
+.score-name{font-weight:600;text-transform:uppercase;font-size:0.8rem;letter-spacing:0.5px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.score-num{font-family:var(--font-display);color:var(--yellow);font-size:1.25rem;}
+.score-vs{font-family:var(--font-display);color:var(--red-bright);font-size:1.1rem;padding:0 2px;align-self:center;}
+
+.screen{display:none;animation:fadeIn .35s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+.panel{
+  background:var(--panel);
+  border:3px solid var(--red);
+  clip-path:polygon(0 14px,14px 0,100% 0,100% calc(100% - 14px),calc(100% - 14px) 100%,0 100%);
+  padding:26px;
+  margin:18px 0 22px;
+  position:relative;
+}
+.screen-title{
+  font-family:var(--font-display);
+  font-size:clamp(1.5rem,5vw,2.5rem);
+  letter-spacing:1px;
+  color:var(--yellow);
+  margin:0 0 6px;
+  line-height:1.05;
+}
+.subtitle{color:#ccc;font-size:0.92rem;margin:0 0 18px;}
+
+label{display:block;font-size:0.78rem;letter-spacing:1px;text-transform:uppercase;color:var(--red-bright);margin-bottom:6px;font-weight:600;}
+input[type=text],input[type=number]{
+  width:100%;
+  background:#0d0d0d;
+  border:2px solid #333;
+  color:var(--white);
+  padding:11px 12px;
+  font-family:var(--font-body);
+  font-size:1rem;
+  margin-bottom:16px;
+}
+input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--red-bright);}
+
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.form-row3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px;}
+@media(max-width:560px){.form-row,.form-row3{grid-template-columns:1fr;}}
+
+.btn{
+  font-family:var(--font-display);
+  font-size:1.1rem;
+  letter-spacing:1px;
+  background:var(--red);
+  color:#fff;
+  border:3px solid #000;
+  padding:13px 26px;
+  cursor:pointer;
+  transform:skewX(-9deg);
+  box-shadow:5px 5px 0 #000;
+  transition:transform .12s, box-shadow .12s;
+  display:inline-block;
+}
+.btn span{display:block;transform:skewX(9deg);}
+.btn:hover{transform:skewX(-9deg) translate(-3px,-3px);box-shadow:8px 8px 0 #000;}
+.btn:active{transform:skewX(-9deg) translate(0,0);box-shadow:2px 2px 0 #000;}
+.btn.yellow{background:var(--yellow);color:#000;}
+.btn.ghost{background:transparent;border-color:#fff;color:#fff;}
+.btn.small{font-size:0.88rem;padding:9px 16px;}
+.btn-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;align-items:center;}
+.btn-row.center{justify-content:center;}
+
+.theme-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;max-height:230px;overflow-y:auto;padding:4px;margin-bottom:16px;}
+.theme-chip{background:#0d0d0d;border-left:4px solid var(--red-bright);padding:8px 10px;font-size:0.8rem;}
+.theme-chip b{display:block;color:var(--yellow);font-family:var(--font-display);font-size:1.05rem;letter-spacing:0.5px;}
+.theme-chip span{color:#aaa;}
+
+.shake{animation:shakeAnim .4s;}
+@keyframes shakeAnim{10%,90%{transform:translateX(-2px);}20%,80%{transform:translateX(4px);}30%,50%,70%{transform:translateX(-8px);}40%,60%{transform:translateX(8px);}}
+
+/* dial */
+.dial-wrap{max-width:560px;margin:0 auto 8px;}
+.dial-svg{width:100%;height:auto;display:block;touch-action:none;}
+.dial-interactive{cursor:grab;}
+.dial-interactive:active{cursor:grabbing;}
+.dial-rim{stroke:#000;stroke-width:6;stroke-linejoin:round;}
+.dial-tick{stroke:#555;stroke-width:3;}
+.dial-target-mark{fill:var(--yellow);stroke:#000;stroke-width:4;animation:pulseMark 1.1s infinite;}
+@keyframes pulseMark{0%,100%{r:16;}50%{r:20;}}
+.dial-needle{fill:#fff;stroke:#000;stroke-width:3;}
+.dial-pivot{fill:#000;stroke:var(--yellow);stroke-width:5;}
+
+.dial-labels{display:flex;justify-content:space-between;margin-top:-6px;padding:0 6px;}
+.dial-label{
+  font-family:var(--font-display);
+  font-size:clamp(0.8rem,2.6vw,1.1rem);
+  letter-spacing:0.5px;
+  max-width:44%;
+}
+.dial-label.left{color:var(--red-bright);text-align:left;}
+.dial-label.right{color:var(--yellow);text-align:right;}
+
+.readout{text-align:center;font-family:var(--font-display);font-size:2rem;color:var(--white);margin:6px 0;}
+.slider-row{max-width:420px;margin:10px auto 0;}
+input[type=range]{width:100%;accent-color:var(--red-bright);height:6px;}
+
+.clue-bubble{
+  background:#0d0d0d;
+  border:2px dashed var(--yellow);
+  padding:16px 18px;
+  margin-bottom:20px;
+  font-family:var(--font-hand);
+  font-size:1.25rem;
+  color:var(--yellow);
+  transform:rotate(-1deg);
+  word-break:break-word;
+}
+.clue-bubble small{display:block;font-family:var(--font-body);color:#999;font-size:0.68rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;transform:rotate(0);}
+
+.pass-content{text-align:center;padding:34px 10px;}
+.pass-icon{font-size:3.6rem;margin-bottom:6px;animation:spinIcon 2.4s linear infinite;display:inline-block;}
+@keyframes spinIcon{from{transform:rotate(0);}to{transform:rotate(360deg);}}
+.pass-name{font-family:var(--font-display);font-size:clamp(2rem,8vw,3.2rem);color:var(--yellow);margin:6px 0 4px;}
+
+.reveal-banner{
+  font-family:var(--font-display);
+  font-size:clamp(1.7rem,7vw,3rem);
+  text-align:center;
+  padding:14px;
+  margin:0 0 16px;
+  border:4px solid #000;
+  transform:skewX(-6deg);
+  animation:bannerIn .45s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes bannerIn{from{transform:skewX(-6deg) scale(0.4) rotate(-8deg);opacity:0;}to{transform:skewX(-6deg) scale(1) rotate(0);opacity:1;}}
+.b-perfect{background:var(--yellow);color:#000;}
+.b-great{background:var(--red-bright);color:#fff;}
+.b-ok{background:#fff;color:#000;}
+.b-meh{background:#555;color:#fff;}
+.b-fail{background:#000;color:var(--red-bright);}
+
+.reveal-points{text-align:center;font-family:var(--font-display);font-size:clamp(2.2rem,10vw,3.8rem);color:var(--yellow);margin:6px 0 18px;text-shadow:4px 4px 0 #000;}
+.reveal-meta{text-align:center;color:#aaa;margin-bottom:14px;font-size:0.88rem;}
+.reveal-meta b{color:#fff;}
+
+.end-score-line{display:flex;justify-content:space-between;padding:10px 14px;background:#0d0d0d;border-left:5px solid var(--red-bright);margin-bottom:8px;font-size:1.05rem;}
+.end-score-line b{color:var(--yellow);font-family:var(--font-display);font-size:1.3rem;}
+#endWinnerText{font-family:var(--font-display);font-size:clamp(1.5rem,6vw,2.5rem);color:var(--yellow);text-align:center;margin-bottom:20px;text-shadow:3px 3px 0 #000;}
+
+.info-toggle{cursor:pointer;color:var(--red-bright);font-size:0.85rem;text-decoration:underline;margin-bottom:14px;display:inline-block;}
+.rules-box{display:none;background:#0d0d0d;border-left:4px solid var(--yellow);padding:14px 16px;margin-bottom:18px;font-size:0.86rem;line-height:1.65;color:#ccc;}
+.rules-box.open{display:block;}
+.rules-box ol{margin:0;padding-left:20px;}
+
+footer{text-align:center;color:#555;font-size:0.72rem;margin-top:30px;}
+footer b{color:#777;}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="logo-block">
+      <div class="logo"><span>LE DEMI-<em>CERCLE</em></span></div>
+      <div class="badge-round" id="roundBadge">MANCHE N°1</div>
+    </div>
+    <div class="scoreboard" id="scoreboard" aria-live="polite"></div>
+  </div>
+
+  <!-- SETUP -->
+  <section class="screen active" id="screen-setup">
+    <div class="panel">
+      <h1 class="screen-title">CONFIGURATION DE LA PARTIE</h1>
+      <p class="subtitle">Un jeu à deux joueurs (ou deux équipes) sur le même écran. Devinez la cible secrète à partir d'un simple indice !</p>
+
+      <span class="info-toggle" id="rulesToggle">📖 Voir les règles du jeu</span>
+      <div class="rules-box" id="rulesBox">
+        <ol>
+          <li><b>Cible secrète :</b> un thème apparaît avec deux extrémités opposées. Le Donneur d'indice voit une cible cachée quelque part sur le demi-cercle.</li>
+          <li><b>L'indice :</b> le Donneur propose un exemple qui correspond selon lui à l'emplacement de la cible, puis cache l'écran.</li>
+          <li><b>Le devinement :</b> l'autre joueur place l'aiguille là où il pense que se trouve la cible, à partir du seul indice donné.</li>
+          <li><b>Révélation :</b> la cible est dévoilée ! Plus l'aiguille est proche, plus vous marquez de points (100 / 80 / 50 / 20 / 0).</li>
+        </ol>
+      </div>
+
+      <div class="form-row">
+        <div>
+          <label for="playerName1">Joueur 1</label>
+          <input type="text" id="playerName1" value="Joueur 1" maxlength="18">
+        </div>
+        <div>
+          <label for="playerName2">Joueur 2</label>
+          <input type="text" id="playerName2" value="Joueur 2" maxlength="18">
+        </div>
+      </div>
+      <div>
+        <label for="roundsLimit">Nombre de manches (laisser vide = illimité)</label>
+        <input type="number" id="roundsLimit" min="1" placeholder="Illimité">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn yellow" id="startGameBtn"><span>▶ COMMENCER LA PARTIE</span></button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="screen-title" style="font-size:clamp(1.2rem,4vw,1.7rem);">BANQUE DE THÈMES</h2>
+      <p class="subtitle">Un thème est tiré au hasard à chaque manche. Ajoutez les vôtres !</p>
+      <div class="theme-list" id="themeList"></div>
+
+      <div id="customThemeForm">
+        <div class="form-row3">
+          <div>
+            <label for="customThemeName">Nom du thème</label>
+            <input type="text" id="customThemeName" placeholder="Ex : Pizzas" maxlength="30">
+          </div>
+          <div>
+            <label for="customLeft">Extrémité gauche</label>
+            <input type="text" id="customLeft" placeholder="Ex : Dégueu" maxlength="20">
+          </div>
+          <div>
+            <label for="customRight">Extrémité droite</label>
+            <input type="text" id="customRight" placeholder="Ex : Divine" maxlength="20">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost small" id="addThemeBtn"><span>＋ Ajouter le thème</span></button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TARGET (Giver) -->
+  <section class="screen" id="screen-target">
+    <div class="panel">
+      <h1 class="screen-title">🎯 <span id="targetGiverName"></span>, REGARDE LA CIBLE</h1>
+      <p class="subtitle">Thème : <b id="targetThemeName" style="color:var(--yellow);"></b> — Trouve un indice qui correspond à la position de la cible, puis cache l'écran avant de passer l'appareil.</p>
+
+      <div class="dial-wrap" id="dialTargetWrap"></div>
+      <div class="dial-labels">
+        <div class="dial-label left" id="targetLeftLabel"></div>
+        <div class="dial-label right" id="targetRightLabel"></div>
+      </div>
+
+      <div class="btn-row center">
+        <button class="btn ghost small" id="rerollTargetBtn"><span>🎲 Nouvelle cible</span></button>
+      </div>
+
+      <label for="clueInput" style="margin-top:22px;">Ton indice</label>
+      <input type="text" id="clueInput" placeholder="Ex : Le film Minecraft..." maxlength="80">
+
+      <div class="btn-row center">
+        <button class="btn yellow" id="validateClueBtn"><span>🙈 Valider et cacher l'écran</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASS DEVICE -->
+  <section class="screen" id="screen-pass">
+    <div class="panel pass-content">
+      <div class="pass-icon">🔄</div>
+      <p class="subtitle" style="margin-bottom:0;">Passe l'appareil à</p>
+      <div class="pass-name" id="passGuesserName"></div>
+      <p class="subtitle">Ne regarde pas l'écran avant que ce soit ton tour !</p>
+      <div class="btn-row center">
+        <button class="btn yellow" id="readyGuessBtn"><span>👁 Je suis prêt(e) !</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GUESS -->
+  <section class="screen" id="screen-guess">
+    <div class="panel">
+      <h1 class="screen-title">🕵️ <span id="guessGuesserName"></span>, À TOI DE DEVINER</h1>
+      <p class="subtitle">Thème : <b id="guessThemeName" style="color:var(--yellow);"></b></p>
+
+      <div class="clue-bubble"><small>Indice donné</small><span id="guessClueText"></span></div>
+
+      <div class="readout" id="guessReadout">50%</div>
+      <div class="dial-wrap" id="dialGuessWrap"></div>
+      <div class="dial-labels">
+        <div class="dial-label left" id="guessLeftLabel"></div>
+        <div class="dial-label right" id="guessRightLabel"></div>
+      </div>
+      <div class="slider-row">
+        <input type="range" id="guessSlider" min="0" max="100" step="0.5" value="50">
+      </div>
+
+      <div class="btn-row center">
+        <button class="btn yellow" id="validateGuessBtn"><span>✅ Valider mon estimation</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVEAL -->
+  <section class="screen" id="screen-reveal">
+    <div class="panel">
+      <div class="reveal-banner" id="revealBanner">RÉSULTAT</div>
+      <div class="reveal-points" id="revealPoints">+0</div>
+      <p class="reveal-meta">Indice de <b id="revealGiverName"></b> sur <b id="revealTheme"></b> — deviné par <b id="revealGuesserName"></b></p>
+      <div class="clue-bubble"><small>Indice donné</small><span id="revealClue"></span></div>
+
+      <div class="dial-wrap" id="dialRevealWrap"></div>
+
+      <div class="btn-row center">
+        <button class="btn yellow" id="revealContinueBtn"><span>▶ Manche suivante</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- END -->
+  <section class="screen" id="screen-end">
+    <div class="panel">
+      <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
+      <div id="endWinnerText"></div>
+      <div id="endFinalScores"></div>
+      <div class="btn-row center" style="margin-top:20px;">
+        <button class="btn yellow" id="restartBtn"><span>🔁 Rejouer</span></button>
+      </div>
+    </div>
+  </section>
+
+  <footer>Inspiré du <b>Jeu du Demi-Cercle</b> (Wankil Studio) — édition non-officielle, esthétique Phantom Thieves.</footer>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- CONFIG ---------- */
+  var CX=300, CY=300, R_OUT=250, R_IN=150, SLICES=72;
+  var COLORS = {
+    neutral:'#232323',
+    yellow:'#FFE600',
+    red:'#FF0033',
+    redDark:'#7a0012',
+    white:'#ffffff',
+    black:'#050505'
+  };
+
+  var DEFAULT_THEMES = [
+    {theme:"Films", left:"NAVET TOTAL", right:"CHEF-D'ŒUVRE"},
+    {theme:"Nourriture", left:"DÉGOÛTANT", right:"DÉLICIEUX"},
+    {theme:"Jeux vidéo", left:"À OUBLIER", right:"CULTE"},
+    {theme:"Villes de France", left:"ENNUYEUSE", right:"INCROYABLE"},
+    {theme:"Célébrités", left:"DÉTESTÉE", right:"ADORÉE"},
+    {theme:"Animaux", left:"FLIPPANT", right:"MIGNON"},
+    {theme:"Vacances de rêve", left:"CAUCHEMAR", right:"PARADIS"},
+    {theme:"Métiers", left:"INGRAT", right:"RÊVÉ"},
+    {theme:"Chansons", left:"RINGARDE", right:"TUBE PLANÉTAIRE"},
+    {theme:"Sports", left:"ENNUYEUX", right:"SPECTACULAIRE"},
+    {theme:"Voitures", left:"POUBELLE", right:"BOLIDE DE RÊVE"},
+    {theme:"Séries TV", left:"FLOP TOTAL", right:"CHEF-D'ŒUVRE"},
+    {theme:"Réseaux sociaux", left:"TOXIQUE", right:"UTILE"},
+    {theme:"Super-héros", left:"RIDICULE", right:"TOUT-PUISSANT"},
+    {theme:"Livres", left:"ILLISIBLE", right:"PASSIONNANT"},
+    {theme:"Habitudes bizarres", left:"NORMAL", right:"COMPLÈTEMENT FOU"},
+    {theme:"Plats cuisinés", left:"IMMANGEABLE", right:"GASTRONOMIQUE"},
+    {theme:"Map de FPS", left:"À BANNIR", right:"ICONIQUE"},
+    {theme:"Créatures mythiques", left:"RIDICULE", right:"TERRIFIANTE"},
+    {theme:"Instruments de musique", left:"INSUPPORTABLE", right:"MAGIQUE"},
+    {theme:"Saisons", left:"DÉTESTÉE", right:"PRÉFÉRÉE"},
+    {theme:"Boissons", left:"INFECTE", right:"DÉLICIEUSE"},
+    {theme:"Cadeaux d'anniversaire", left:"NULISSIME", right:"PARFAIT"},
+    {theme:"Excuses pour être en retard", left:"BIDON", right:"GÉNIALE"}
+  ];
+
+  /* ---------- STATE ---------- */
+  var state = {
+    players:["Joueur 1","Joueur 2"],
+    scores:[0,0],
+    giverIndex:0,
+    round:1,
+    roundsLimit:null,
+    allThemes: DEFAULT_THEMES.slice(),
+    pool: [],
+    currentTheme:null,
+    targetPercent:50,
+    guessPercent:50,
+    clueText:''
+  };
+
+  /* ---------- DOM HELPERS ---------- */
+  function $(id){ return document.getElementById(id); }
+  var NS='http://www.w3.org/2000/svg';
+
+  function polar(r,angleDeg){
+    var rad = angleDeg*Math.PI/180;
+    return {x:CX+r*Math.cos(rad), y:CY-r*Math.sin(rad)};
+  }
+  function percentToAngle(p){ return 180-(p/100)*180; }
+  function clampPercent(p){ return Math.max(0,Math.min(100,p)); }
+  function escapeHtml(s){
+    var d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+  }
+  function shuffle(arr){
+    for(var i=arr.length-1;i>0;i--){
+      var j=Math.floor(Math.random()*(i+1));
+      var tmp=arr[i]; arr[i]=arr[j]; arr[j]=tmp;
+    }
+    return arr;
+  }
+  function shake(el){
+    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+  }
+
+  /* ---------- DIAL FACTORY ---------- */
+  function createDial(container, opts){
+    opts = opts||{};
+    var svg = document.createElementNS(NS,'svg');
+    svg.setAttribute('viewBox','0 0 600 320');
+    svg.classList.add('dial-svg');
+    if(opts.interactive) svg.classList.add('dial-interactive');
+
+    var slicesG = document.createElementNS(NS,'g');
+    var slices = [];
+    var i, p, pStart, pEnd, aStart, aEnd, o1,o2,i1,i2, poly;
+    for(i=0;i<SLICES;i++){
+      pStart=i*(100/SLICES); pEnd=(i+1)*(100/SLICES);
+      aStart=percentToAngle(pStart); aEnd=percentToAngle(pEnd);
+      o1=polar(R_OUT,aStart); o2=polar(R_OUT,aEnd);
+      i2=polar(R_IN,aEnd); i1=polar(R_IN,aStart);
+      poly=document.createElementNS(NS,'polygon');
+      poly.setAttribute('points',
+        o1.x.toFixed(2)+','+o1.y.toFixed(2)+' '+
+        o2.x.toFixed(2)+','+o2.y.toFixed(2)+' '+
+        i2.x.toFixed(2)+','+i2.y.toFixed(2)+' '+
+        i1.x.toFixed(2)+','+i1.y.toFixed(2)
+      );
+      poly.setAttribute('fill',COLORS.neutral);
+      poly.setAttribute('stroke',COLORS.neutral);
+      poly.setAttribute('stroke-width','1');
+      poly._pcenter=(pStart+pEnd)/2;
+      slicesG.appendChild(poly);
+      slices.push(poly);
+    }
+    svg.appendChild(slicesG);
+
+    function polylineEl(pts){
+      var pl=document.createElementNS(NS,'polyline');
+      var s=[];
+      for(var k=0;k<pts.length;k++){ s.push(pts[k].x.toFixed(2)+','+pts[k].y.toFixed(2)); }
+      pl.setAttribute('points',s.join(' '));
+      pl.setAttribute('class','dial-rim');
+      pl.setAttribute('fill','none');
+      return pl;
+    }
+    var outerPts=[], innerPts=[];
+    for(i=0;i<=SLICES;i++){
+      p=i*(100/SLICES);
+      var a=percentToAngle(p);
+      outerPts.push(polar(R_OUT,a));
+      innerPts.push(polar(R_IN,a));
+    }
+    svg.appendChild(polylineEl(outerPts));
+    svg.appendChild(polylineEl(innerPts));
+    [0,100].forEach(function(pp){
+      var aa=percentToAngle(pp);
+      svg.appendChild(polylineEl([polar(R_IN,aa),polar(R_OUT,aa)]));
+    });
+
+    var ticksG=document.createElementNS(NS,'g');
+    [0,25,50,75,100].forEach(function(pp){
+      var aa=percentToAngle(pp);
+      var t1=polar(R_OUT+4,aa), t2=polar(R_OUT+18,aa);
+      var tick=document.createElementNS(NS,'line');
+      tick.setAttribute('x1',t1.x);tick.setAttribute('y1',t1.y);
+      tick.setAttribute('x2',t2.x);tick.setAttribute('y2',t2.y);
+      tick.setAttribute('class','dial-tick');
+      ticksG.appendChild(tick);
+    });
+    svg.appendChild(ticksG);
+
+    var targetMark=document.createElementNS(NS,'circle');
+    targetMark.setAttribute('r','16');
+    targetMark.setAttribute('class','dial-target-mark');
+    targetMark.style.display='none';
+    svg.appendChild(targetMark);
+
+    var needle=document.createElementNS(NS,'polygon');
+    needle.setAttribute('class','dial-needle');
+    svg.appendChild(needle);
+
+    var pivot=document.createElementNS(NS,'circle');
+    pivot.setAttribute('cx',CX);pivot.setAttribute('cy',CY);pivot.setAttribute('r',22);
+    pivot.setAttribute('class','dial-pivot');
+    svg.appendChild(pivot);
+
+    container.innerHTML='';
+    container.appendChild(svg);
+
+    var dial={svg:svg, slices:slices, needle:needle, targetMark:targetMark, percent:50};
+
+    function setNeedle(pc){
+      dial.percent=clampPercent(pc);
+      var ang=percentToAngle(dial.percent);
+      var tip=polar(R_OUT-16,ang);
+      var b1=polar(20,ang+90);
+      var b2=polar(20,ang-90);
+      var back=polar(26,ang+180);
+      needle.setAttribute('points',
+        b1.x.toFixed(2)+','+b1.y.toFixed(2)+' '+
+        tip.x.toFixed(2)+','+tip.y.toFixed(2)+' '+
+        b2.x.toFixed(2)+','+b2.y.toFixed(2)+' '+
+        back.x.toFixed(2)+','+back.y.toFixed(2)
+      );
+      if(opts.onChange) opts.onChange(dial.percent);
+    }
+    function setTarget(pc, show){
+      var ang=percentToAngle(pc);
+      var pos=polar((R_IN+R_OUT)/2,ang);
+      targetMark.setAttribute('cx',pos.x);
+      targetMark.setAttribute('cy',pos.y);
+      targetMark.style.display = show?'block':'none';
+    }
+    function colorZones(targetPercent){
+      slices.forEach(function(sl){
+        var diff=Math.abs(sl._pcenter-targetPercent);
+        var c;
+        if(diff<=3) c=COLORS.yellow;
+        else if(diff<=8) c=COLORS.red;
+        else if(diff<=16) c=COLORS.white;
+        else if(diff<=28) c=COLORS.redDark;
+        else c=COLORS.black;
+        sl.setAttribute('fill',c);
+        sl.setAttribute('stroke',c);
+      });
+    }
+    function resetZones(){
+      slices.forEach(function(sl){ sl.setAttribute('fill',COLORS.neutral); sl.setAttribute('stroke',COLORS.neutral); });
+    }
+
+    dial.setNeedle=setNeedle;
+    dial.setTarget=setTarget;
+    dial.colorZones=colorZones;
+    dial.resetZones=resetZones;
+
+    setNeedle(50);
+
+    if(opts.interactive){
+      var dragging=false;
+      function angleFromEvent(evt){
+        var pt=svg.createSVGPoint();
+        pt.x=evt.clientX; pt.y=evt.clientY;
+        var loc=pt.matrixTransform(svg.getScreenCTM().inverse());
+        var dx=loc.x-CX, dy=CY-loc.y;
+        var ang=Math.atan2(dy,dx)*180/Math.PI;
+        if(!isFinite(ang)) ang=90;
+        if(ang<0) ang = dx>=0?0:180;
+        if(ang>180) ang=180;
+        return ang;
+      }
+      function percentFromEvent(evt){
+        var a=angleFromEvent(evt);
+        return clampPercent((180-a)/180*100);
+      }
+      function down(evt){
+        dragging=true;
+        try{svg.setPointerCapture(evt.pointerId);}catch(e){}
+        setNeedle(percentFromEvent(evt));
+        evt.preventDefault();
+      }
+      function move(evt){
+        if(!dragging) return;
+        setNeedle(percentFromEvent(evt));
+        evt.preventDefault();
+      }
+      function up(){ dragging=false; }
+      svg.addEventListener('pointerdown',down);
+      svg.addEventListener('pointermove',move);
+      svg.addEventListener('pointerup',up);
+      svg.addEventListener('pointercancel',up);
+      svg.addEventListener('pointerleave',up);
+    }
+
+    return dial;
+  }
+
+  var dialTarget=null, dialGuess=null, dialReveal=null, guessSlider=null;
+
+  /* ---------- AUDIO ---------- */
+  var actx=null;
+  function ensureAudio(){
+    if(!actx){
+      var AC = window.AudioContext||window.webkitAudioContext;
+      if(AC) actx = new AC();
+    }
+    if(actx && actx.state==='suspended') actx.resume();
+  }
+  function tone(freq,dur,type,gainVal,delay){
+    if(!actx) return;
+    type=type||'square'; gainVal=gainVal||0.15; delay=delay||0;
+    var t0=actx.currentTime+delay;
+    var osc=actx.createOscillator();
+    var gain=actx.createGain();
+    osc.type=type;
+    osc.frequency.setValueAtTime(freq,t0);
+    gain.gain.setValueAtTime(gainVal,t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    osc.connect(gain); gain.connect(actx.destination);
+    osc.start(t0); osc.stop(t0+dur+0.03);
+  }
+  function sfxToggle(){ tone(330,0.06,'square',0.10,0); }
+  function sfxValidate(){ tone(440,0.07,'square',0.14,0); tone(660,0.09,'square',0.12,0.06); }
+  function sfxWhoosh(){ tone(180,0.15,'sawtooth',0.08,0); }
+  function sfxReveal(points){
+    if(points>=100){ tone(523,0.1,'square',0.2,0); tone(659,0.1,'square',0.2,0.09); tone(784,0.1,'square',0.2,0.18); tone(1047,0.3,'square',0.22,0.27); }
+    else if(points>=80){ tone(523,0.1,'square',0.18,0); tone(784,0.2,'square',0.18,0.11); }
+    else if(points>=50){ tone(392,0.14,'triangle',0.16,0); tone(523,0.16,'triangle',0.14,0.09); }
+    else if(points>=20){ tone(294,0.2,'triangle',0.14,0); }
+    else { tone(140,0.28,'sawtooth',0.14,0); tone(90,0.3,'sawtooth',0.12,0.1); }
+  }
+  document.addEventListener('pointerdown', ensureAudio);
+
+  /* ---------- SCREEN MGMT ---------- */
+  function goto_(name){
+    var all=document.querySelectorAll('.screen');
+    for(var i=0;i<all.length;i++){ all[i].classList.remove('active'); }
+    $('screen-'+name).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  /* ---------- SCOREBOARD ---------- */
+  function renderScoreboard(){
+    var box=$('scoreboard');
+    var html='';
+    for(var i=0;i<state.players.length;i++){
+      var role = state.giverIndex===i ? '🎯' : '🕵️';
+      var roleTitle = state.giverIndex===i ? "Donne l'indice" : "Devine";
+      html += '<div class="score-chip"><span class="score-role" title="'+roleTitle+'">'+role+'</span><span class="score-name">'+escapeHtml(state.players[i])+'</span><span class="score-num">'+state.scores[i]+'</span></div>';
+      if(i===0) html += '<div class="score-vs">VS</div>';
+    }
+    box.innerHTML = html;
+  }
+  function updateRoundBadge(){
+    var suffix = state.roundsLimit ? (' / '+state.roundsLimit) : '';
+    $('roundBadge').textContent = 'MANCHE N°'+state.round+suffix;
+  }
+
+  /* ---------- SETUP ---------- */
+  function renderThemeList(){
+    var list=$('themeList');
+    var html='';
+    for(var i=0;i<state.allThemes.length;i++){
+      var t=state.allThemes[i];
+      html += '<div class="theme-chip"><b>'+escapeHtml(t.theme)+'</b><span>'+escapeHtml(t.left)+' ⟷ '+escapeHtml(t.right)+'</span></div>';
+    }
+    list.innerHTML = html;
+  }
+
+  $('rulesToggle').addEventListener('click',function(){
+    $('rulesBox').classList.toggle('open');
+    sfxToggle();
+  });
+
+  $('addThemeBtn').addEventListener('click',function(){
+    var name=$('customThemeName').value.trim();
+    var left=$('customLeft').value.trim();
+    var right=$('customRight').value.trim();
+    if(!name||!left||!right){
+      shake($('customThemeForm'));
+      return;
+    }
+    state.allThemes.unshift({theme:name,left:left.toUpperCase(),right:right.toUpperCase()});
+    $('customThemeName').value=''; $('customLeft').value=''; $('customRight').value='';
+    renderThemeList();
+    sfxToggle();
+  });
+
+  $('startGameBtn').addEventListener('click',function(){
+    var n1=$('playerName1').value.trim()||'Joueur 1';
+    var n2=$('playerName2').value.trim()||'Joueur 2';
+    state.players=[n1,n2];
+    state.scores=[0,0];
+    state.giverIndex=0;
+    state.round=1;
+    var limitVal=parseInt($('roundsLimit').value,10);
+    state.roundsLimit = (limitVal>0)?limitVal:null;
+    state.pool = shuffle(state.allThemes.slice());
+    sfxValidate();
+    nextRound();
+  });
+
+  /* ---------- ROUND FLOW ---------- */
+  function nextRound(){
+    if(state.pool.length===0){ state.pool=shuffle(state.allThemes.slice()); }
+    state.currentTheme = state.pool.pop();
+    state.targetPercent = 6+Math.random()*88;
+    state.guessPercent = 50;
+    state.clueText='';
+    updateRoundBadge();
+    renderTargetScreen();
+    renderScoreboard();
+    goto_('target');
+  }
+
+  function renderTargetScreen(){
+    $('targetGiverName').textContent = state.players[state.giverIndex];
+    $('targetThemeName').textContent = state.currentTheme.theme;
+    $('targetLeftLabel').textContent = state.currentTheme.left;
+    $('targetRightLabel').textContent = state.currentTheme.right;
+    $('clueInput').value='';
+    if(!dialTarget){
+      dialTarget = createDial($('dialTargetWrap'), {interactive:false});
+      dialTarget.needle.style.display='none';
+    }
+    dialTarget.resetZones();
+    dialTarget.setTarget(state.targetPercent, true);
+  }
+
+  $('rerollTargetBtn').addEventListener('click',function(){
+    state.targetPercent = 6+Math.random()*88;
+    dialTarget.setTarget(state.targetPercent,true);
+    sfxToggle();
+  });
+
+  $('clueInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); $('validateClueBtn').click(); }
+  });
+
+  $('validateClueBtn').addEventListener('click',function(){
+    var clue=$('clueInput').value.trim();
+    if(!clue){ shake($('clueInput')); return; }
+    state.clueText=clue;
+    sfxValidate();
+    renderPassScreen();
+    goto_('pass');
+  });
+
+  function renderPassScreen(){
+    var guesserIdx = 1-state.giverIndex;
+    $('passGuesserName').textContent = state.players[guesserIdx];
+  }
+
+  $('readyGuessBtn').addEventListener('click',function(){
+    sfxWhoosh();
+    renderGuessScreen();
+    goto_('guess');
+  });
+
+  function renderGuessScreen(){
+    var guesserIdx=1-state.giverIndex;
+    $('guessGuesserName').textContent = state.players[guesserIdx];
+    $('guessThemeName').textContent = state.currentTheme.theme;
+    $('guessLeftLabel').textContent = state.currentTheme.left;
+    $('guessRightLabel').textContent = state.currentTheme.right;
+    $('guessClueText').textContent = state.clueText;
+    if(!dialGuess){
+      dialGuess = createDial($('dialGuessWrap'), {interactive:true, onChange:function(pc){
+        state.guessPercent=pc;
+        $('guessReadout').textContent = Math.round(pc)+'%';
+        if(guessSlider) guessSlider.value = pc;
+      }});
+      dialGuess.targetMark.style.display='none';
+      guessSlider = $('guessSlider');
+      guessSlider.addEventListener('input',function(){
+        dialGuess.setNeedle(parseFloat(guessSlider.value));
+      });
+    }
+    dialGuess.resetZones();
+    state.guessPercent=50;
+    dialGuess.setNeedle(50);
+    guessSlider.value=50;
+    $('guessReadout').textContent='50%';
+  }
+
+  $('validateGuessBtn').addEventListener('click',function(){
+    sfxValidate();
+    revealRound();
+  });
+
+  function computeScore(target,guess){
+    var diff=Math.abs(target-guess);
+    if(diff<=3) return 100;
+    if(diff<=8) return 80;
+    if(diff<=16) return 50;
+    if(diff<=28) return 20;
+    return 0;
+  }
+
+  function revealRound(){
+    var guesserIdx = 1-state.giverIndex;
+    var points = computeScore(state.targetPercent, state.guessPercent);
+    state.scores[guesserIdx]+=points;
+
+    $('revealGiverName').textContent = state.players[state.giverIndex];
+    $('revealGuesserName').textContent = state.players[guesserIdx];
+    $('revealTheme').textContent = state.currentTheme.theme;
+    $('revealClue').textContent = state.clueText;
+    $('revealPoints').textContent = '+'+points;
+
+    var bannerText, bannerClass;
+    if(points>=100){bannerText='PILE POIL !!';bannerClass='b-perfect';}
+    else if(points>=80){bannerText='PRESQUE PARFAIT !';bannerClass='b-great';}
+    else if(points>=50){bannerText='PAS MAL...';bannerClass='b-ok';}
+    else if(points>=20){bannerText='UN PEU LOIN...';bannerClass='b-meh';}
+    else{bannerText='RATÉ TOTAL !';bannerClass='b-fail';}
+    var bannerEl=$('revealBanner');
+    bannerEl.textContent=bannerText;
+    bannerEl.className='reveal-banner '+bannerClass;
+    void bannerEl.offsetWidth;
+
+    if(!dialReveal){ dialReveal=createDial($('dialRevealWrap'),{interactive:false}); }
+    dialReveal.colorZones(state.targetPercent);
+    dialReveal.setTarget(state.targetPercent,true);
+    dialReveal.setNeedle(state.guessPercent);
+
+    renderScoreboard();
+    sfxReveal(points);
+
+    var contEl=$('revealContinueBtn');
+    if(state.roundsLimit && state.round>=state.roundsLimit){
+      contEl.querySelector('span').textContent='🏁 Voir les résultats finaux';
+      contEl.onclick=function(){ sfxValidate(); renderEndScreen(); goto_('end'); };
+    } else {
+      contEl.querySelector('span').textContent='▶ Manche suivante';
+      contEl.onclick=function(){
+        sfxToggle();
+        state.giverIndex = 1-state.giverIndex;
+        state.round++;
+        nextRound();
+      };
+    }
+    goto_('reveal');
+  }
+
+  function renderEndScreen(){
+    var s0=state.scores[0], s1=state.scores[1];
+    var winnerText;
+    if(s0===s1) winnerText='ÉGALITÉ PARFAITE !';
+    else winnerText = (s0>s1?state.players[0]:state.players[1]).toUpperCase()+' REMPORTE LA PARTIE !';
+    $('endWinnerText').textContent = winnerText;
+    var html='';
+    for(var i=0;i<state.players.length;i++){
+      html += '<div class="end-score-line"><span>'+escapeHtml(state.players[i])+'</span><b>'+state.scores[i]+' pts</b></div>';
+    }
+    $('endFinalScores').innerHTML = html;
+  }
+
+  $('restartBtn').addEventListener('click',function(){
+    sfxValidate();
+    goto_('setup');
+  });
+
+  /* ---------- INIT ---------- */
+  renderThemeList();
+})();
+</script>
+</body>
+</html>
