@@ -385,6 +385,81 @@ input[type=range]{width:100%;accent-color:var(--red-bright);height:6px;}
 }
 .hub-return-bar .btn{padding:8px 16px;font-size:0.9rem;}
 
+/* ---------- LE CAMÉLÉON ---------- */
+.cham-screen{display:none;animation:fadeIn .35s ease;}
+.cham-screen.active{display:block;}
+
+.cham-canvas-frame{
+  background:#1a1a1a;
+  border:5px solid #000;
+  box-shadow:0 0 0 3px var(--red-bright), 8px 8px 0 #000;
+  padding:6px;
+  margin:16px 0;
+}
+.cham-canvas{
+  width:100%;height:auto;display:block;
+  background:#f4f1ea;
+  touch-action:none;
+  cursor:crosshair;
+}
+.cham-canvas.readonly{cursor:default;}
+
+.cham-palette{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0;}
+.cham-color-dot{
+  width:34px;height:34px;border-radius:50%;
+  border:3px solid #000;cursor:pointer;
+  box-shadow:3px 3px 0 #000;
+  transition:transform .1s;
+}
+.cham-color-dot:hover{transform:scale(1.1);}
+.cham-color-dot.selected{border-color:var(--yellow);box-shadow:0 0 0 3px var(--yellow),3px 3px 0 #000;}
+
+.cham-turn-banner{
+  text-align:center;font-family:var(--font-display);letter-spacing:1px;
+  font-size:clamp(1.1rem,4vw,1.6rem);
+  background:#000;color:var(--yellow);
+  border:2px solid var(--red-bright);
+  padding:10px;margin-bottom:6px;
+}
+.cham-turn-banner.mine{color:#000;background:var(--yellow);border-color:#000;animation:pulseDot 1.4s infinite;}
+.cham-progress{text-align:center;color:#888;font-size:0.78rem;margin-bottom:14px;}
+
+.cham-role-card{
+  text-align:center;padding:18px;margin-bottom:16px;
+  border:3px solid var(--red-bright);background:#0d0d0d;
+}
+.cham-role-card.chameleon{border-color:var(--yellow);}
+.cham-role-word{font-family:var(--font-display);font-size:clamp(1.8rem,7vw,2.6rem);color:var(--yellow);letter-spacing:1px;}
+.cham-role-theme{color:#aaa;font-size:0.85rem;text-transform:uppercase;letter-spacing:1px;}
+.cham-role-chameleon-text{font-family:var(--font-display);font-size:clamp(1.4rem,6vw,2rem);color:var(--red-bright);}
+
+.cham-player-list{display:flex;flex-direction:column;gap:8px;margin:14px 0;}
+.cham-player-row{
+  display:flex;align-items:center;gap:12px;
+  background:#0d0d0d;border:1px solid #333;padding:9px 14px;
+}
+.cham-player-row.filled{border-color:#555;}
+.cham-player-dot{width:18px;height:18px;border-radius:50%;border:2px solid #000;flex-shrink:0;}
+.cham-player-name{flex:1;font-weight:600;}
+.cham-player-name.empty{color:#666;font-style:italic;font-weight:400;}
+.cham-vote-btn{
+  font-family:var(--font-display);font-size:0.85rem;
+  background:var(--red);color:#fff;border:2px solid #000;
+  padding:7px 14px;cursor:pointer;
+}
+.cham-vote-btn:hover{background:var(--red-bright);}
+.cham-vote-btn.voted{background:var(--yellow);color:#000;}
+.cham-vote-count{font-family:var(--font-display);color:var(--yellow);min-width:22px;text-align:center;}
+
+.cham-result-banner{
+  font-family:var(--font-display);font-size:clamp(1.8rem,8vw,3rem);
+  text-align:center;padding:16px;margin-bottom:16px;
+  border:4px solid #000;transform:skewX(-6deg);
+  animation:bannerIn .45s cubic-bezier(.2,1.4,.4,1);
+}
+.cham-word-reveal{text-align:center;color:#ccc;margin-bottom:16px;font-size:0.95rem;}
+.cham-word-reveal b{color:var(--yellow);font-family:var(--font-display);font-size:1.3rem;}
+
 footer{text-align:center;color:#555;font-size:0.72rem;margin-top:30px;}
 footer b{color:#777;}
 </style>
@@ -414,10 +489,11 @@ footer b{color:#777;}
         <p>Devine la cible secrète à partir d'un indice. Local, 1 vs 1 ou 2 vs 2 en ligne.</p>
         <button class="btn yellow" id="playDemicercleBtn"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card locked">
-        <div class="game-card-icon">🔒</div>
-        <h3>PROCHAINEMENT...</h3>
-        <p>Un nouveau jeu Phantom Thieves arrive bientôt dans ce hub.</p>
+      <div class="game-card available">
+        <div class="game-card-icon">🦎</div>
+        <h3>LE CAMÉLÉON</h3>
+        <p>Un dessin partagé, un mot secret... et un infiltré. 3 à 8 joueurs, en ligne.</p>
+        <button class="btn yellow" id="playCameleonBtn"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
@@ -710,6 +786,176 @@ footer b{color:#777;}
 </div>
 </div>
 
+<!-- ================= LE CAMÉLÉON ================= -->
+<div id="view-cameleon" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="chamHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div id="chamApp" style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>LE <em>CAMÉLÉON</em></span></div>
+      </div>
+      <div class="net-status offline" id="chamNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="cham-screen active" id="cham-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">LE CAMÉLÉON</h1>
+        <p class="subtitle">3 à 8 joueurs. Tout le monde connaît le mot secret, sauf un — le Caméléon. Un dessin partagé, un trait chacun, puis un vote pour le démasquer.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="chamRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="chamName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="chamName" placeholder="Ton pseudo" maxlength="18">
+        <label>Ta couleur de trait</label>
+        <div class="cham-palette" id="chamColorPicker"></div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label for="chamCustomTheme">Thème personnalisé (optionnel)</label>
+        <div class="form-row">
+          <input type="text" id="chamCustomTheme" placeholder="Ex : Desserts" maxlength="24">
+          <input type="text" id="chamCustomWord" placeholder="Ex : Tiramisu" maxlength="24">
+        </div>
+        <div class="btn-row">
+          <button class="btn ghost small" id="chamAddWordBtn"><span>＋ Ajouter à la banque</span></button>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn yellow small" id="chamCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="chamJoinCode">Code de la salle</label>
+        <input type="text" id="chamJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="chamJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="cham-screen" id="cham-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="chamBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="chamCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="chamCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="chamCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="chamPlayerList"></div>
+        <p class="lobby-status" id="chamLobbyStatus">En attente de joueurs... (3 minimum)</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="chamStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CANVAS / DRAWING -->
+    <section class="cham-screen" id="cham-screen-canvas">
+      <div class="panel">
+        <div class="cham-role-card" id="chamRoleCard">
+          <div class="cham-role-theme" id="chamRoleTheme"></div>
+          <div class="cham-role-word" id="chamRoleWord"></div>
+        </div>
+
+        <div class="cham-turn-banner" id="chamTurnBanner">AU TOUR DE ... DE DESSINER</div>
+        <div class="cham-progress" id="chamProgress"></div>
+
+        <div class="cham-canvas-frame">
+          <canvas class="cham-canvas" id="chamCanvas" width="800" height="500"></canvas>
+        </div>
+
+        <div class="cham-palette" id="chamActivePalette" style="display:none;"></div>
+      </div>
+    </section>
+
+    <!-- VOTING -->
+    <section class="cham-screen" id="cham-screen-voting">
+      <div class="panel">
+        <h1 class="screen-title">🗳 QUI EST LE CAMÉLÉON ?</h1>
+        <p class="subtitle">Observez le dessin final et votez pour l'infiltré présumé.</p>
+        <div class="cham-canvas-frame">
+          <canvas class="cham-canvas readonly" id="chamVoteCanvas" width="800" height="500"></canvas>
+        </div>
+        <div class="cham-player-list" id="chamVoteList"></div>
+        <p class="lobby-status" id="chamVoteStatus"></p>
+      </div>
+    </section>
+
+    <!-- CHAMELEON GUESS -->
+    <section class="cham-screen" id="cham-screen-guess">
+      <div class="panel">
+        <h1 class="screen-title">😱 LE CAMÉLÉON EST DÉMASQUÉ !</h1>
+        <p class="subtitle" id="chamGuessSubtitle"></p>
+        <div id="chamGuessSelfBox" style="display:none;">
+          <label for="chamGuessInput">Ta tentative</label>
+          <input type="text" id="chamGuessInput" placeholder="Le mot secret était..." maxlength="30">
+          <div class="btn-row center">
+            <button class="btn yellow" id="chamGuessSubmitBtn"><span>✅ Valider ma tentative</span></button>
+          </div>
+        </div>
+        <div id="chamGuessWaitBox" style="display:none;" class="pass-content">
+          <div class="pass-icon">⏳</div>
+          <p class="subtitle">Le Caméléon réfléchit à sa dernière chance...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section class="cham-screen" id="cham-screen-result">
+      <div class="panel">
+        <div class="cham-result-banner" id="chamResultBanner">RÉSULTAT</div>
+        <div class="cham-word-reveal" id="chamWordReveal"></div>
+        <div class="cham-canvas-frame">
+          <canvas class="cham-canvas readonly" id="chamResultCanvas" width="800" height="500"></canvas>
+        </div>
+        <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">SCORES</h3>
+        <div class="cham-player-list" id="chamScoreList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="chamNextRoundBtn" style="display:none;"><span>🔄 Nouvelle Manche</span></button>
+          <span class="waiting-label" id="chamWaitingHostLabel" style="display:none;"></span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- CAMÉLÉON RULES MODAL -->
+<div class="modal-overlay" id="chamRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="chamRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LE CAMÉLÉON</h2>
+    <ol class="rules-list">
+      <li>Tout le monde reçoit un <b>thème</b> et un <b>mot secret</b> (ex : Thème "Animaux", Mot "Éléphant") — sauf un joueur tiré au sort, le <b>Caméléon</b>, qui ne voit que le thème.</li>
+      <li>À tour de rôle, chacun trace <b>un seul trait continu</b> sur la toile partagée. Les initiés doivent prouver qu'ils connaissent le mot sans le rendre trop évident. Le Caméléon doit deviner et se fondre dans la masse. Deux passages par joueur.</li>
+      <li>Une fois les traits terminés, tout le monde vote pour désigner le Caméléon.</li>
+      <li>Si le Caméléon est démasqué, il a une dernière chance : deviner le mot secret. S'il trouve, il gagne quand même !</li>
+      <li>S'il n'est pas démasqué (ou si le groupe accuse la mauvaise personne), le Caméléon l'emporte.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- CAMÉLÉON DISCONNECT MODAL -->
+<div class="modal-overlay" id="chamDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="chamDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="chamDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- HUB INFO MODAL -->
 <div class="modal-overlay" id="hubInfoModal">
   <div class="modal-box">
@@ -718,6 +964,7 @@ footer b{color:#777;}
     <p class="subtitle">Un hub de mini-jeux gratuits façon Phantom Thieves, sans backend — hébergé sur GitHub Pages.</p>
     <ol class="rules-list">
       <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne en 1 vs 1 / 2 vs 2 via une connexion directe entre navigateurs (WebRTC).</li>
+      <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
   </div>
@@ -1989,6 +2236,685 @@ footer b{color:#777;}
     $('endOnlineContent').innerHTML = html;
   }
 
+  /* ================================================================
+     LE CAMÉLÉON
+     ================================================================ */
+  var CHAM_ROOM_PREFIX = 'p5cameleon-';
+  var CHAM_PALETTE = ['#E60012','#ffffff','#FFE600','#cccccc','#00e5ff','#ff6ec7','#ff9d2f','#7cff6e'];
+  var CHAM_WORDBANK_KEY = 'cham_wordbank_v1';
+  var CHAM_DEFAULT_WORDBANK = [
+    {theme:"Animaux", words:["Éléphant","Girafe","Pingouin","Lion","Dauphin"]},
+    {theme:"Nourriture", words:["Pizza","Sushi","Tacos","Burger","Ramen"]},
+    {theme:"Métiers", words:["Pompier","Médecin","Boulanger","Pilote","Professeur"]},
+    {theme:"Sports", words:["Football","Tennis","Natation","Boxe","Escalade"]},
+    {theme:"Films", words:["Titanic","Avatar","Matrix","Shrek","Jaws"]},
+    {theme:"Pays", words:["France","Japon","Brésil","Égypte","Canada"]},
+    {theme:"Objets du quotidien", words:["Parapluie","Brosse à dents","Téléphone","Chaise","Miroir"]},
+    {theme:"Super-héros", words:["Batman","Superman","Spider-Man","Hulk","Flash"]},
+    {theme:"Instruments de musique", words:["Guitare","Piano","Violon","Batterie","Trompette"]},
+    {theme:"Véhicules", words:["Voiture","Avion","Bateau","Vélo","Train"]},
+    {theme:"Vêtements", words:["Chapeau","Chaussures","Écharpe","Gants","Robe"]},
+    {theme:"Lieux", words:["Plage","Montagne","Forêt","Désert","Bibliothèque"]},
+    {theme:"Fruits", words:["Banane","Fraise","Ananas","Kiwi","Pastèque"]},
+    {theme:"Boissons", words:["Café","Thé","Jus d'orange","Soda","Vin"]},
+    {theme:"Créatures fantastiques", words:["Dragon","Licorne","Vampire","Zombie","Fantôme"]},
+    {theme:"École", words:["Tableau","Cahier","Stylo","Cartable","Récréation"]},
+    {theme:"Corps humain", words:["Main","Œil","Cœur","Cerveau","Genou"]},
+    {theme:"Météo", words:["Pluie","Neige","Orage","Arc-en-ciel","Soleil"]},
+    {theme:"Jeux vidéo", words:["Mario","Pac-Man","Tetris","Minecraft","Zelda"]},
+    {theme:"Fêtes", words:["Noël","Halloween","Anniversaire","Pâques","Nouvel An"]},
+    {theme:"Émotions", words:["Joie","Colère","Peur","Tristesse","Surprise"]},
+    {theme:"Technologie", words:["Ordinateur","Smartphone","Robot","Drone","Casque VR"]}
+  ];
+  function chamLoadWordBank(){
+    try{
+      var raw=localStorage.getItem(CHAM_WORDBANK_KEY);
+      if(raw){ var arr=JSON.parse(raw); if(Array.isArray(arr)&&arr.length) return arr; }
+    }catch(e){}
+    return CHAM_DEFAULT_WORDBANK.slice();
+  }
+  function chamSaveWordBank(){
+    try{ localStorage.setItem(CHAM_WORDBANK_KEY, JSON.stringify(chamState.wordBank)); }catch(e){}
+  }
+
+  var chamState = {
+    players:[], scores:[],
+    wordBank: chamLoadWordBank(), pool:[],
+    theme:null, word:null, myWord:null, amChameleon:false,
+    chameleonSeat:-1, turnQueue:[], turnPointer:0, currentTurnSeat:-1,
+    strokes:[], votes:{}
+  };
+  var chamNetRole=null, chamMySeat=0;
+  var chamPeer=null, chamConn=null;
+  var chamConns=[null,null,null,null,null,null,null,null];
+  var chamGameStarted=false, chamCurrentRoomCode='', chamMyName='';
+  var chamMyColor=CHAM_PALETTE[0], chamSelectedColor=CHAM_PALETTE[0];
+  var chamPeerOpenTimer=null;
+  var chamCanvasEl=null, chamCtx=null;
+  var chamLiveStrokes={};
+  var chamDrawing=false, chamCurrentPoints=[], chamLastSentIdx=0, chamLastSendTime=0;
+  var chamMyVoteTarget=null;
+
+  function chamRenderColorPicker(){
+    var wrap=$('chamColorPicker');
+    wrap.innerHTML='';
+    CHAM_PALETTE.forEach(function(c){
+      var dot=document.createElement('div');
+      dot.className='cham-color-dot'+(c===chamSelectedColor?' selected':'');
+      dot.style.background=c;
+      dot.addEventListener('click',function(){ chamSelectedColor=c; chamRenderColorPicker(); sfxToggle(); });
+      wrap.appendChild(dot);
+    });
+  }
+
+  $('chamAddWordBtn').addEventListener('click',function(){
+    var t=$('chamCustomTheme').value.trim();
+    var w=$('chamCustomWord').value.trim();
+    if(!t||!w){ shake($('chamCustomTheme')); return; }
+    chamState.wordBank.unshift({theme:t, words:[w]});
+    chamSaveWordBank();
+    $('chamCustomTheme').value=''; $('chamCustomWord').value='';
+    sfxToggle();
+  });
+
+  /* ----- screen management ----- */
+  function chamGoto_(name){
+    var all=document.querySelectorAll('.cham-screen');
+    for(var i=0;i<all.length;i++){ all[i].classList.remove('active'); }
+    $('cham-screen-'+name).classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  function chamSetNetStatus(cls,label){
+    var el=$('chamNetStatus');
+    el.className='net-status '+cls;
+    el.querySelector('.net-label').textContent=label;
+  }
+
+  $('chamRulesBtn').addEventListener('click',function(){ openModal('chamRulesModal'); sfxToggle(); });
+  $('chamRulesModalClose').addEventListener('click',function(){ closeModal('chamRulesModal'); });
+  $('chamRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('chamRulesModal'); });
+  $('chamHubReturnBtn').addEventListener('click',function(){ sfxToggle(); goHome(); });
+  $('chamBackFromLobby').addEventListener('click',function(){ sfxToggle(); chamCleanupOnline(); chamGoto_('online'); });
+
+  /* ----- canvas helpers ----- */
+  function chamGetCanvasPoint(evt, canvasEl){
+    var rect=canvasEl.getBoundingClientRect();
+    var scaleX=canvasEl.width/rect.width, scaleY=canvasEl.height/rect.height;
+    return {x:(evt.clientX-rect.left)*scaleX, y:(evt.clientY-rect.top)*scaleY};
+  }
+  function chamDrawSegment(ctx, p1, p2, color){
+    ctx.strokeStyle=color; ctx.lineWidth=6; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    if(p1.x===p2.x && p1.y===p2.y){
+      ctx.beginPath(); ctx.arc(p1.x,p1.y,3,0,Math.PI*2); ctx.fillStyle=color; ctx.fill();
+    }
+  }
+  function chamRedrawAll(ctx){
+    ctx.clearRect(0,0,800,500);
+    chamState.strokes.forEach(function(s){
+      if(s.points.length<=1){
+        var pt=s.points[0]||{x:400,y:250};
+        chamDrawSegment(ctx, pt, pt, s.color);
+      } else {
+        for(var i=1;i<s.points.length;i++){ chamDrawSegment(ctx, s.points[i-1], s.points[i], s.color); }
+      }
+    });
+  }
+
+  /* ----- networking primitives (mirrors demicercle's star topology) ----- */
+  function chamRandomRoomCode(){
+    var w=ROOM_WORDS[Math.floor(Math.random()*ROOM_WORDS.length)];
+    var n=Math.floor(1000+Math.random()*9000);
+    return w+'-'+n;
+  }
+  function chamArmPeerTimer(){
+    chamClearPeerTimer();
+    chamPeerOpenTimer=setTimeout(function(){ chamSetNetStatus('error','IMPOSSIBLE DE JOINDRE LE SERVEUR — RÉESSAIE'); },10000);
+  }
+  function chamClearPeerTimer(){ if(chamPeerOpenTimer){ clearTimeout(chamPeerOpenTimer); chamPeerOpenTimer=null; } }
+  function chamSend(msg){
+    if(chamNetRole==='host'){ chamHostSendToAll(msg); }
+    else if(chamConn && chamConn.open){ try{ chamConn.send(msg); }catch(e){} }
+  }
+  function chamHostSendToAll(msg){
+    for(var s=1;s<chamConns.length;s++){ if(chamConns[s] && chamConns[s].open){ try{chamConns[s].send(msg);}catch(e){} } }
+  }
+  function chamHostSendToAllExcept(msg, exceptSeat){
+    for(var s=1;s<chamConns.length;s++){ if(s===exceptSeat) continue; if(chamConns[s] && chamConns[s].open){ try{chamConns[s].send(msg);}catch(e){} } }
+  }
+  function chamCleanupOnline(){
+    chamClearPeerTimer();
+    try{ if(chamConn) chamConn.close(); }catch(e){}
+    for(var s=1;s<chamConns.length;s++){ try{ if(chamConns[s]) chamConns[s].close(); }catch(e){} chamConns[s]=null; }
+    try{ if(chamPeer) chamPeer.destroy(); }catch(e){}
+    chamConn=null; chamPeer=null; chamNetRole=null; chamMySeat=0; chamGameStarted=false; chamCurrentRoomCode='';
+    chamState.players=[]; chamState.scores=[]; chamState.strokes=[]; chamState.votes={};
+    chamLiveStrokes={};
+    chamSetNetStatus('offline','HORS LIGNE');
+  }
+  function chamHandlePeerDisconnected(){
+    if(chamPeer && !chamPeer.destroyed){ try{ chamPeer.reconnect(); }catch(e){} }
+    var hasLive=false;
+    if(chamNetRole==='host'){
+      for(var s=1;s<chamConns.length;s++){ if(chamConns[s] && chamConns[s].open){ hasLive=true; break; } }
+    } else {
+      hasLive = !!(chamConn && chamConn.open);
+    }
+    if(!hasLive){ chamSetNetStatus('error','SIGNAL PERDU, NOUVELLE TENTATIVE...'); }
+  }
+  function chamHandleConnLost(){
+    if(chamNetRole!=='guest') return;
+    chamSetNetStatus('offline','DÉCONNECTÉ');
+    $('chamDisconnectModalText').textContent="La connexion avec l'hôte a été coupée.";
+    openModal('chamDisconnectModal');
+  }
+  function chamHandlePlayerLeftFatal(){
+    chamSetNetStatus('offline','UN JOUEUR A QUITTÉ');
+    $('chamDisconnectModalText').textContent='Un joueur a quitté la partie.';
+    var current=document.querySelector('.cham-screen.active');
+    var live=['cham-screen-canvas','cham-screen-voting','cham-screen-guess'];
+    if(current && live.indexOf(current.id)!==-1){ openModal('chamDisconnectModal'); }
+  }
+  $('chamDisconnectBackBtn').addEventListener('click',function(){
+    closeModal('chamDisconnectModal');
+    chamCleanupOnline();
+    chamGoto_('online');
+  });
+
+  /* ----- room creation (host) ----- */
+  $('chamCreateRoomBtn').addEventListener('click',function(){
+    chamMyName=$('chamName').value.trim()||'Joueur';
+    chamMyColor=chamSelectedColor;
+    if(typeof Peer==='undefined'){ chamSetNetStatus('error','PEERJS INDISPONIBLE (vérifie ta connexion internet)'); return; }
+    chamCleanupOnline();
+    chamSetNetStatus('connecting','CRÉATION DE LA SALLE...');
+    var code=chamRandomRoomCode();
+    chamPeer=new Peer(CHAM_ROOM_PREFIX+code.toLowerCase(), PEER_OPTS);
+    chamArmPeerTimer();
+    chamPeer.on('open',function(){
+      chamClearPeerTimer();
+      chamNetRole='host'; chamMySeat=0;
+      chamCurrentRoomCode=code;
+      chamState.players=[{name:chamMyName,color:chamMyColor}];
+      chamState.scores=[0];
+      chamGameStarted=false;
+      try{ history.replaceState(null,'','#cameleon?room='+code); }catch(e){}
+      $('chamCodeDisplay').textContent=code;
+      chamSetNetStatus('connected','SALLE CRÉÉE');
+      chamRenderLobby();
+      chamGoto_('lobby');
+    });
+    chamPeer.on('connection', chamAcceptConnection);
+    chamPeer.on('error',function(err){ chamClearPeerTimer(); chamSetNetStatus('error', peerErrorMessage(err)); });
+    chamPeer.on('disconnected', chamHandlePeerDisconnected);
+    sfxToggle();
+  });
+
+  function chamAcceptConnection(c){
+    c.on('data',function(msg){ chamHostHandleIncoming(c,msg); });
+    c.on('close',function(){ chamHostHandleSeatClose(c); });
+    c.on('error',function(){ chamHostHandleSeatClose(c); });
+  }
+  function chamPickAvailableColor(preferred){
+    var used=chamState.players.map(function(p){ return p?p.color:null; });
+    if(preferred && used.indexOf(preferred)===-1) return preferred;
+    for(var i=0;i<CHAM_PALETTE.length;i++){ if(used.indexOf(CHAM_PALETTE[i])===-1) return CHAM_PALETTE[i]; }
+    return CHAM_PALETTE[Math.floor(Math.random()*CHAM_PALETTE.length)];
+  }
+  function chamHostHandleIncoming(c, msg){
+    if(!msg || !msg.type) return;
+    if(msg.type==='join_request'){
+      var activeCount=chamState.players.filter(function(p){return !!p;}).length;
+      if(activeCount>=8){ try{c.send({type:'room_full'});}catch(e){} setTimeout(function(){try{c.close();}catch(e){}},400); return; }
+      var seat=chamState.players.length;
+      var color=chamPickAvailableColor(msg.color);
+      c._seat=seat;
+      chamConns[seat]=c;
+      chamState.players[seat]={name:msg.name, color:color};
+      chamState.scores[seat]=0;
+      try{ c.send({type:'seat_assigned', seat:seat, players:chamState.players.slice(), color:color}); }catch(e){}
+      chamBroadcastLobby();
+      sfxValidate();
+      return;
+    }
+    var s=c._seat;
+    if(s===undefined || s===null) return;
+    if(msg.type==='vote_cast'){ chamHandleVoteCast(msg); return; }
+    if(msg.type==='chameleon_guess_submit'){ chamHostResolveGuess(msg.text); return; }
+    chamHandleNetMessage(msg);
+    chamHostSendToAllExcept(msg, s);
+  }
+  function chamHostHandleSeatClose(c){
+    var s=c._seat;
+    if(s===undefined || s===null) return;
+    chamConns[s]=null;
+    if(chamState.players[s]) chamState.players[s]=null;
+    if(chamGameStarted){
+      chamHostSendToAllExcept({type:'player_left', seat:s}, s);
+      chamHandlePlayerLeftFatal();
+    } else {
+      chamBroadcastLobby();
+    }
+  }
+  function chamBroadcastLobby(){
+    chamHostSendToAll({type:'lobby_update', players:chamState.players.slice()});
+    chamRenderLobby();
+  }
+
+  /* ----- join (guest) ----- */
+  $('chamJoinCode').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){ e.preventDefault(); $('chamJoinRoomBtn').click(); }
+  });
+  $('chamJoinRoomBtn').addEventListener('click',function(){
+    chamMyName=$('chamName').value.trim()||'Joueur';
+    chamMyColor=chamSelectedColor;
+    var code=$('chamJoinCode').value.trim().toUpperCase();
+    if(!code){ shake($('chamJoinCode')); return; }
+    if(typeof Peer==='undefined'){ chamSetNetStatus('error','PEERJS INDISPONIBLE (vérifie ta connexion internet)'); return; }
+    chamCleanupOnline();
+    chamSetNetStatus('connecting','CONNEXION EN COURS...');
+    chamPeer=new Peer(PEER_OPTS);
+    chamArmPeerTimer();
+    chamPeer.on('open',function(){
+      chamClearPeerTimer();
+      chamNetRole='guest';
+      chamConn=chamPeer.connect(CHAM_ROOM_PREFIX+code.toLowerCase(), {reliable:true});
+      chamConn.on('open',function(){
+        chamSetNetStatus('connected','CONNEXION ÉTABLIE');
+        sfxValidate();
+        chamConn.send({type:'join_request', name:chamMyName, color:chamMyColor});
+      });
+      chamConn.on('data', chamHandleNetMessage);
+      chamConn.on('close', chamHandleConnLost);
+      chamConn.on('error', chamHandleConnLost);
+    });
+    chamPeer.on('error',function(err){ chamClearPeerTimer(); chamSetNetStatus('error', peerErrorMessage(err)); });
+    chamPeer.on('disconnected', chamHandlePeerDisconnected);
+    sfxToggle();
+  });
+
+  $('chamCopyCodeBtn').addEventListener('click',function(){ copyText(chamCurrentRoomCode, $('chamCopyCodeBtn')); });
+  $('chamCopyLinkBtn').addEventListener('click',function(){
+    var url=location.origin+location.pathname+'#cameleon?room='+chamCurrentRoomCode;
+    copyText(url, $('chamCopyLinkBtn'));
+  });
+
+  /* ----- lobby ----- */
+  function chamRenderLobby(){
+    var list=$('chamPlayerList');
+    var html='';
+    for(var i=0;i<chamState.players.length;i++){
+      var p=chamState.players[i];
+      if(!p) continue;
+      html+='<div class="cham-player-row filled"><span class="cham-player-dot" style="background:'+p.color+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+(i===chamMySeat?' (toi)':'')+'</span></div>';
+    }
+    list.innerHTML=html;
+    var count=chamState.players.filter(function(p){return !!p;}).length;
+    var statusEl=$('chamLobbyStatus');
+    if(count<3){
+      statusEl.textContent=count+' joueur(s) — 3 minimum pour lancer la partie.';
+    } else {
+      statusEl.textContent = chamNetRole==='host' ? (count+' joueurs prêts. Tu peux lancer la partie !') : (count+" joueurs prêts. En attente que l'hôte lance la partie...");
+    }
+    $('chamStartBtn').style.display = (chamNetRole==='host' && count>=3) ? 'inline-block' : 'none';
+  }
+  $('chamStartBtn').addEventListener('click',function(){
+    sfxValidate();
+    chamGameStarted=true;
+    chamState.pool=shuffle(chamState.wordBank.slice());
+    chamHostStartRound();
+  });
+
+  /* ----- round flow (host authoritative) ----- */
+  function chamHostStartRound(){
+    if(chamState.pool.length===0){ chamState.pool=shuffle(chamState.wordBank.slice()); }
+    var entry=chamState.pool.pop();
+    var word=entry.words[Math.floor(Math.random()*entry.words.length)];
+    var activeSeats=[];
+    for(var i=0;i<chamState.players.length;i++){ if(chamState.players[i]) activeSeats.push(i); }
+    chamState.theme=entry.theme;
+    chamState.word=word;
+    chamState.chameleonSeat=activeSeats[Math.floor(Math.random()*activeSeats.length)];
+    chamState.strokes=[];
+    chamState.votes={};
+    chamLiveStrokes={};
+    chamState.turnQueue=activeSeats.slice().concat(activeSeats.slice());
+    chamState.turnPointer=0;
+
+    activeSeats.forEach(function(s){
+      var isCham=s===chamState.chameleonSeat;
+      var payload={type:'role_info', theme:chamState.theme, word:isCham?null:chamState.word, isChameleon:isCham};
+      if(s===0){ chamHandleNetMessage(payload); }
+      else if(chamConns[s] && chamConns[s].open){ try{ chamConns[s].send(payload); }catch(e){} }
+    });
+    chamHostSendTurn();
+  }
+  function chamHostSendTurn(){
+    var seat=chamState.turnQueue[chamState.turnPointer];
+    var msg={type:'turn_start', seat:seat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length};
+    chamHandleNetMessage(msg);
+    chamHostSendToAll(msg);
+  }
+  function chamHostAdvanceTurn(finishedSeat){
+    if(chamState.turnQueue[chamState.turnPointer]!==finishedSeat) return;
+    chamState.turnPointer++;
+    if(chamState.turnPointer<chamState.turnQueue.length){
+      chamHostSendTurn();
+    } else {
+      var msg={type:'vote_phase_start'};
+      chamHandleNetMessage(msg);
+      chamHostSendToAll(msg);
+    }
+  }
+
+  /* ----- incoming message dispatcher ----- */
+  function chamHandleNetMessage(msg){
+    if(!msg || !msg.type) return;
+    switch(msg.type){
+      case 'room_full':
+        chamSetNetStatus('error','SALLE COMPLÈTE (8/8)');
+        break;
+      case 'seat_assigned':
+        chamMySeat=msg.seat;
+        chamState.players=msg.players.slice();
+        chamMyColor=msg.color;
+        chamGameStarted=false;
+        chamRenderLobby();
+        chamGoto_('lobby');
+        break;
+      case 'lobby_update':
+        chamState.players=msg.players.slice();
+        chamRenderLobby();
+        break;
+      case 'role_info':
+        chamGameStarted=true;
+        chamState.theme=msg.theme;
+        chamState.myWord=msg.word;
+        chamState.amChameleon=msg.isChameleon;
+        chamRenderRoleCard();
+        chamPrepareCanvas();
+        chamGoto_('canvas');
+        break;
+      case 'turn_start':
+        chamState.currentTurnSeat=msg.seat;
+        chamUpdateTurnUI(msg.turnIndex, msg.totalTurns);
+        break;
+      case 'stroke_start': chamHandleStrokeStart(msg); break;
+      case 'stroke_points': chamHandleStrokePoints(msg); break;
+      case 'stroke_end': chamHandleStrokeEnd(msg); break;
+      case 'vote_phase_start': chamShowVoting(); break;
+      case 'vote_result': chamShowVoteResult(msg); break;
+      case 'game_result': chamApplyRoundScoring(msg); chamShowResult(msg); break;
+      case 'player_left': chamHandlePlayerLeftFatal(); break;
+    }
+  }
+
+  /* ----- role & canvas ----- */
+  function chamRenderRoleCard(){
+    var card=$('chamRoleCard');
+    if(chamState.amChameleon){
+      card.className='cham-role-card chameleon';
+      $('chamRoleTheme').textContent='THÈME : '+chamState.theme;
+      $('chamRoleWord').innerHTML='<span class="cham-role-chameleon-text">🦎 TU ES LE CAMÉLÉON</span>';
+    } else {
+      card.className='cham-role-card';
+      $('chamRoleTheme').textContent='THÈME : '+chamState.theme;
+      $('chamRoleWord').textContent=chamState.myWord;
+    }
+  }
+  function chamPrepareCanvas(){
+    if(!chamCanvasEl){
+      chamCanvasEl=$('chamCanvas');
+      chamCtx=chamCanvasEl.getContext('2d');
+      chamWireCanvasEvents();
+    }
+    chamCtx.clearRect(0,0,800,500);
+    $('chamActivePalette').style.display='none';
+  }
+  function chamIsMyTurn(){ return chamGameStarted && chamState.currentTurnSeat===chamMySeat; }
+  function chamMyDrawColor(){
+    var me=chamState.players[chamMySeat];
+    return me?me.color:chamMyColor;
+  }
+  function chamUpdateTurnUI(turnIndex, totalTurns){
+    var seat=chamState.currentTurnSeat;
+    var p=chamState.players[seat];
+    var banner=$('chamTurnBanner');
+    var mine=seat===chamMySeat;
+    banner.className='cham-turn-banner'+(mine?' mine':'');
+    banner.textContent = mine ? '✏️ À TOI DE DESSINER !' : ('AU TOUR DE '+(p?p.name:'?')+' DE DESSINER');
+    $('chamProgress').textContent='Trait '+(turnIndex+1)+' / '+totalTurns;
+    if(chamCanvasEl) chamCanvasEl.classList.toggle('readonly', !mine);
+    $('chamActivePalette').style.display = mine ? 'flex' : 'none';
+    if(mine){
+      var wrap=$('chamActivePalette');
+      wrap.innerHTML='';
+      var dot=document.createElement('div');
+      dot.className='cham-color-dot selected';
+      dot.style.background=chamMyDrawColor();
+      dot.title='Ta couleur';
+      wrap.appendChild(dot);
+    }
+  }
+
+  /* ----- drawing (pointer events) ----- */
+  function chamWireCanvasEvents(){
+    chamCanvasEl.addEventListener('pointerdown', chamPointerDown);
+    chamCanvasEl.addEventListener('pointermove', chamPointerMove);
+    chamCanvasEl.addEventListener('pointerup', chamPointerUp);
+    chamCanvasEl.addEventListener('pointercancel', chamPointerUp);
+    chamCanvasEl.addEventListener('pointerleave', function(evt){ if(chamDrawing) chamPointerUp(evt); });
+  }
+  function chamPointerDown(evt){
+    if(!chamIsMyTurn() || chamDrawing) return;
+    chamDrawing=true;
+    var p=chamGetCanvasPoint(evt, chamCanvasEl);
+    chamCurrentPoints=[p];
+    chamLastSentIdx=0;
+    try{ chamCanvasEl.setPointerCapture(evt.pointerId); }catch(e){}
+    chamSend({type:'stroke_start', seat:chamMySeat, color:chamMyDrawColor()});
+    evt.preventDefault();
+  }
+  function chamPointerMove(evt){
+    if(!chamDrawing) return;
+    var p=chamGetCanvasPoint(evt, chamCanvasEl);
+    var prev=chamCurrentPoints[chamCurrentPoints.length-1];
+    chamCurrentPoints.push(p);
+    chamDrawSegment(chamCtx, prev, p, chamMyDrawColor());
+    var now=Date.now();
+    if(now-chamLastSendTime>60){ chamFlushStrokePoints(); }
+    evt.preventDefault();
+  }
+  function chamPointerUp(evt){
+    if(!chamDrawing) return;
+    chamDrawing=false;
+    chamFlushStrokePoints();
+    chamSend({type:'stroke_end', seat:chamMySeat});
+    chamState.strokes.push({seat:chamMySeat, color:chamMyDrawColor(), points:chamCurrentPoints.slice()});
+    if(chamNetRole==='host'){ chamHostAdvanceTurn(chamMySeat); }
+    chamCurrentPoints=[];
+  }
+  function chamFlushStrokePoints(){
+    if(chamLastSentIdx<chamCurrentPoints.length){
+      var pts=chamCurrentPoints.slice(chamLastSentIdx);
+      chamSend({type:'stroke_points', seat:chamMySeat, points:pts});
+      chamLastSentIdx=chamCurrentPoints.length;
+      chamLastSendTime=Date.now();
+    }
+  }
+  function chamHandleStrokeStart(msg){
+    chamLiveStrokes[msg.seat]={color:msg.color, lastPoint:null, allPoints:[]};
+  }
+  function chamHandleStrokePoints(msg){
+    var live=chamLiveStrokes[msg.seat];
+    if(!live){ live=chamLiveStrokes[msg.seat]={color:'#fff', lastPoint:null, allPoints:[]}; }
+    for(var i=0;i<msg.points.length;i++){
+      var p=msg.points[i];
+      if(live.lastPoint){ chamDrawSegment(chamCtx, live.lastPoint, p, live.color); }
+      live.lastPoint=p;
+      live.allPoints.push(p);
+    }
+  }
+  function chamHandleStrokeEnd(msg){
+    var live=chamLiveStrokes[msg.seat];
+    if(live){
+      if(live.allPoints.length===0 && live.lastPoint===null){ live.allPoints=[{x:400,y:250}]; }
+      chamState.strokes.push({seat:msg.seat, color:live.color, points:live.allPoints});
+    }
+    delete chamLiveStrokes[msg.seat];
+    if(chamNetRole==='host'){ chamHostAdvanceTurn(msg.seat); }
+  }
+
+  /* ----- voting ----- */
+  function chamShowVoting(){
+    var canvas=$('chamVoteCanvas');
+    chamRedrawAll(canvas.getContext('2d'));
+    chamRenderVoteList();
+    $('chamVoteStatus').textContent='En attente des votes...';
+    chamGoto_('voting');
+  }
+  function chamRenderVoteList(){
+    chamMyVoteTarget=null;
+    var list=$('chamVoteList');
+    var html='';
+    for(var i=0;i<chamState.players.length;i++){
+      var p=chamState.players[i];
+      if(!p || i===chamMySeat) continue;
+      html+='<div class="cham-player-row filled"><span class="cham-player-dot" style="background:'+p.color+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+'</span><button class="cham-vote-btn" data-seat="'+i+'"><span>Accuser</span></button></div>';
+    }
+    list.innerHTML=html;
+    var btns=list.querySelectorAll('.cham-vote-btn');
+    for(var k=0;k<btns.length;k++){
+      btns[k].addEventListener('click', function(){
+        if(chamMyVoteTarget!==null) return;
+        chamMyVoteTarget=parseInt(this.getAttribute('data-seat'),10);
+        for(var j=0;j<btns.length;j++){ btns[j].classList.remove('voted'); }
+        this.classList.add('voted');
+        chamCastVote(chamMyVoteTarget);
+        $('chamVoteStatus').textContent='Vote envoyé. En attente des autres joueurs...';
+        sfxValidate();
+      });
+    }
+  }
+  function chamCastVote(target){
+    var msg={type:'vote_cast', voter:chamMySeat, target:target};
+    if(chamNetRole==='host'){ chamHandleVoteCast(msg); }
+    else if(chamConn && chamConn.open){ try{ chamConn.send(msg); }catch(e){} }
+  }
+  function chamHandleVoteCast(msg){
+    chamState.votes[msg.voter]=msg.target;
+    if(chamNetRole==='host'){
+      var activeCount=chamState.players.filter(function(p){return !!p;}).length;
+      var count=Object.keys(chamState.votes).length;
+      if(count>=activeCount){ chamHostResolveVotes(); }
+    }
+  }
+  function chamHostResolveVotes(){
+    var activeSeats=[];
+    for(var s=0;s<chamState.players.length;s++){ if(chamState.players[s]) activeSeats.push(s); }
+    var tally={};
+    activeSeats.forEach(function(s){ tally[s]=0; });
+    Object.keys(chamState.votes).forEach(function(voterSeat){
+      var target=chamState.votes[voterSeat];
+      if(tally.hasOwnProperty(target)){ tally[target]++; }
+    });
+    var maxVotes=-1, leaders=[];
+    activeSeats.forEach(function(s){
+      if(tally[s]>maxVotes){ maxVotes=tally[s]; leaders=[s]; }
+      else if(tally[s]===maxVotes){ leaders.push(s); }
+    });
+    var accusedSeat=leaders[Math.floor(Math.random()*leaders.length)];
+    var wasChameleon=accusedSeat===chamState.chameleonSeat;
+    var msg={type:'vote_result', tally:tally, accusedSeat:accusedSeat, wasChameleon:wasChameleon};
+    chamHandleNetMessage(msg);
+    chamHostSendToAll(msg);
+    if(!wasChameleon){
+      var result={type:'game_result', winner:'chameleon', word:chamState.word, theme:chamState.theme,
+        chameleonSeat:chamState.chameleonSeat, chameleonName:(chamState.players[chamState.chameleonSeat]||{}).name,
+        guessText:null, accusedSeat:accusedSeat, tally:tally};
+      chamHandleNetMessage(result);
+      chamHostSendToAll(result);
+    }
+  }
+  function chamShowVoteResult(msg){
+    if(msg.wasChameleon){
+      var accusedName=(chamState.players[msg.accusedSeat]||{}).name||'?';
+      $('chamGuessSubtitle').textContent=accusedName+' est démasqué(e) ! Dernière chance : deviner le mot secret.';
+      var amAccused=msg.accusedSeat===chamMySeat;
+      $('chamGuessSelfBox').style.display=amAccused?'block':'none';
+      $('chamGuessWaitBox').style.display=amAccused?'none':'block';
+      $('chamGuessInput').value='';
+      chamGoto_('guess');
+    }
+  }
+
+  /* ----- chameleon's final guess ----- */
+  $('chamGuessSubmitBtn').addEventListener('click',function(){
+    var guess=$('chamGuessInput').value.trim();
+    sfxValidate();
+    if(chamNetRole==='host'){ chamHostResolveGuess(guess); }
+    else if(chamConn && chamConn.open){ try{ chamConn.send({type:'chameleon_guess_submit', text:guess}); }catch(e){} }
+  });
+  function chamHostResolveGuess(guessText){
+    function norm(s){ return (s||'').trim().toLowerCase(); }
+    var correct = norm(guessText)===norm(chamState.word);
+    var winner = correct ? 'chameleon' : 'innocents';
+    var result={type:'game_result', winner:winner, word:chamState.word, theme:chamState.theme,
+      chameleonSeat:chamState.chameleonSeat, chameleonName:(chamState.players[chamState.chameleonSeat]||{}).name,
+      guessText:guessText, accusedSeat:chamState.chameleonSeat, tally:null};
+    chamHandleNetMessage(result);
+    chamHostSendToAll(result);
+  }
+
+  /* ----- result & scoring ----- */
+  function chamApplyRoundScoring(msg){
+    for(var s=0;s<chamState.players.length;s++){
+      if(!chamState.players[s]) continue;
+      if(msg.winner==='chameleon'){
+        if(s===msg.chameleonSeat) chamState.scores[s]=(chamState.scores[s]||0)+2;
+      } else {
+        if(s!==msg.chameleonSeat) chamState.scores[s]=(chamState.scores[s]||0)+1;
+      }
+    }
+  }
+  function chamShowResult(msg){
+    var canvas=$('chamResultCanvas');
+    chamRedrawAll(canvas.getContext('2d'));
+
+    var chamWon = msg.winner==='chameleon';
+    var bannerEl=$('chamResultBanner');
+    bannerEl.textContent = chamWon ? '🦎 LE CAMÉLÉON GAGNE !' : '🎉 LES INNOCENTS GAGNENT !';
+    bannerEl.className='cham-result-banner '+(chamWon?'b-fail':'b-perfect');
+
+    var detail = (msg.guessText!==null && msg.guessText!==undefined)
+      ? (escapeHtml(msg.chameleonName||'?')+' a tenté « '+escapeHtml(msg.guessText)+' » — '+(chamWon?'bonne réponse !':'mauvaise réponse.'))
+      : (escapeHtml(msg.chameleonName||'?')+" n'a pas été démasqué(e), ou la mauvaise personne a été accusée.");
+    $('chamWordReveal').innerHTML='Thème <b>'+escapeHtml(msg.theme)+'</b> — le mot était <b>'+escapeHtml(msg.word)+'</b><br>'+detail;
+
+    var html='';
+    for(var i=0;i<chamState.players.length;i++){
+      var p=chamState.players[i];
+      if(!p) continue;
+      html+='<div class="cham-player-row filled"><span class="cham-player-dot" style="background:'+p.color+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+(i===msg.chameleonSeat?' 🦎':'')+'</span><span class="cham-vote-count">'+(chamState.scores[i]||0)+' pts</span></div>';
+    }
+    $('chamScoreList').innerHTML=html;
+
+    var nextBtn=$('chamNextRoundBtn');
+    var waitLabel=$('chamWaitingHostLabel');
+    if(chamNetRole==='host'){
+      nextBtn.style.display='inline-block';
+      waitLabel.style.display='none';
+      nextBtn.onclick=function(){ sfxToggle(); chamHostStartRound(); };
+    } else {
+      nextBtn.style.display='none';
+      waitLabel.style.display='inline-block';
+      waitLabel.textContent="⏳ En attente que l'hôte lance une nouvelle manche...";
+    }
+
+    sfxReveal(chamWon?0:100);
+    chamGoto_('result');
+  }
+
   /* ================= HUB ROUTER ================= */
   function showView(name){
     var views=document.querySelectorAll('.view');
@@ -2021,6 +2947,10 @@ footer b{color:#777;}
     goto_('online');
     $('joinCodeInput').value = decodeURIComponent(code).toUpperCase();
   }
+  function chamEnterJoinFlow(code){
+    chamGoto_('online');
+    $('chamJoinCode').value = decodeURIComponent(code).toUpperCase();
+  }
 
   function router(isInitial){
     var r = parseHash();
@@ -2029,10 +2959,17 @@ footer b{color:#777;}
       if(isInitial && r.query.room){
         enterDemicercleJoinFlow(r.query.room);
       }
+    } else if(r.route==='cameleon'){
+      showView('cameleon');
+      if(isInitial && r.query.room){
+        chamEnterJoinFlow(r.query.room);
+      }
     } else {
       if(gameMode==='online'){ cleanupOnline(); }
       gameMode='local';
       if(typeof goto_==='function'){ try{ goto_('mode'); }catch(e){} }
+      if(chamNetRole){ chamCleanupOnline(); }
+      if(typeof chamGoto_==='function'){ try{ chamGoto_('online'); }catch(e){} }
       showView('hub');
     }
   }
@@ -2040,8 +2977,10 @@ footer b{color:#777;}
 
   function goHome(){ location.hash='hub'; }
   function goToDemicercle(){ location.hash='demicercle'; }
+  function goToCameleon(){ location.hash='cameleon'; }
   $('hubReturnBtn').addEventListener('click',function(){ sfxToggle(); goHome(); });
   $('playDemicercleBtn').addEventListener('click',function(){ sfxToggle(); goToDemicercle(); });
+  $('playCameleonBtn').addEventListener('click',function(){ sfxToggle(); goToCameleon(); });
 
   /* ----- hub toolbar: info modal + mute ----- */
   $('hubInfoBtn').addEventListener('click',function(){ openModal('hubInfoModal'); sfxToggle(); });
@@ -2062,6 +3001,7 @@ footer b{color:#777;}
 
   /* ---------- INIT ---------- */
   renderThemeList();
+  chamRenderColorPicker();
   refreshMuteBtn();
   router(true);
 })();
