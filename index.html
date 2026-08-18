@@ -1848,6 +1848,7 @@ footer b{color:#777;}
   function hostHandleSeatClose(c){
     var s=c._seat;
     if(!s) return;
+    if(conns[s] !== c) return; // événement obsolète : ce siège a déjà été réattribué
     conns[s]=null;
     state.players[s]=null;
     if(gameStarted){
@@ -1856,7 +1857,7 @@ footer b{color:#777;}
     } else {
       broadcastLobby();
     }
-  }
+}
   function broadcastLobby(){
     hostSendToAll({type:'lobby_update', players:state.players.slice(), teamNames:state.teamNames, roundsLimit:state.roundsLimit, format:onlineFormat});
     renderLobbyScreen();
@@ -2487,6 +2488,7 @@ footer b{color:#777;}
   function chamHostHandleSeatClose(c){
     var s=c._seat;
     if(s===undefined || s===null) return;
+    if(chamConns[s] !== c) return; // même garde
     chamConns[s]=null;
     if(chamState.players[s]) chamState.players[s]=null;
     if(chamGameStarted){
@@ -2495,7 +2497,7 @@ footer b{color:#777;}
     } else {
       chamBroadcastLobby();
     }
-  }
+}
   function chamBroadcastLobby(){
     chamHostSendToAll({type:'lobby_update', players:chamState.players.slice()});
     chamRenderLobby();
