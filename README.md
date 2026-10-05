@@ -46,6 +46,9 @@ Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1
 - 3 cartes (ou aléatoire, choisie par l'hôte) : **Shibuya** (collines et îlots sous la
   lune rouge), **La Prison** (bâtiment fermé sur 3 étages, trappes, cellules et murs à
   faire sauter) et **Les Docks** (îles, quais et conteneurs au milieu de la mer).
+- Chaque tank a sa silhouette : le Titan est un blindé riveté, le Ranger un char-soldat
+  casqué, le Viper un serpent mécanique. Les tanks rebondissent à l'atterrissage et après
+  un choc, sauf s'ils retombent bien droit sur leurs roues.
 - Les explosions creusent la terre ; la pierre résiste mieux. Les compétences ont un
   temps de recharge. Le tir allié est actif. À partir du tour 15, l'eau monte de plus en
   plus vite.
