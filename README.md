@@ -1,1 +1,74 @@
-# Demi-Cercle-Game
+# CRAZY GAMES — Phantom Wave
+
+Un hub de mini-jeux multijoueurs dans le navigateur, façon *Persona 5 / Phantom Thieves*.
+Aucun serveur de jeu : tout tourne dans la page, et le mode en ligne relie
+directement les navigateurs entre eux (WebRTC via [PeerJS](https://peerjs.com/)).
+Hébergeable tel quel sur GitHub Pages.
+
+## Les jeux
+
+### 🌗 Le Demi-Cercle
+Jeu d'estimation inspiré du *Jeu du Demi-Cercle* (Wankil Studio).
+Un thème avec deux extrémités opposées (« Films » : NAVET TOTAL ↔ CHEF-D'ŒUVRE),
+une cible secrète sur un cadran : le donneur d'indice propose un exemple, le devin
+place l'aiguille. Plus c'est proche, plus ça rapporte (100 / 80 / 50 / 20 / 0).
+
+- **Local** : 2 joueurs sur le même écran (on se passe l'appareil).
+- **En ligne** : 1 vs 1 ou 2 vs 2, avec l'aiguille du devin visible en direct et le
+  *Pari de Confiance* (×1,5 si réussi, −30 si raté).
+- Banque de thèmes modifiable, sauvegardée dans le navigateur.
+
+### 🦎 Le Caméléon
+Dessin partagé et déduction sociale, de 3 à 8 joueurs en ligne.
+Tout le monde connaît le mot secret, sauf le Caméléon. Chacun trace un trait à tour de
+rôle (deux passages), puis on vote. Démasqué, le Caméléon peut encore gagner en
+devinant le mot (majuscules, accents et ponctuation ignorés).
+
+## Jouer en ligne
+
+1. Un joueur crée la salle et partage le **code** (ex. `JOKER-4821`) ou le **lien d'invitation**.
+2. Les autres choisissent « Rejoindre une salle ».
+3. L'hôte lance la partie quand tout le monde est là.
+
+Si quelqu'un perd la connexion, il est reconnecté automatiquement et retrouve sa place.
+S'il a rechargé la page, il lui suffit de rejoindre à nouveau la salle depuis le même
+onglet. En 1 vs 1 / 2 vs 2, la place d'un joueur parti peut aussi être reprise par
+quelqu'un d'autre. L'hôte doit rester connecté : c'est lui qui fait tourner la partie.
+
+## Structure du projet
+
+```
+index.html        le balisage des écrans (hub + jeux + modales)
+css/style.css     tout le style
+js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
+js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur
+js/demicercle.js  le Demi-Cercle
+js/cameleon.js    le Caméléon
+js/hub.js         routeur (#hub, #demicercle, #cameleon), infos, bouton son
+```
+
+Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent
+l'objet global `window.CG`.
+
+### Ajouter un jeu
+1. Ajouter une vue `<div id="view-monjeu" class="view">` dans `index.html` et une carte dans le hub.
+2. Créer `js/monjeu.js` et utiliser `CG.createRoomNet({...})` pour le multijoueur
+   (voir les commentaires en tête de `js/net.js`).
+3. Exposer `CG.monjeu = {reset, enterJoinFlow}` et ajouter la route dans `js/hub.js`.
+
+## Lancer en local
+
+Ouvrir `index.html` suffit. Pour que les liens d'invitation fonctionnent, il vaut mieux servir le dossier :
+
+```sh
+python3 -m http.server 8000
+# puis http://localhost:8000
+```
+
+Le mode en ligne utilise le serveur public de PeerJS pour la mise en relation.
+Pour utiliser votre propre [PeerServer](https://github.com/peers/peerjs-server),
+définissez avant les scripts :
+
+```html
+<script>window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/', secure:true};</script>
+```
