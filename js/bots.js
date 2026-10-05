@@ -20,6 +20,7 @@
   var FRAME_EVERY=3;               /* un échantillon toutes les 3 frames (20 /s) */
   var MAX_TICKS=TPS*12;
   var WATER_START=516, WATER_RISE_FROM=15, WATER_MIN=30;
+  var MAPS=CG.botsMaps.MAPS;
   var AIM_MAX_LEN=170;             /* longueur de flèche à 100 % (unités du canvas) */
   var BOTS_ROOM_PREFIX='p5bots-';
   var MODE_LABEL={'1v1':'1 VS 1','2v2':'2 VS 2','ffa':'CHACUN POUR SOI'};
@@ -93,50 +94,10 @@
         var d2=(px-x)*(px-x)+(py-y)*(py-y);
         var i=cy*GW+cx;
         if(g[i]===DIRT && d2<=r*r) g[i]=EMPTY;
-        else if(g[i]===STONE && d2<=wr*wr) g[i]=EMPTY;
+        else if(g[i]>=STONE && d2<=wr*wr) g[i]=EMPTY;
       }
     }
   }
-  function generateTerrain(){
-    var g=newGrid();
-    var p1=Math.random()*6.28, p2=Math.random()*6.28, p3=Math.random()*6.28;
-    var a1=40+Math.random()*40, a2=20+Math.random()*25, a3=6+Math.random()*8;
-    var f1=1+Math.random()*1.5, f2=3+Math.random()*3, f3=9+Math.random()*6;
-    var base=330+Math.random()*40;
-    var heights=[];
-    for(var cx=0;cx<GW;cx++){
-      var t=cx/GW*Math.PI*2;
-      var h=base+a1*Math.sin(t*f1+p1)+a2*Math.sin(t*f2+p2)+a3*Math.sin(t*f3+p3);
-      heights.push(Math.max(225, Math.min(450, h)));
-    }
-    for(cx=0;cx<GW;cx++){
-      for(var cy=Math.floor(heights[cx]/CELL);cy<GH;cy++) g[cy*GW+cx]=DIRT;
-    }
-    /* îlots flottants */
-    var islands=1+Math.floor(Math.random()*3);
-    for(var k=0;k<islands;k++){
-      var ix=120+Math.random()*(W-240), iy=75+Math.random()*55;
-      var rx=40+Math.random()*50, ry=10+Math.random()*8;
-      for(cy=0;cy<GH;cy++) for(cx=0;cx<GW;cx++){
-        var dx=(cx*CELL+2-ix)/rx, dy=(cy*CELL+2-iy)/ry;
-        if(dx*dx+dy*dy<=1) g[cy*GW+cx]=DIRT;
-      }
-    }
-    /* piliers de pierre posés sur le sol */
-    var pillars=2+Math.floor(Math.random()*3);
-    for(k=0;k<pillars;k++){
-      var px=Math.floor((0.15+0.7*(k+Math.random()*0.6)/pillars)*GW);
-      var pw=3+Math.floor(Math.random()*3), ph=10+Math.floor(Math.random()*14);
-      var top=Math.floor(heights[px]/CELL)-ph;
-      for(cy=top;cy<top+ph+3;cy++) for(cx=px;cx<px+pw;cx++){
-        if(cx>=0&&cx<GW&&cy>=0&&cy<GH) g[cy*GW+cx]=STONE;
-      }
-    }
-    /* une couche de pierre près du fond, pour éviter de creuser jusqu'à l'eau trop vite */
-    for(cx=0;cx<GW;cx++) for(cy=GH-6;cy<GH;cy++) if(g[cy*GW+cx]===DIRT && Math.random()<0.6) g[cy*GW+cx]=STONE;
-    return g;
-  }
-
   /* ===================== SIMULATION (hôte) ===================== */
   function solidPx(g, px, py){
     if(px<0||px>=W) return true;            /* bords de la carte : murs invisibles */
@@ -157,27 +118,16 @@
   function aimVec(a){ return {x:Math.cos(a), y:-Math.sin(a)}; }
   function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
 
-  /* Place un tank posé sur le sol à l'abscisse x (sous les îlots flottants,
-     en évitant les piliers de pierre). */
-  function columnHasStone(g, x, w){
-    for(var cx=Math.floor((x-w/2)/CELL);cx<=Math.floor((x+w/2)/CELL);cx++)
-      for(var cy=0;cy<GH;cy++) if(gridGet(g,cx,cy)===STONE && cy<GH-8) return true;
-    return false;
-  }
-  function dropTank(g, t, x){
+  /* Pose un tank : on part du point de départ et on descend jusqu'au sol. */
+  function dropTank(g, t, x, y0){
     var s=tankSpec(t);
-    x=clamp(x, s.w/2+2, W-s.w/2-2);
-    for(var k=1;k<12 && columnHasStone(g,x,s.w+8);k++){
-      x=clamp(x+(k%2?1:-1)*k*14, s.w/2+2, W-s.w/2-2);
-    }
-    t.x=x;
-    t.y=160;
+    t.x=clamp(x, s.w/2+2, W-s.w/2-2);
+    t.y=y0;
+    while(boxHits(g,t.x,t.y,s.w,s.h) && t.y>s.h) t.y-=2;
     for(var i=0;i<H;i++){
       if(boxHits(g,t.x,t.y+1,s.w,s.h)) break;
       t.y++;
     }
-    /* coincé dans un pilier : on remonte */
-    while(boxHits(g,t.x,t.y,s.w,s.h) && t.y>s.h) t.y--;
   }
 
   /* Simule un tour complet. state = {grid, tanks, waterY}, actions[seat] = {kind,a,p}.
@@ -373,14 +323,14 @@
   /* ===================== ÉTAT ===================== */
   var bs={
     players:[], connected:[], clientIds:[],
-    mode:'1v1', timer:30, phase:'lobby',      /* 'lobby' | 'aiming' | 'resolving' | 'ended' */
+    mode:'1v1', timer:30, map:'random', phase:'lobby',      /* 'lobby' | 'aiming' | 'resolving' | 'ended' */
     match:null,                                /* hôte : état qui fait foi */
     actions:{}, turnDeadline:0, turnTimer:null, nextTimer:null, stats:{}
   };
   var botsNetRole=null, botsMySeat=0, botsMyName='', botsRoomCode='';
   var botsSelectedMode='1v1', botsSelectedTimer=30;
   /* ce que l'écran affiche (tout le monde, hôte compris) */
-  var view={grid:null, tanks:[], waterY:WATER_START, turn:0, phase:'idle', projs:[], particles:[], texts:[], replay:null, mode:'1v1'};
+  var view={grid:null, tanks:[], waterY:WATER_START, waterStart:WATER_START, map:'shibuya', seed:1, turn:0, phase:'idle', projs:[], particles:[], texts:[], replay:null, mode:'1v1'};
   var aim={kind:null, a:Math.PI/4, p:0.6, set:false, locked:false, dragging:false};
   var lockedSeats=[], turnEndsAt=0;
 
@@ -531,11 +481,12 @@
   }
   function hostBroadcastLobby(){
     broadcast({type:'lobby_update', players:bs.players.slice(), connected:bs.connected.slice(),
-      mode:bs.mode, timer:bs.timer, phase:bs.phase});
+      mode:bs.mode, timer:bs.timer, map:bs.map, phase:bs.phase});
   }
   function hostSyncMsg(seat){
     var m=bs.match;
     return {type:'sync', grid:gridEncode(m.grid), tanks:m.tanks, waterY:m.waterY, turn:m.turn,
+      map:m.map, seed:m.seed, waterStart:MAPS[m.map].waterStart,
       mode:bs.mode, phase:bs.phase, msLeft:Math.max(0,bs.turnDeadline-Date.now()),
       locked:Object.keys(bs.actions).map(Number), myLocked:bs.actions.hasOwnProperty(seat)};
   }
@@ -556,7 +507,10 @@
   function hostStartMatch(){
     if(lobbyProblem()) return;
     var seats=activeSeats();
-    var grid=generateTerrain();
+    var mapKey = bs.map==='random' ? CG.botsMaps.ORDER[Math.floor(Math.random()*CG.botsMaps.ORDER.length)] : bs.map;
+    var seed=Math.floor(Math.random()*1e9)+1;
+    var gen=CG.botsMaps.generate(mapKey, seats.length, seed);
+    var grid=gen.grid, waterStart=MAPS[mapKey].waterStart;
     var tanks=seats.map(function(s,i){
       var p=bs.players[s];
       var team = bs.mode==='2v2' ? p.team : (bs.mode==='1v1' ? i : i);
@@ -571,15 +525,16 @@
       order=[a[0],b[0],a[1],b[1]];
     } else order=shuffle(tanks.slice());
     order.forEach(function(t,i){
-      var x=(i+0.5)/order.length*W + (Math.random()-0.5)*40;
-      dropTank(grid, t, x);
+      var sp=gen.spawns[i];
+      dropTank(grid, t, sp.x, sp.y);
       t.aim = t.x<W/2 ? Math.PI/4 : Math.PI*3/4;
     });
-    bs.match={grid:grid, tanks:tanks, waterY:WATER_START, turn:0};
+    bs.match={grid:grid, tanks:tanks, waterY:waterStart, turn:0, map:mapKey, seed:seed};
     bs.stats={};
     seats.forEach(function(s){ bs.stats[s]={dmg:0, kills:0}; });
     bs.phase='aiming';
-    broadcast({type:'match_start', grid:gridEncode(grid), tanks:tanks, waterY:WATER_START, mode:bs.mode});
+    broadcast({type:'match_start', grid:gridEncode(grid), tanks:tanks, waterY:waterStart, waterStart:waterStart,
+      mode:bs.mode, map:mapKey, seed:seed});
     hostBroadcastLobby();
     hostStartTurn();
   }
@@ -677,7 +632,7 @@
         break;
       case 'lobby_update':
         bs.players=msg.players.slice(); bs.connected=msg.connected.slice();
-        bs.mode=msg.mode; bs.timer=msg.timer;
+        bs.mode=msg.mode; bs.timer=msg.timer; bs.map=msg.map||'random';
         var wasPhase=bs.phase;
         bs.phase=msg.phase;
         renderLobby();
@@ -687,12 +642,13 @@
       case 'match_start':
         view.grid=gridDecode(msg.grid); view.tanks=msg.tanks; view.waterY=msg.waterY; view.mode=msg.mode;
         view.projs=[]; view.particles=[]; view.texts=[]; view.replay=null; view.turn=0;
-        terrainDirty=true;
+        setupMapVisuals(msg);
         gotoScreen('battle');
         break;
       case 'sync':
         view.grid=gridDecode(msg.grid); view.tanks=msg.tanks; view.waterY=msg.waterY; view.mode=msg.mode;
-        view.turn=msg.turn; view.replay=null; view.projs=[]; terrainDirty=true;
+        view.turn=msg.turn; view.replay=null; view.projs=[];
+        setupMapVisuals(msg);
         lockedSeats=msg.locked||[];
         gotoScreen('battle');
         if(msg.phase==='aiming') beginAiming(msg.msLeft, !!msg.myLocked);
@@ -774,9 +730,53 @@
       });
     }
   })();
+  /* Cartes : aperçu généré localement (graine fixe), choix par l'hôte. */
+  function renderMapGrid(){
+    var grid=$('botsMapGrid'), keys=CG.botsMaps.ORDER.concat(['random']);
+    if(grid.childElementCount!==keys.length){
+      grid.innerHTML='';
+      keys.forEach(function(key){
+        var card=document.createElement('div');
+        card.className='bots-map-card';
+        card.setAttribute('data-map',key);
+        if(key==='random'){
+          card.innerHTML='<div class="bots-map-random">🎲</div><b>ALÉATOIRE</b><small>Une des trois cartes, au hasard.</small>';
+        } else {
+          var m=MAPS[key];
+          card.innerHTML='<canvas width="240" height="135"></canvas><b>'+m.ico+' '+m.name+'</b><small>'+m.desc+'</small>';
+          drawMapPreview(card.querySelector('canvas'), key);
+        }
+        card.addEventListener('click',function(){
+          if(botsNetRole!=='host' || bs.phase!=='lobby') return;
+          bs.map=key; sfxToggle(); hostBroadcastLobby();
+        });
+        grid.appendChild(card);
+      });
+    }
+    var cards=grid.querySelectorAll('.bots-map-card');
+    for(var i=0;i<cards.length;i++){
+      cards[i].classList.toggle('selected', cards[i].getAttribute('data-map')===bs.map);
+      cards[i].classList.toggle('readonly', botsNetRole!=='host');
+    }
+  }
+  function drawMapPreview(cv, key){
+    var big=document.createElement('canvas'); big.width=W; big.height=H;
+    var bc=big.getContext('2d');
+    CG.botsMaps.paintBackground(bc, key, 7);
+    var gen=CG.botsMaps.generate(key, 4, 7);
+    var tc=document.createElement('canvas'); tc.width=W; tc.height=H;
+    var tx=tc.getContext('2d'), img=tx.createImageData(W,H);
+    CG.botsMaps.paintTerrain(img, gen.grid, key, 0, 0, W, H);
+    tx.putImageData(img,0,0);
+    bc.drawImage(tc,0,0);
+    var th=CG.botsMaps.theme(key), wy=MAPS[key].waterStart;
+    bc.fillStyle=th.water; bc.fillRect(0,wy,W,H-wy);
+    cv.getContext('2d').drawImage(big,0,0,cv.width,cv.height);
+  }
   function renderLobby(){
     $('botsLobbyTitle').textContent='LOBBY — '+MODE_LABEL[bs.mode];
     renderTankCards();
+    renderMapGrid();
     var me=bs.players[botsMySeat];
     $('botsTeamPicker').style.display = bs.mode==='2v2' ? 'block' : 'none';
     var tb=$('botsTeamPicker').querySelectorAll('button');
@@ -866,7 +866,7 @@
     var d=currentDef();
     if(!d){ el.textContent='Choisis une action ci-dessous.'; return; }
     if(!d.aim){ el.textContent=d.ico+' '+d.name+' : pas besoin de viser, valide !'; return; }
-    if(!aim.set){ el.textContent='🎯 Glisse depuis ton tank sur le terrain pour orienter la flèche (longueur = puissance).'; return; }
+    if(!aim.set){ el.textContent='🎯 Lance-pierre : tire vers l\u2019arrière, la flèche part dans l\u2019autre sens (plus tu tires loin, plus c\u2019est puissant).'; return; }
     var deg=Math.round(aim.a*180/Math.PI);
     el.textContent=d.ico+' '+d.name+' — angle '+deg+'° — puissance '+Math.round(aim.p*100)+' %';
   }
@@ -941,7 +941,9 @@
     var t=myTank(); if(!t) return;
     var s=TANKS[t.type], pt=canvasPoint(evt);
     var ox=t.x, oy=t.y-s.h/2;
-    var dx=pt.x-ox, dy=oy-pt.y, len=Math.sqrt(dx*dx+dy*dy);
+    /* lance-pierre : on tire vers l'arrière, l'action part à l'opposé du doigt */
+    var dx=ox-pt.x, dy=pt.y-oy, len=Math.sqrt(dx*dx+dy*dy);
+    aim.pull={x:pt.x, y:pt.y};
     if(len<4) return;
     aim.a=Math.atan2(dy,dx);
     aim.p=clamp(len/AIM_MAX_LEN, 0.05, 1);
@@ -960,7 +962,7 @@
     evt.preventDefault();
   });
   canvas.addEventListener('pointermove',function(evt){ if(aim.dragging){ updateAimFrom(evt); evt.preventDefault(); } });
-  function endDrag(){ if(aim.dragging){ aim.dragging=false; renderActionBar(); } }
+  function endDrag(){ if(aim.dragging){ aim.dragging=false; aim.pull=null; renderActionBar(); } }
   canvas.addEventListener('pointerup', endDrag);
   canvas.addEventListener('pointercancel', endDrag);
 
@@ -1030,12 +1032,15 @@
     var t;
     if(e.type==='boom'){
       carve(view.grid, e.x, e.y, e.r, e.wr);
-      terrainDirty=true;
+      markDirty(e.x-e.r-8, e.y-e.r-8, e.x+e.r+8, e.y+e.r+16);
       addExplosion(e.x, e.y, e.r);
       CG.sfxWhoosh();
     } else if(e.type==='wall'){
-      e.cells.forEach(function(i){ view.grid[i]=STONE; });
-      terrainDirty=true;
+      e.cells.forEach(function(i){
+        view.grid[i]=STONE;
+        var cx=(i%GW)*CELL, cy=Math.floor(i/GW)*CELL;
+        markDirty(cx-8, cy-8, cx+CELL+8, cy+CELL+16);
+      });
     } else if(e.type==='dmg'){
       t=findViewTank(e.seat);
       if(t){ t.hp=Math.max(0,t.hp-e.n); addText(t.x, t.y-30, '-'+e.n, '#FF0033'); }
@@ -1055,7 +1060,11 @@
   function findViewTank(seat){ return view.tanks.filter(function(x){ return x.seat===seat; })[0]; }
   function finishReplay(msg){
     view.replay=null; view.projs=[];
-    view.grid=gridDecode(msg.final.grid); terrainDirty=true;
+    /* l'état de l'hôte fait foi ; on ne repeint que s'il diffère du replay */
+    var fin=gridDecode(msg.final.grid), same=true;
+    for(var i=0;i<fin.length;i++){ if(fin[i]!==view.grid[i]){ same=false; break; } }
+    view.grid=fin;
+    if(!same) markAllDirty();
     view.tanks=msg.final.tanks; view.waterY=msg.final.waterY;
     renderRoster();
     setTurnStatus('Préparation du tour suivant...');
@@ -1097,49 +1106,61 @@
   }
 
   /* ===================== RENDU ===================== */
+  /* Terrain lissé et texturé (voir js/bots-maps.js), repeint seulement
+     dans la zone touchée par une explosion. Le décor est peint une fois. */
   var terrainCanvas=document.createElement('canvas');
-  terrainCanvas.width=GW; terrainCanvas.height=GH;
+  terrainCanvas.width=W; terrainCanvas.height=H;
   var tctx=terrainCanvas.getContext('2d');
-  var terrainDirty=true;
-  function rebuildTerrain(){
-    var img=tctx.createImageData(GW,GH), d=img.data, g=view.grid;
-    for(var cy=0;cy<GH;cy++) for(var cx=0;cx<GW;cx++){
-      var i=cy*GW+cx, v=g[i], o=i*4;
-      if(v===EMPTY){ d[o+3]=0; continue; }
-      var top=cy===0 || g[i-GW]===EMPTY;
-      var n=((cx*7+cy*13)%5);
-      if(v===DIRT){
-        if(top){ d[o]=230; d[o+1]=0; d[o+2]=18; }
-        else { var stripe=((cx+cy)%9)<2; d[o]=stripe?70:44+n*3; d[o+1]=stripe?10:12; d[o+2]=stripe?16:18; }
-      } else {
-        var edge=top || gridGet(g,cx-1,cy)===EMPTY || gridGet(g,cx+1,cy)===EMPTY;
-        var c=edge?235:170+n*8; d[o]=c; d[o+1]=c; d[o+2]=c-4;
-      }
-      d[o+3]=255;
-    }
-    tctx.putImageData(img,0,0);
-    terrainDirty=false;
+  var terrainImg=tctx.createImageData(W,H);
+  var shadowCanvas=document.createElement('canvas');
+  shadowCanvas.width=W; shadowCanvas.height=H;
+  var sctx=shadowCanvas.getContext('2d');
+  var bgCanvas=document.createElement('canvas');
+  bgCanvas.width=W; bgCanvas.height=H;
+  var bgctx=bgCanvas.getContext('2d');
+  var dirty=null;
+  function markDirty(x0,y0,x1,y1){
+    if(!dirty) dirty={x0:x0,y0:y0,x1:x1,y1:y1};
+    else { dirty.x0=Math.min(dirty.x0,x0); dirty.y0=Math.min(dirty.y0,y0); dirty.x1=Math.max(dirty.x1,x1); dirty.y1=Math.max(dirty.y1,y1); }
   }
-  function drawBackground(){
-    var gr=ctx.createLinearGradient(0,0,0,H);
-    gr.addColorStop(0,'#160306'); gr.addColorStop(1,'#050505');
-    ctx.fillStyle=gr; ctx.fillRect(0,0,W,H);
-    ctx.save();
-    ctx.globalAlpha=0.07; ctx.strokeStyle='#E60012'; ctx.lineWidth=14;
-    for(var x=-H;x<W;x+=60){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x+H,H); ctx.stroke(); }
-    ctx.restore();
+  function markAllDirty(){ markDirty(0,0,W,H); }
+  function rebuildTerrain(){
+    var x0=Math.max(0,Math.floor(dirty.x0)), y0=Math.max(0,Math.floor(dirty.y0));
+    var x1=Math.min(W,Math.ceil(dirty.x1)), y1=Math.min(H,Math.ceil(dirty.y1));
+    dirty=null;
+    if(x1<=x0 || y1<=y0) return;
+    CG.botsMaps.paintTerrain(terrainImg, view.grid, view.map, x0, y0, x1, y1);
+    tctx.putImageData(terrainImg, 0, 0, x0, y0, x1-x0, y1-y0);
+    /* silhouette noire pour l'ombre portée */
+    sctx.globalCompositeOperation='source-over';
+    sctx.clearRect(0,0,W,H);
+    sctx.drawImage(terrainCanvas,0,0);
+    sctx.globalCompositeOperation='source-in';
+    sctx.fillStyle='#000'; sctx.fillRect(0,0,W,H);
+    sctx.globalCompositeOperation='source-over';
+  }
+  function setupMapVisuals(msg){
+    view.map=msg.map||'shibuya'; view.seed=msg.seed||1;
+    view.waterStart=msg.waterStart||WATER_START;
+    bgctx.clearRect(0,0,W,H);
+    CG.botsMaps.paintBackground(bgctx, view.map, view.seed);
+    markAllDirty();
   }
   function drawWater(time){
-    var y=view.waterY;
-    ctx.fillStyle='rgba(12,30,60,0.92)';
-    ctx.fillRect(0,y,W,H-y);
-    ctx.strokeStyle='rgba(180,220,255,0.7)'; ctx.lineWidth=2;
-    ctx.beginPath();
-    for(var x=0;x<=W;x+=8){
-      var wy=y+Math.sin(x/28+time/400)*3;
-      if(x===0) ctx.moveTo(x,wy); else ctx.lineTo(x,wy);
+    var y=view.waterY, th=CG.botsMaps.theme(view.map);
+    ctx.fillStyle=th.water;
+    ctx.fillRect(0,y,W,H-y+2);
+    ctx.strokeStyle=th.wave; ctx.lineWidth=2;
+    for(var row=0;row<2;row++){
+      ctx.globalAlpha=row?0.35:1;
+      ctx.beginPath();
+      for(var x=0;x<=W;x+=8){
+        var wy=y+row*10+Math.sin(x/28+time/400+row*2)*3;
+        if(x===0) ctx.moveTo(x,wy); else ctx.lineTo(x,wy);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
+    ctx.globalAlpha=1;
   }
   /* dessine un tank ; scale sert aux aperçus du lobby */
   function drawTank(c, t, color, scale){
@@ -1194,6 +1215,13 @@
     var thick=3+aim.p*9;
     var col = aim.locked ? 'rgba(124,255,110,0.9)' : (d.kind==='move'||d.kind==='surv' ? '#00e5ff' : '#FFE600');
     ctx.save();
+    /* élastique du lance-pierre pendant qu'on tire */
+    if(aim.dragging && aim.pull){
+      ctx.setLineDash([6,6]); ctx.strokeStyle='rgba(255,255,255,0.75)'; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.moveTo(ox-6,oy); ctx.lineTo(aim.pull.x,aim.pull.y); ctx.lineTo(ox+6,oy); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(aim.pull.x,aim.pull.y,6,0,Math.PI*2); ctx.fill();
+    }
     ctx.strokeStyle='#000'; ctx.lineWidth=thick+4; ctx.lineCap='round';
     ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ex,ey); ctx.stroke();
     ctx.strokeStyle=col; ctx.lineWidth=thick;
@@ -1216,14 +1244,20 @@
     if(!$('bots-screen-battle').classList.contains('active') || !view.grid) return;
     var dt=Math.min(0.05,(now-lastFrame)/1000); lastFrame=now;
     stepReplay(now);
-    if(terrainDirty) rebuildTerrain();
+    if(dirty) rebuildTerrain();
     updateCamera(dt, false);
     ctx.setTransform(1,0,0,1,0,0);
-    drawBackground();
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
     applyCamera();
-    ctx.imageSmoothingEnabled=false;
-    ctx.drawImage(terrainCanvas,0,0,W,H);
+    ctx.imageSmoothingEnabled=true;
+    ctx.drawImage(bgCanvas,0,0);
+    /* ombre portée du terrain, puis le terrain */
+    ctx.globalAlpha=0.45; ctx.drawImage(shadowCanvas,5,6); ctx.globalAlpha=1;
+    ctx.drawImage(terrainCanvas,0,0);
+    /* halo clair : les tanks restent lisibles même sur un terrain de leur couleur */
+    ctx.save(); ctx.shadowColor='rgba(255,255,255,0.75)'; ctx.shadowBlur=8;
     view.tanks.forEach(function(t){ drawTank(ctx, t, tankColor(t), 1); });
+    ctx.restore();
     view.tanks.forEach(drawTankLabel);
     /* obus */
     view.projs.forEach(function(p){
@@ -1271,7 +1305,7 @@
       $('botsTimerFill').style.width='0%';
       $('botsTimerText').textContent='TOUR '+view.turn+' — ACTION !';
     }
-    if(view.waterY<WATER_START && view.phase==='aiming'){
+    if(view.waterY<view.waterStart && view.phase==='aiming'){
       ctx.font='bold 14px Oswald, sans-serif'; ctx.textAlign='right';
       ctx.fillStyle='#9ad7ff'; ctx.fillText('🌊 L’eau monte !', W-10, 20);
     }
@@ -1290,6 +1324,6 @@
       $('botsJoinCode').value=decodeURIComponent(code).toUpperCase();
     },
     /* exposé pour les tests */
-    _simulate: simulateTurn, _generate: generateTerrain, _drop: dropTank
+    _simulate: simulateTurn, _drop: dropTank
   };
 })();

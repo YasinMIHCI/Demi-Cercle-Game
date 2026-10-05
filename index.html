@@ -706,6 +706,9 @@
           </div>
         </div>
 
+        <h3 class="rules-subhead">CARTE</h3>
+        <div class="bots-map-grid" id="botsMapGrid"></div>
+
         <h3 class="rules-subhead">JOUEURS</h3>
         <div class="cham-player-list" id="botsPlayerList"></div>
         <p class="lobby-status" id="botsLobbyStatus">En attente de joueurs...</p>
@@ -757,9 +760,10 @@
     <ol class="rules-list">
       <li><b>Choisis ton tank</b> dans le lobby : <b>Titan</b> (lourd, lent, beaucoup de PV, attaques puissantes mais longues à recharger), <b>Viper</b> (petit, rapide, peu de PV, recharges courtes) ou <b>Ranger</b> (équilibré).</li>
       <li><b>À chaque tour</b>, tout le monde choisit <b>une action</b> en secret avant la fin du chrono : <b>Saut</b>, <b>Tir</b> (le même pour tous), <b>compétence d'attaque</b> ou <b>compétence de survie</b>.</li>
-      <li><b>Viser :</b> fais glisser depuis ton tank. La flèche donne la direction et la puissance : grande flèche = grand saut ou tir puissant.</li>
+      <li><b>Viser, comme un lance-pierre :</b> tire vers l'arrière depuis ton tank, la flèche part dans l'autre sens. Plus tu tires loin, plus c'est puissant : grande flèche = grand saut ou tir puissant.</li>
       <li>Quand le chrono est fini (ou que tout le monde a validé), <b>toutes les actions partent en même temps</b>. Anticipe les déplacements adverses !</li>
       <li>Le terrain est <b>destructible</b> : les explosions creusent la terre, et les murs de pierre finissent par céder. Tomber à l'eau, c'est la fin.</li>
+      <li><b>3 cartes :</b> <b>Shibuya</b> (collines et îlots), <b>La Prison</b> (fermée, sur 3 étages, avec trappes et cellules) et <b>Les Docks</b> (îles et conteneurs au milieu de la mer).</li>
       <li>Les compétences ont un <b>temps de recharge</b> en tours. Le tir allié est actif : attention à ton coéquipier.</li>
       <li>Le dernier tank (ou la dernière équipe) en vie gagne. À partir du tour 15, l'eau monte à chaque tour !</li>
     </ol>
@@ -889,6 +893,7 @@
 <script src="js/demicercle.js"></script>
 <script src="js/cameleon.js"></script>
 <script src="js/imposteur.js"></script>
+<script src="js/bots-maps.js"></script>
 <script src="js/bots.js"></script>
 <script src="js/hub.js"></script>
 </body>

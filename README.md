@@ -40,8 +40,12 @@ Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1
 - 3 tanks : **Titan** (lourd, 160 PV, Obus lourd / Rempart), **Ranger** (équilibré,
   115 PV, Fragmentation / Réparation), **Viper** (rapide, 80 PV, Rafale / Propulsion).
 - À chaque tour, tout le monde choisit **une action** en secret (saut, tir, compétence
-  d'attaque, compétence de survie) et vise avec une flèche : sa longueur donne la
-  puissance. À la fin du chrono, toutes les actions partent en même temps.
+  d'attaque, compétence de survie) et vise **comme un lance-pierre** : on tire vers
+  l'arrière, la flèche part à l'opposé et sa longueur donne la puissance. À la fin du
+  chrono, toutes les actions partent en même temps.
+- 3 cartes (ou aléatoire, choisie par l'hôte) : **Shibuya** (collines et îlots sous la
+  lune rouge), **La Prison** (bâtiment fermé sur 3 étages, trappes, cellules et murs à
+  faire sauter) et **Les Docks** (îles, quais et conteneurs au milieu de la mer).
 - Les explosions creusent la terre ; la pierre résiste mieux. Les compétences ont un
   temps de recharge. Le tir allié est actif. À partir du tour 15, l'eau monte de plus en
   plus vite.
@@ -69,7 +73,8 @@ js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, batteme
 js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres
-js/bots.js        Battle Bots (terrain, physique, simulation, rendu canvas)
+js/bots-maps.js   Battle Bots : génération des cartes, décors, rendu lissé du terrain
+js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
 js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots), infos, bouton son
 ```
 
