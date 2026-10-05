@@ -41,6 +41,12 @@
         <p>Un dessin partagé, un mot secret... et un infiltré. 3 à 8 joueurs, en ligne.</p>
         <button class="btn yellow" id="playCameleonBtn"><span>▶ JOUER</span></button>
       </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🕵️</div>
+        <h3>L'IMPOSTEUR</h3>
+        <p>Tout le monde répond par un nombre… sauf un qui n'a pas eu la même question. 3 à 8 joueurs, en ligne.</p>
+        <button class="btn yellow" id="playImposteurBtn"><span>▶ JOUER</span></button>
+      </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
         <h3>COMING SOON</h3>
@@ -485,6 +491,157 @@
   </div>
 </div>
 
+<!-- ================= L'IMPOSTEUR ================= -->
+<div id="view-imposteur" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="impHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div id="impApp" style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>L'<em>IMPOSTEUR</em></span></div>
+        <div class="badge-round" id="impRoundBadge" style="display:none;">MANCHE N°1</div>
+      </div>
+      <div class="net-status offline" id="impNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="impNetBanner" role="status">
+      <span id="impNetBannerText"></span>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="imp-screen active" id="imp-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">L'IMPOSTEUR DES CHIFFRES</h1>
+        <p class="subtitle">3 à 8 joueurs. Tout le monde répond par un nombre à la même question… sauf un joueur qui a reçu une autre question, sans le savoir. Démasquez-le !</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="impRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="impName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="impName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label for="impCustomQ">Paire de questions personnalisée (optionnel)</label>
+        <input type="text" id="impCustomQ" placeholder="Question de tout le monde — ex : Combien de cafés bois-tu par semaine ?" maxlength="90">
+        <input type="text" id="impCustomQImp" placeholder="Question de l'imposteur — ex : Combien de fois par semaine fais-tu du sport ?" maxlength="90">
+        <div class="btn-row">
+          <button class="btn ghost small" id="impAddQBtn"><span>＋ Ajouter à la banque</span></button>
+          <span class="theme-count" id="impBankCount" style="margin:0;align-self:center;"></span>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn yellow small" id="impCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="impJoinCode">Code de la salle</label>
+        <input type="text" id="impJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="impJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="imp-screen" id="imp-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="impBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="impCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="impCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="impCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="impPlayerList"></div>
+        <p class="lobby-status" id="impLobbyStatus">En attente de joueurs... (3 minimum)</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="impStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANSWER -->
+    <section class="imp-screen" id="imp-screen-answer">
+      <div class="panel">
+        <div class="cham-role-card">
+          <div class="cham-role-theme">TA QUESTION SECRÈTE</div>
+          <div class="imp-question" id="impMyQuestion"></div>
+        </div>
+        <div id="impAnswerBox">
+          <label for="impAnswerInput">Ta réponse (un nombre)</label>
+          <input type="text" id="impAnswerInput" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="Ex : 7">
+          <div class="btn-row center">
+            <button class="btn yellow" id="impAnswerBtn"><span>✅ Valider ma réponse</span></button>
+          </div>
+        </div>
+        <p class="lobby-status" id="impAnswerStatus"></p>
+        <div class="cham-player-list" id="impAnswerList"></div>
+      </div>
+    </section>
+
+    <!-- REVEAL + VOTE -->
+    <section class="imp-screen" id="imp-screen-vote">
+      <div class="panel">
+        <h1 class="screen-title">🔎 QUI EST L'IMPOSTEUR ?</h1>
+        <p class="subtitle">La vraie question était :</p>
+        <div class="clue-bubble"><small>Question</small><span id="impRealQuestion"></span></div>
+        <div class="imp-line" id="impVoteLine"></div>
+        <p class="subtitle">Discutez, puis accusez le joueur dont la réponse cache une autre question. Si c'est toi qui as reçu une autre question… bluffe !</p>
+        <div class="cham-player-list" id="impVoteList"></div>
+        <p class="lobby-status" id="impVoteStatus"></p>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section class="imp-screen" id="imp-screen-result">
+      <div class="panel">
+        <div class="cham-result-banner" id="impResultBanner">RÉSULTAT</div>
+        <div class="cham-word-reveal" id="impResultText"></div>
+        <div class="imp-line" id="impResultLine"></div>
+        <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">SCORES</h3>
+        <div class="cham-player-list" id="impScoreList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="impNextRoundBtn" style="display:none;"><span>🔄 Nouvelle manche</span></button>
+          <span class="waiting-label" id="impWaitingHostLabel" style="display:none;"></span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- IMPOSTEUR RULES MODAL -->
+<div class="modal-overlay" id="impRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="impRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — L'IMPOSTEUR</h2>
+    <ol class="rules-list">
+      <li>Chaque joueur reçoit en secret une <b>question à réponse chiffrée</b> (ex : « Combien de cafés bois-tu par semaine ? »).</li>
+      <li>Un joueur tiré au sort, l'<b>Imposteur</b>, reçoit une <b>autre question</b> (ex : « Combien de fois par semaine fais-tu du sport ? »)… et <b>il ne le sait pas</b> !</li>
+      <li>Tout le monde répond honnêtement. Quand tout le monde a répondu, la vraie question et toutes les réponses sont révélées.</li>
+      <li>L'Imposteur comprend alors qu'il a été piégé : il doit justifier sa réponse et se fondre dans la masse. Discutez, puis votez.</li>
+      <li><b>Points :</b> si l'Imposteur est le plus accusé, chaque joueur qui a voté contre lui gagne 1 point. Sinon (ou en cas d'égalité), l'Imposteur s'échappe et gagne 2 points.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- IMPOSTEUR DISCONNECT MODAL -->
+<div class="modal-overlay" id="impDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="impDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="impDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- CAMÉLÉON RULES MODAL -->
 <div class="modal-overlay" id="chamRulesModal">
   <div class="modal-box">
@@ -522,6 +679,7 @@
     <ol class="rules-list">
       <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne en 1 vs 1 / 2 vs 2 via une connexion directe entre navigateurs (WebRTC).</li>
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
+      <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question à réponse chiffrée, un joueur qui a reçu une autre question sans le savoir.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
   </div>
@@ -568,6 +726,7 @@
 <script src="js/net.js"></script>
 <script src="js/demicercle.js"></script>
 <script src="js/cameleon.js"></script>
+<script src="js/imposteur.js"></script>
 <script src="js/hub.js"></script>
 </body>
 </html>

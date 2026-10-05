@@ -24,6 +24,16 @@ Tout le monde connaît le mot secret, sauf le Caméléon. Chacun trace un trait 
 rôle (deux passages), puis on vote. Démasqué, le Caméléon peut encore gagner en
 devinant le mot (majuscules, accents et ponctuation ignorés).
 
+### 🕵️ L'Imposteur des chiffres
+Bluff et déduction, de 3 à 8 joueurs en ligne.
+Chacun répond par un nombre à une question secrète (« Combien de cafés bois-tu par
+semaine ? »)… sauf l'Imposteur, qui a reçu une autre question (« Combien de fois par
+semaine fais-tu du sport ? ») **sans le savoir**. Les réponses sont révélées sur une
+ligne graduée avec la vraie question : l'Imposteur découvre le piège et doit bluffer,
+puis tout le monde vote. Si l'Imposteur est le seul plus accusé, ceux qui ont voté
+contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de 30 paires
+de questions, complétable avec les vôtres.
+
 ## Jouer en ligne
 
 1. Un joueur crée la salle et partage le **code** (ex. `JOKER-4821`) ou le **lien d'invitation**.
@@ -44,7 +54,8 @@ js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
 js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur
 js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
-js/hub.js         routeur (#hub, #demicercle, #cameleon), infos, bouton son
+js/imposteur.js   L'Imposteur des chiffres
+js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur), infos, bouton son
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent

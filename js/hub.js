@@ -1,4 +1,4 @@
-/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon),
+/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur),
    modale d'infos et bouton son. Chargé en dernier. */
 (function(){
   'use strict';
@@ -36,10 +36,14 @@
     } else if(r.route==='cameleon'){
       showView('cameleon');
       if(isInitial && r.query.room) CG.cameleon.enterJoinFlow(r.query.room);
+    } else if(r.route==='imposteur'){
+      showView('imposteur');
+      if(isInitial && r.query.room) CG.imposteur.enterJoinFlow(r.query.room);
     } else {
       /* retour au hub : on quitte proprement les salles en cours */
       CG.demicercle.reset();
       CG.cameleon.reset();
+      CG.imposteur.reset();
       showView('hub');
     }
   }
@@ -48,6 +52,7 @@
   function goHome(){ location.hash='hub'; }
   $('hubReturnBtn').addEventListener('click',function(){ CG.sfxToggle(); goHome(); });
   $('playDemicercleBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='demicercle'; });
+  $('playImposteurBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='imposteur'; });
   $('playCameleonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='cameleon'; });
 
   /* ----- hub toolbar: info modal + mute ----- */
