@@ -174,7 +174,7 @@
         var nx=dist>0.01?dx/dist:0, ny=dist>0.01?dy/dist:-1;
         var imp=(160+260*f)/s.mass;
         t.vx+=nx*imp; t.vy+=ny*imp-120*f/s.mass;
-        t.grounded=false;
+        t.grounded=false; t.bumped=true; t.bounces=0;
       });
     }
 
@@ -245,19 +245,42 @@
         for(var st=1;st<=6;st++){
           if(!boxHits(g,nx,t.y-st,s.w,s.h)){ t.x=nx; t.y-=st; stepped=true; break; }
         }
-        if(!stepped) t.vx=-t.vx*0.25;
+        if(!stepped) t.vx=-t.vx*0.4;               /* rebond contre un mur */
       } else t.x=nx;
       /* vertical */
       var ny=t.y+t.vy*DT;
       if(boxHits(g,t.x,ny,s.w,s.h)){
         if(t.vy>0){
           for(var k=0;k<14 && !boxHits(g,t.x,t.y+1,s.w,s.h);k++) t.y+=1;
-          if(t.vy>620) damageTank(t, Math.round((t.vy-620)*0.06));
-          t.vy=0; t.vx=0; t.grounded=true;
+          var impact=t.vy;
+          if(impact>620) damageTank(t, Math.round((impact-620)*0.06));
+          /* Atterrissage : on ne s'arrête net que si l'on retombe bien droit
+             sur ses roues (peu de vitesse horizontale, sol presque plat).
+             Sinon le tank rebondit et glisse un peu dans le sens de la pente. */
+          var slope=groundSlope(t, s);
+          var flat=Math.abs(t.vx)<45 && Math.abs(slope)<0.3;
+          var bounces=t.bounces||0;
+          if(!flat && impact>80 && bounces<4){
+            var e=t.bumped?0.45:0.32;
+            t.bounces=bounces+1;
+            t.vy=-impact*e;
+            t.vx=t.vx*0.7+slope*impact*0.22;
+          } else {
+            t.vy=0; t.vx=0; t.grounded=true; t.bounces=0; t.bumped=false;
+          }
         } else {
-          t.vy=0;
+          t.vy=-t.vy*0.3;                          /* rebond au plafond */
         }
       } else t.y=ny;
+    }
+    /* pente sous le tank : >0 si le sol descend vers la droite */
+    function groundSlope(t, s){
+      function groundAt(x){
+        for(var dy=0;dy<=24;dy+=2){ if(solidPx(g, x, t.y+s.h/2+dy)) return dy; }
+        return 24;
+      }
+      var l=groundAt(t.x-s.w/2+2), r=groundAt(t.x+s.w/2-2);
+      return clamp((r-l)/(s.w-4), -1.5, 1.5);
     }
     function projHitsTank(pr){
       for(var i=0;i<tanks.length;i++){
@@ -316,7 +339,7 @@
       if(settled) break;
     }
     snapshot();
-    tanks.forEach(function(t){ t.vx=0; t.vy=0; t.shielded=false; });
+    tanks.forEach(function(t){ t.vx=0; t.vy=0; t.shielded=false; t.bumped=false; t.bounces=0; });
     return {frames:frames, events:events, dmg:dmgDealt, kills:kills};
   }
 
@@ -655,7 +678,7 @@
         else { view.phase='resolving'; setTurnStatus('Résolution du tour en cours...'); }
         break;
       case 'turn_start':
-        view.tanks=msg.tanks; view.waterY=msg.waterY; view.turn=msg.turn;
+        view.tanks=keepVisual(msg.tanks); view.waterY=msg.waterY; view.turn=msg.turn;
         lockedSeats=[];
         beginAiming(msg.ms, false);
         break;
@@ -697,7 +720,7 @@
         var card=document.createElement('div');
         card.className='bots-tank-card';
         card.setAttribute('data-tank',key);
-        card.innerHTML='<canvas width="120" height="54"></canvas>'+
+        card.innerHTML='<canvas width="160" height="78"></canvas>'+
           '<div class="bots-tank-role">'+s.role+'</div><h4>'+s.name+'</h4>'+
           stat('PV', s.stats.hp, s.hp)+stat('Mobilité', s.stats.speed)+stat('Puissance', s.stats.power)+
           '<div class="bots-skill">'+s.atk.ico+' <b>'+s.atk.name+'</b> ('+plural(s.atk.cd)+') — '+s.atk.desc+'</div>'+
@@ -709,7 +732,7 @@
         });
         grid.appendChild(card);
         var c=card.querySelector('canvas').getContext('2d');
-        drawTank(c, {type:key, x:60, y:36, aim:Math.PI/5, alive:true}, '#E60012', 1.35);
+        drawTank(c, {type:key, x:76, y:50, aim:Math.PI/6, alive:true}, '#E60012', 2.1);
       });
     }
     var cards=grid.querySelectorAll('.bots-tank-card');
@@ -1057,6 +1080,14 @@
       for(var i=0;i<8;i++) view.particles.push({x:e.x, y:e.y, vx:(Math.random()-0.5)*120, vy:-80-Math.random()*120, life:0.7, max:0.7, c:'#9ad7ff', s:3});
     }
   }
+  /* garde l'inclinaison affichée quand l'état des tanks est remplacé */
+  function keepVisual(tanks){
+    tanks.forEach(function(t){
+      var old=findViewTank(t.seat);
+      if(old){ t._tilt=old._tilt; t._px=old._px; }
+    });
+    return tanks;
+  }
   function findViewTank(seat){ return view.tanks.filter(function(x){ return x.seat===seat; })[0]; }
   function finishReplay(msg){
     view.replay=null; view.projs=[];
@@ -1065,7 +1096,7 @@
     for(var i=0;i<fin.length;i++){ if(fin[i]!==view.grid[i]){ same=false; break; } }
     view.grid=fin;
     if(!same) markAllDirty();
-    view.tanks=msg.final.tanks; view.waterY=msg.final.waterY;
+    view.tanks=keepVisual(msg.final.tanks); view.waterY=msg.final.waterY;
     renderRoster();
     setTurnStatus('Préparation du tour suivant...');
   }
@@ -1162,30 +1193,156 @@
     }
     ctx.globalAlpha=1;
   }
-  /* dessine un tank ; scale sert aux aperçus du lobby */
+  /* ===================== DESSIN DES TANKS =====================
+     Trois silhouettes dessinées en code (aucune image à charger) :
+     - TITAN : blindé lourd, plaques rivetées, éperon, double chenille ;
+     - RANGER : char "soldat", tourelle-tête avec casque et lunettes, camouflage ;
+     - VIPER : serpent mécanique, corps en anneaux, tête à crocs et langue.
+     La couleur d'équipe teinte la carrosserie ; le tank regarde du côté où il vise. */
+  function shade(hex, f){
+    var n=parseInt(hex.slice(1),16), r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+    if(f<0){ r*=1+f; g*=1+f; b*=1+f; } else { r+=(255-r)*f; g+=(255-g)*f; b+=(255-b)*f; }
+    return 'rgb('+(r|0)+','+(g|0)+','+(b|0)+')';
+  }
+  var BARREL={ titan:{x:-0.08, y:-0.5, len:0.62, wd:7, wl:4},
+               ranger:{x:0.02, y:-0.52, len:0.66, wd:5.5, wl:3},
+               viper:{x:0.34, y:-0.28, len:0.62, wd:4.5, wl:2.5} };
   function drawTank(c, t, color, scale){
-    var s=TANKS[t.type], k=scale||1, w=s.w*k, h=s.h*k;
-    var x=t.x, y=t.y;
+    var s=TANKS[t.type], k=scale||1, w=s.w, h=s.h;
+    var dir=Math.cos(t.aim)<0?-1:1, tilt=t._tilt||0;
     c.save();
     if(!t.alive) c.globalAlpha=0.35;
-    /* canon */
-    var a=t.aim, len=(s.w*0.62)*k;
-    c.strokeStyle='#111'; c.lineWidth=(t.type==='titan'?7:5)*k; c.lineCap='round';
-    c.beginPath(); c.moveTo(x, y-h*0.35); c.lineTo(x+Math.cos(a)*len, y-h*0.35-Math.sin(a)*len); c.stroke();
-    c.strokeStyle='#ddd'; c.lineWidth=(t.type==='titan'?4:2.5)*k;
-    c.beginPath(); c.moveTo(x, y-h*0.35); c.lineTo(x+Math.cos(a)*len, y-h*0.35-Math.sin(a)*len); c.stroke();
-    /* chenilles */
-    c.fillStyle='#111';
-    roundRect(c, x-w/2, y+h*0.05, w, h*0.45, 4*k); c.fill();
-    c.fillStyle='#555';
-    for(var i=0;i<4;i++){ c.beginPath(); c.arc(x-w/2+w*(i+0.5)/4, y+h*0.28, h*0.13, 0, Math.PI*2); c.fill(); }
-    /* caisse + tourelle */
-    c.fillStyle=color; c.strokeStyle='#000'; c.lineWidth=2*k;
-    roundRect(c, x-w/2+2*k, y-h*0.3, w-4*k, h*0.42, 3*k); c.fill(); c.stroke();
-    c.beginPath(); c.arc(x, y-h*0.3, h*0.33, Math.PI, 0); c.fill(); c.stroke();
-    c.fillStyle='#000';
-    c.fillRect(x-w*0.3, y-h*0.15, w*0.6, 2*k);
+    c.translate(t.x, t.y);
+    c.scale(k,k);
+    c.rotate(tilt);
+    /* canon : dans le repère incliné mais pas retourné, il vise dans la direction réelle */
+    var b=BARREL[t.type], bx=b.x*w*dir, by=b.y*h, a=t.aim+tilt, bl=b.len*w;
+    var ex=bx+Math.cos(a)*bl, ey=by-Math.sin(a)*bl;
+    c.lineCap='round';
+    c.strokeStyle='#0a0a0a'; c.lineWidth=b.wd;
+    c.beginPath(); c.moveTo(bx,by); c.lineTo(ex,ey); c.stroke();
+    c.strokeStyle=t.type==='viper'?'#e8e8e8':'#cfcfcf'; c.lineWidth=b.wl;
+    c.beginPath(); c.moveTo(bx,by); c.lineTo(ex,ey); c.stroke();
+    if(t.type==='titan'){ /* frein de bouche */
+      c.fillStyle='#0a0a0a'; c.beginPath(); c.arc(ex,ey,4.2,0,Math.PI*2); c.fill();
+    }
+    c.scale(dir,1);
+    c.lineJoin='round';
+    if(t.type==='titan') drawTitan(c, w, h, color);
+    else if(t.type==='ranger') drawRanger(c, w, h, color);
+    else drawViper(c, w, h, color);
     c.restore();
+  }
+  function wheels(c, x0, x1, y, r, n){
+    for(var i=0;i<n;i++){
+      var x=x0+(x1-x0)*(n===1?0.5:i/(n-1));
+      c.fillStyle='#2b2b2b'; c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill();
+      c.fillStyle='#8a8a8a'; c.beginPath(); c.arc(x,y,r*0.45,0,Math.PI*2); c.fill();
+    }
+  }
+  function drawTitan(c, w, h, col){
+    var hw=w/2, hh=h/2;
+    /* chenille épaisse */
+    c.fillStyle='#0d0d0d';
+    roundRect(c, -hw, hh*0.1, w, hh*0.9, 5); c.fill();
+    c.strokeStyle='#444'; c.lineWidth=1;
+    for(var x=-hw+3;x<hw-2;x+=4){ c.beginPath(); c.moveTo(x,hh*0.12); c.lineTo(x,hh*0.28); c.stroke(); }
+    wheels(c, -hw+5, hw-5, hh*0.6, 3.2, 6);
+    /* caisse blindée trapézoïdale */
+    c.fillStyle=col; c.strokeStyle='#000'; c.lineWidth=2;
+    c.beginPath();
+    c.moveTo(-hw+1, hh*0.15); c.lineTo(hw+1, hh*0.15); c.lineTo(hw-3, -hh*0.45);
+    c.lineTo(-hw+5, -hh*0.45); c.closePath(); c.fill(); c.stroke();
+    /* plaques et rivets */
+    c.fillStyle=shade(col,-0.35);
+    c.fillRect(-hw+4, -hh*0.32, w*0.3, hh*0.38);
+    c.fillRect(-hw+4+w*0.36, -hh*0.32, w*0.3, hh*0.38);
+    c.fillStyle='#e9e9e9';
+    for(var i=0;i<6;i++){ c.beginPath(); c.arc(-hw+5+i*(w-10)/5, hh*0.02, 0.9, 0, Math.PI*2); c.fill(); }
+    /* éperon avant */
+    c.fillStyle='#1a1a1a';
+    c.beginPath(); c.moveTo(hw-1, hh*0.15); c.lineTo(hw+6, hh*0.05); c.lineTo(hw-2, -hh*0.3); c.closePath(); c.fill();
+    /* tourelle carrée + trappe + fente de vision */
+    c.fillStyle=shade(col,-0.15); c.strokeStyle='#000'; c.lineWidth=2;
+    c.beginPath();
+    c.moveTo(-w*0.3, -hh*0.45); c.lineTo(w*0.18, -hh*0.45); c.lineTo(w*0.12, -h*0.72);
+    c.lineTo(-w*0.22, -h*0.72); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle='#111'; c.fillRect(-w*0.16, -h*0.8, w*0.14, 2.5);
+    c.fillStyle='#FFE600'; c.fillRect(0, -h*0.62, w*0.1, 2);
+  }
+  function drawRanger(c, w, h, col){
+    var hw=w/2, hh=h/2;
+    c.fillStyle='#111';
+    roundRect(c, -hw, hh*0.12, w, hh*0.85, 4); c.fill();
+    wheels(c, -hw+4, hw-4, hh*0.58, 2.8, 4);
+    /* caisse camouflée */
+    c.fillStyle=col; c.strokeStyle='#000'; c.lineWidth=2;
+    roundRect(c, -hw+1, -hh*0.42, w-2, hh*0.62, 3); c.fill(); c.stroke();
+    c.save(); c.clip();
+    c.fillStyle=shade(col,-0.45);
+    [[-0.3,-0.2,4],[0.05,0.05,3.2],[0.32,-0.25,3.6],[-0.08,-0.35,2.4]].forEach(function(p){
+      c.beginPath(); c.ellipse(p[0]*w, p[1]*h, p[2]*1.6, p[2], 0.4, 0, Math.PI*2); c.fill();
+    });
+    c.restore();
+    /* étoile militaire */
+    star(c, -w*0.2, -hh*0.1, 3.2, '#fff');
+    /* antenne + fanion à l'arrière */
+    c.strokeStyle='#111'; c.lineWidth=1.2;
+    c.beginPath(); c.moveTo(-hw+3, -hh*0.4); c.lineTo(-hw-1, -h*1.05); c.stroke();
+    c.fillStyle=col; c.beginPath(); c.moveTo(-hw-1,-h*1.05); c.lineTo(-hw+6,-h*0.98); c.lineTo(-hw-0.5,-h*0.88); c.fill();
+    /* tête de soldat : visage, lunettes, casque */
+    var cx=w*0.05, cy=-h*0.52;
+    c.fillStyle='#e8b98a'; c.strokeStyle='#000'; c.lineWidth=1.5;
+    c.beginPath(); c.arc(cx, cy+1.5, h*0.27, 0, Math.PI*2); c.fill(); c.stroke();
+    c.fillStyle='#FFE600'; c.strokeStyle='#000'; c.lineWidth=1;
+    roundRect(c, cx-1, cy+0.5, h*0.3, 2.6, 1); c.fill(); c.stroke();
+    c.fillStyle=shade(col,-0.5); c.strokeStyle='#000'; c.lineWidth=1.5;
+    c.beginPath(); c.arc(cx, cy, h*0.32, Math.PI, 0); c.closePath(); c.fill(); c.stroke();
+    c.fillStyle='#000'; c.fillRect(cx-h*0.38, cy-0.6, h*0.76, 1.6);
+    c.strokeStyle='#3a2a1a'; c.lineWidth=0.8;
+    c.beginPath(); c.moveTo(cx+h*0.22,cy+0.5); c.lineTo(cx+h*0.12,cy+h*0.28); c.stroke();
+  }
+  function drawViper(c, w, h, col){
+    var hw=w/2, hh=h/2;
+    wheels(c, -hw+2, hw-5, hh*0.72, 2.2, 4);
+    /* queue qui remonte */
+    c.strokeStyle='#000'; c.lineWidth=4.5; c.lineCap='round';
+    c.beginPath(); c.moveTo(-hw*0.7, hh*0.3); c.quadraticCurveTo(-hw-5, hh*0.3, -hw-4, -hh*0.7); c.stroke();
+    c.strokeStyle=col; c.lineWidth=2.5;
+    c.beginPath(); c.moveTo(-hw*0.7, hh*0.3); c.quadraticCurveTo(-hw-5, hh*0.3, -hw-4, -hh*0.7); c.stroke();
+    /* corps en anneaux, du plus petit (arrière) au plus gros (avant) */
+    var segs=[[-0.42,0.18,0.30],[-0.18,0.08,0.36],[0.08,0.02,0.40]];
+    segs.forEach(function(sg, i){
+      var x=sg[0]*w, y=sg[1]*h, r=sg[2]*h;
+      c.fillStyle=col; c.strokeStyle='#000'; c.lineWidth=1.6;
+      c.beginPath(); c.arc(x,y,r,0,Math.PI*2); c.fill(); c.stroke();
+      c.fillStyle=shade(col,-0.4);
+      c.beginPath(); c.arc(x, y-r*0.25, r*0.55, Math.PI*1.1, Math.PI*1.9); c.lineTo(x,y-r*0.1); c.fill();
+      c.fillStyle=shade(col,0.55);
+      c.beginPath(); c.ellipse(x, y+r*0.55, r*0.7, r*0.3, 0, 0, Math.PI*2); c.fill();
+    });
+    /* tête */
+    var hx=w*0.36, hy=-h*0.22;
+    c.fillStyle=col; c.strokeStyle='#000'; c.lineWidth=1.6;
+    c.beginPath(); c.ellipse(hx, hy, h*0.42, h*0.3, -0.15, 0, Math.PI*2); c.fill(); c.stroke();
+    /* langue fourchue */
+    c.strokeStyle='#ff0033'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(hx+h*0.4, hy+1); c.lineTo(hx+h*0.62, hy+1.5);
+    c.lineTo(hx+h*0.72, hy); c.moveTo(hx+h*0.62, hy+1.5); c.lineTo(hx+h*0.72, hy+3); c.stroke();
+    /* crocs */
+    c.fillStyle='#fff';
+    c.beginPath(); c.moveTo(hx+h*0.18, hy+h*0.18); c.lineTo(hx+h*0.24, hy+h*0.36); c.lineTo(hx+h*0.3, hy+h*0.16); c.fill();
+    /* oeil jaune à pupille fendue */
+    c.fillStyle='#FFE600'; c.beginPath(); c.ellipse(hx+h*0.1, hy-h*0.08, 2.2, 1.7, 0, 0, Math.PI*2); c.fill();
+    c.fillStyle='#000'; c.fillRect(hx+h*0.1-0.4, hy-h*0.08-1.5, 0.9, 3);
+  }
+  function star(c, x, y, r, col){
+    c.fillStyle=col; c.beginPath();
+    for(var i=0;i<10;i++){
+      var rr=i%2?r*0.45:r, a=-Math.PI/2+i*Math.PI/5;
+      c.lineTo(x+Math.cos(a)*rr, y+Math.sin(a)*rr);
+    }
+    c.closePath(); c.fill();
   }
   function roundRect(c,x,y,w,h,r){
     c.beginPath(); c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r);
@@ -1238,6 +1395,26 @@
     ctx.fillStyle='#fff'; ctx.fillText(Math.round(aim.p*100)+'%', ex, ey-hs-6);
     ctx.restore();
   }
+  /* Inclinaison purement visuelle : suit la pente au sol, penche dans le
+     sens du mouvement en l'air (les rebonds se voient mieux). */
+  function updateTilts(dt){
+    var g=view.grid;
+    view.tanks.forEach(function(t){
+      var s=TANKS[t.type];
+      function ground(x){
+        for(var dy=0;dy<=10;dy+=1){ if(solidPx(g, x, t.y+s.h/2+dy)) return dy; }
+        return -1;
+      }
+      var l=ground(t.x-s.w/2+2), r=ground(t.x+s.w/2-2), target;
+      if(l>=0 && r>=0) target=Math.atan2(r-l, s.w-4);
+      else {
+        var vx=(t._px!==undefined && dt>0) ? (t.x-t._px)/dt : 0;
+        target=clamp(vx*0.0011, -0.45, 0.45);
+      }
+      t._px=t.x;
+      t._tilt=(t._tilt||0)+(clamp(target,-0.7,0.7)-(t._tilt||0))*Math.min(1,dt*10);
+    });
+  }
   var lastFrame=performance.now();
   function render(now){
     requestAnimationFrame(render);
@@ -1254,6 +1431,7 @@
     /* ombre portée du terrain, puis le terrain */
     ctx.globalAlpha=0.45; ctx.drawImage(shadowCanvas,5,6); ctx.globalAlpha=1;
     ctx.drawImage(terrainCanvas,0,0);
+    updateTilts(dt);
     /* halo clair : les tanks restent lisibles même sur un terrain de leur couleur */
     ctx.save(); ctx.shadowColor='rgba(255,255,255,0.75)'; ctx.shadowBlur=8;
     view.tanks.forEach(function(t){ drawTank(ctx, t, tankColor(t), 1); });
@@ -1324,6 +1502,6 @@
       $('botsJoinCode').value=decodeURIComponent(code).toUpperCase();
     },
     /* exposé pour les tests */
-    _simulate: simulateTurn, _drop: dropTank
+    _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank
   };
 })();
