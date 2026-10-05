@@ -34,6 +34,20 @@ puis tout le monde vote. Si l'Imposteur est le seul plus accusé, ceux qui ont v
 contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de 30 paires
 de questions, complétable avec les vôtres.
 
+### 🤖 Battle Bots
+Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1 vs 1,
+2 vs 2 ou chacun pour soi (jusqu'à 6).
+- 3 tanks : **Titan** (lourd, 160 PV, Obus lourd / Rempart), **Ranger** (équilibré,
+  115 PV, Fragmentation / Réparation), **Viper** (rapide, 80 PV, Rafale / Propulsion).
+- À chaque tour, tout le monde choisit **une action** en secret (saut, tir, compétence
+  d'attaque, compétence de survie) et vise avec une flèche : sa longueur donne la
+  puissance. À la fin du chrono, toutes les actions partent en même temps.
+- Les explosions creusent la terre ; la pierre résiste mieux. Les compétences ont un
+  temps de recharge. Le tir allié est actif. À partir du tour 15, l'eau monte de plus en
+  plus vite.
+- L'hôte simule chaque tour et envoie le résultat à tous : tout le monde voit exactement
+  la même chose. Sur téléphone, la caméra zoome sur ton tank pendant la visée.
+
 ## Jouer en ligne
 
 1. Un joueur crée la salle et partage le **code** (ex. `JOKER-4821`) ou le **lien d'invitation**.
@@ -55,7 +69,8 @@ js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, batteme
 js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres
-js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur), infos, bouton son
+js/bots.js        Battle Bots (terrain, physique, simulation, rendu canvas)
+js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots), infos, bouton son
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent
