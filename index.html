@@ -47,6 +47,12 @@
         <p>Tout le monde répond par un nombre… sauf un qui n'a pas eu la même question. 3 à 8 joueurs, en ligne.</p>
         <button class="btn yellow" id="playImposteurBtn"><span>▶ JOUER</span></button>
       </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🤖</div>
+        <h3>BATTLE BOTS</h3>
+        <p>Combat de tanks en 2D, actions simultanées, terrain destructible. 1 vs 1, 2 vs 2 ou chacun pour soi, en ligne.</p>
+        <button class="btn yellow" id="playBotsBtn"><span>▶ JOUER</span></button>
+      </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
         <h3>COMING SOON</h3>
@@ -616,6 +622,161 @@
   </div>
 </div>
 
+<!-- ================= BATTLE BOTS ================= -->
+<div id="view-bots" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="botsHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div id="botsApp" style="max-width:1100px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>BATTLE <em>BOTS</em></span></div>
+        <div class="badge-round" id="botsTurnBadge" style="display:none;">TOUR 1</div>
+      </div>
+      <div class="net-status offline" id="botsNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="botsNetBanner" role="status">
+      <span id="botsNetBannerText"></span>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="bots-screen active" id="bots-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">BATTLE BOTS</h1>
+        <p class="subtitle">Combat de tanks au tour par tour… simultané ! Chacun choisit son action en secret, puis tout se déclenche en même temps. 1 vs 1, 2 vs 2 ou chacun pour soi, en ligne.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="botsRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="botsName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="botsName" placeholder="Ton pseudo" maxlength="14">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label>Mode de jeu</label>
+        <div class="format-toggle" id="botsModeToggle">
+          <button class="btn ghost small format-opt active" data-mode="1v1"><span>👤 1 VS 1</span></button>
+          <button class="btn ghost small format-opt" data-mode="2v2"><span>👥 2 VS 2</span></button>
+          <button class="btn ghost small format-opt" data-mode="ffa"><span>💥 CHACUN POUR SOI</span></button>
+        </div>
+        <label>Temps pour choisir son action</label>
+        <div class="format-toggle" id="botsTimerToggle">
+          <button class="btn ghost small format-opt" data-timer="20"><span>20 s</span></button>
+          <button class="btn ghost small format-opt active" data-timer="30"><span>30 s</span></button>
+          <button class="btn ghost small format-opt" data-timer="45"><span>45 s</span></button>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn yellow small" id="botsCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="botsJoinCode">Code de la salle</label>
+        <input type="text" id="botsJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="botsJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="bots-screen" id="bots-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="botsBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title" id="botsLobbyTitle">LOBBY</h1>
+        <div class="room-code-display" id="botsCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="botsCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="botsCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+
+        <h3 class="rules-subhead">CHOISIS TON TANK</h3>
+        <div class="bots-tank-grid" id="botsTankGrid"></div>
+
+        <div id="botsTeamPicker" style="display:none;">
+          <h3 class="rules-subhead">CHOISIS TON ÉQUIPE</h3>
+          <div class="format-toggle">
+            <button class="btn ghost small format-opt" data-team="0"><span>🔴 ÉQUIPE ROUGE</span></button>
+            <button class="btn ghost small format-opt" data-team="1"><span>🔵 ÉQUIPE BLEUE</span></button>
+          </div>
+        </div>
+
+        <h3 class="rules-subhead">JOUEURS</h3>
+        <div class="cham-player-list" id="botsPlayerList"></div>
+        <p class="lobby-status" id="botsLobbyStatus">En attente de joueurs...</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="botsStartBtn" style="display:none;"><span>🎮 Lancer le combat</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- BATTLE -->
+    <section class="bots-screen" id="bots-screen-battle">
+      <div class="bots-hud">
+        <div class="bots-timer"><div class="bots-timer-fill" id="botsTimerFill"></div><span id="botsTimerText"></span></div>
+        <button class="btn ghost small bots-zoom-btn" id="botsZoomBtn"><span>🔍 Zoom sur mon tank</span></button>
+      </div>
+      <div class="bots-canvas-frame">
+        <canvas id="botsCanvas" width="960" height="540"></canvas>
+      </div>
+      <div class="bots-actionbar" id="botsActionBar"></div>
+      <div class="bots-aim-info" id="botsAimInfo"></div>
+      <div class="btn-row center" style="margin-top:6px;">
+        <button class="btn yellow" id="botsLockBtn" disabled><span>✅ Valider mon action</span></button>
+      </div>
+      <p class="lobby-status" id="botsTurnStatus"></p>
+      <div class="bots-roster" id="botsRoster"></div>
+    </section>
+
+    <!-- END -->
+    <section class="bots-screen" id="bots-screen-end">
+      <div class="panel">
+        <div class="cham-result-banner" id="botsEndBanner">FIN DU COMBAT</div>
+        <div class="cham-word-reveal" id="botsEndText"></div>
+        <div class="cham-player-list" id="botsEndList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="botsRematchBtn" style="display:none;"><span>🔄 Retour au lobby</span></button>
+          <span class="waiting-label" id="botsEndWaitLabel" style="display:none;"></span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- BATTLE BOTS RULES MODAL -->
+<div class="modal-overlay" id="botsRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="botsRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — BATTLE BOTS</h2>
+    <ol class="rules-list">
+      <li><b>Choisis ton tank</b> dans le lobby : <b>Titan</b> (lourd, lent, beaucoup de PV, attaques puissantes mais longues à recharger), <b>Viper</b> (petit, rapide, peu de PV, recharges courtes) ou <b>Ranger</b> (équilibré).</li>
+      <li><b>À chaque tour</b>, tout le monde choisit <b>une action</b> en secret avant la fin du chrono : <b>Saut</b>, <b>Tir</b> (le même pour tous), <b>compétence d'attaque</b> ou <b>compétence de survie</b>.</li>
+      <li><b>Viser :</b> fais glisser depuis ton tank. La flèche donne la direction et la puissance : grande flèche = grand saut ou tir puissant.</li>
+      <li>Quand le chrono est fini (ou que tout le monde a validé), <b>toutes les actions partent en même temps</b>. Anticipe les déplacements adverses !</li>
+      <li>Le terrain est <b>destructible</b> : les explosions creusent la terre, et les murs de pierre finissent par céder. Tomber à l'eau, c'est la fin.</li>
+      <li>Les compétences ont un <b>temps de recharge</b> en tours. Le tir allié est actif : attention à ton coéquipier.</li>
+      <li>Le dernier tank (ou la dernière équipe) en vie gagne. À partir du tour 15, l'eau monte à chaque tour !</li>
+    </ol>
+  </div>
+</div>
+
+<!-- BATTLE BOTS DISCONNECT MODAL -->
+<div class="modal-overlay" id="botsDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="botsDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="botsDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- IMPOSTEUR RULES MODAL -->
 <div class="modal-overlay" id="impRulesModal">
   <div class="modal-box">
@@ -680,6 +841,7 @@
       <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne en 1 vs 1 / 2 vs 2 via une connexion directe entre navigateurs (WebRTC).</li>
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question à réponse chiffrée, un joueur qui a reçu une autre question sans le savoir.</li>
+      <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2 ou chacun pour soi (jusqu'à 6), en ligne.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
   </div>
@@ -727,6 +889,7 @@
 <script src="js/demicercle.js"></script>
 <script src="js/cameleon.js"></script>
 <script src="js/imposteur.js"></script>
+<script src="js/bots.js"></script>
 <script src="js/hub.js"></script>
 </body>
 </html>
