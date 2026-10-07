@@ -53,6 +53,12 @@
         <p>Combat de tanks en 2D, actions simultanées, terrain destructible. 1 vs 1, 2 vs 2 ou chacun pour soi, en ligne.</p>
         <button class="btn yellow" id="playBotsBtn"><span>▶ JOUER</span></button>
       </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🐺</div>
+        <h3>LE LOUP DES MOTS</h3>
+        <p>Trouvez le mot du Maire en questions fermées… mais un Loup qui le connaît vous sabote. 4 à 10 joueurs, en ligne.</p>
+        <button class="btn yellow" id="playLoupBtn"><span>▶ JOUER</span></button>
+      </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
         <h3>COMING SOON</h3>
@@ -752,6 +758,161 @@
   </div>
 </div>
 
+<!-- ================= LE LOUP DES MOTS ================= -->
+<div id="view-loup" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="loupHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div id="loupApp" style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>LE LOUP <em>DES MOTS</em></span></div>
+        <div class="badge-round" id="loupRoundBadge" style="display:none;">MANCHE N°1</div>
+      </div>
+      <div class="net-status offline" id="loupNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="loupNetBanner" role="status">
+      <span id="loupNetBannerText"></span>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="loup-screen active" id="loup-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">LE LOUP DES MOTS</h1>
+        <p class="subtitle">4 à 10 joueurs. Trouvez le mot secret du Maire en lui posant des questions fermées… mais un Loup connaît déjà le mot et vous mène en bateau.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="loupRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="loupName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="loupName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label>Durée de la chasse au mot</label>
+        <div class="format-toggle" id="loupTimerToggle">
+          <button class="btn ghost small format-opt" data-timer="180"><span>3 min</span></button>
+          <button class="btn ghost small format-opt active" data-timer="240"><span>4 min</span></button>
+          <button class="btn ghost small format-opt" data-timer="300"><span>5 min</span></button>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn yellow small" id="loupCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="loupJoinCode">Code de la salle</label>
+        <input type="text" id="loupJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="loupJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="loup-screen" id="loup-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="loupBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="loupCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="loupCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="loupCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="loupPlayerList"></div>
+        <p class="lobby-status" id="loupLobbyStatus">En attente de joueurs... (4 minimum)</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="loupStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROLE + WORD CHOICE -->
+    <section class="loup-screen" id="loup-screen-role">
+      <div class="panel">
+        <div class="loup-role-card" id="loupRoleCard"></div>
+        <div id="loupChooseBox" style="display:none;">
+          <h3 class="rules-subhead" style="text-align:center;">👑 TU ES LE MAIRE — CHOISIS LE MOT SECRET</h3>
+          <div class="loup-word-choices" id="loupWordChoices"></div>
+        </div>
+        <p class="lobby-status" id="loupRoleStatus"></p>
+      </div>
+    </section>
+
+    <!-- QUESTIONS -->
+    <section class="loup-screen" id="loup-screen-game">
+      <div class="bots-hud">
+        <div class="bots-timer"><div class="bots-timer-fill" id="loupTimerFill"></div><span id="loupTimerText"></span></div>
+      </div>
+      <div class="loup-mini-role" id="loupMiniRole"></div>
+      <div class="loup-feed" id="loupFeed"></div>
+      <div id="loupAskBox" class="loup-ask">
+        <input type="text" id="loupAskInput" maxlength="90" placeholder="Pose une question fermée… (ex : Est-ce que ça se mange ?)" autocomplete="off">
+        <button class="btn yellow small" id="loupAskBtn"><span>Envoyer</span></button>
+      </div>
+      <p class="lobby-status" id="loupGameStatus"></p>
+    </section>
+
+    <!-- VOTE (loups -> voyant, ou tous -> loup) -->
+    <section class="loup-screen" id="loup-screen-vote">
+      <div class="panel">
+        <h1 class="screen-title" id="loupVoteTitle">VOTE</h1>
+        <p class="subtitle" id="loupVoteSubtitle"></p>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="loupVoteTimerFill"></div><span id="loupVoteTimerText"></span></div>
+        <div class="cham-player-list" id="loupVoteList"></div>
+        <p class="lobby-status" id="loupVoteStatus"></p>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section class="loup-screen" id="loup-screen-result">
+      <div class="panel">
+        <div class="cham-result-banner" id="loupResultBanner">RÉSULTAT</div>
+        <div class="cham-word-reveal" id="loupResultText"></div>
+        <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">RÔLES &amp; SCORES</h3>
+        <div class="cham-player-list" id="loupScoreList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="loupNextRoundBtn" style="display:none;"><span>🔄 Nouvelle manche</span></button>
+          <span class="waiting-label" id="loupWaitingHostLabel" style="display:none;"></span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- LOUP RULES MODAL -->
+<div class="modal-overlay" id="loupRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="loupRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LE LOUP DES MOTS</h2>
+    <ol class="rules-list">
+      <li>Chaque manche, un joueur devient le <b>Maire</b> : il choisit un <b>mot secret</b> parmi trois propositions.</li>
+      <li>Chacun reçoit aussi un <b>rôle secret</b> (le Maire compris) : <b>Loup</b> 🐺 (connaît le mot, 2 loups à partir de 7 joueurs), <b>Voyant</b> 🔮 (connaît le mot) ou <b>Villageois</b> 🧑‍🌾 (ne sait rien).</li>
+      <li>Avant la fin du chrono, tout le monde pose des <b>questions fermées</b> au Maire, qui répond honnêtement : <b>Oui</b>, <b>Non</b>, <b>Peut-être</b>, <b>Tu chauffes !</b> (une seule fois) ou <b>Loin !</b> (une seule fois). Proposez directement des mots : le Maire valide avec <b>Trouvé !</b></li>
+      <li><b>Mot trouvé :</b> les Loups ont 30 secondes pour démasquer le <b>Voyant</b>. S'ils le trouvent, les Loups gagnent ; sinon, le Village gagne. Voyant, aide le groupe… sans te faire repérer !</li>
+      <li><b>Mot pas trouvé à temps :</b> tout le monde vote contre un <b>Loup</b> présumé. Si un Loup est le plus accusé, le Village gagne ; sinon, les Loups gagnent.</li>
+      <li>Chaque joueur du camp gagnant marque 1 point. Le rôle de Maire tourne à chaque manche.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- LOUP DISCONNECT MODAL -->
+<div class="modal-overlay" id="loupDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="loupDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="loupDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- BATTLE BOTS RULES MODAL -->
 <div class="modal-overlay" id="botsRulesModal">
   <div class="modal-box">
@@ -846,6 +1007,7 @@
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question à réponse chiffrée, un joueur qui a reçu une autre question sans le savoir.</li>
       <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2 ou chacun pour soi (jusqu'à 6), en ligne.</li>
+      <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
   </div>
@@ -893,6 +1055,7 @@
 <script src="js/demicercle.js"></script>
 <script src="js/cameleon.js"></script>
 <script src="js/imposteur.js"></script>
+<script src="js/loup.js"></script>
 <script src="js/bots-maps.js"></script>
 <script src="js/bots.js"></script>
 <script src="js/hub.js"></script>

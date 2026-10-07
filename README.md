@@ -34,6 +34,16 @@ puis tout le monde vote. Si l'Imposteur est le seul plus accusé, ceux qui ont v
 contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de 30 paires
 de questions, complétable avec les vôtres.
 
+### 🐺 Le Loup des mots
+Déduction et bluff, de 4 à 10 joueurs en ligne (dans l'esprit de *Werewords*).
+Chaque manche, un Maire choisit un mot secret ; chacun reçoit un rôle caché : **Loup**
+(connaît le mot, 2 loups à partir de 7 joueurs), **Voyant** (connaît le mot) ou
+**Villageois**. Tout le monde pose des questions fermées au Maire, qui répond Oui, Non,
+Peut-être, Tu chauffes ! ou Loin ! (une fois chacun), jusqu'à « Trouvé ! ».
+- Mot trouvé : les Loups ont 30 s pour démasquer le Voyant.
+- Chrono écoulé : tout le monde vote contre un Loup présumé.
+Le camp gagnant marque 1 point par joueur ; le rôle de Maire tourne à chaque manche.
+
 ### 🤖 Battle Bots
 Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1 vs 1,
 2 vs 2 ou chacun pour soi (jusqu'à 6).
@@ -76,9 +86,10 @@ js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, batteme
 js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres
+js/loup.js        Le Loup des mots
 js/bots-maps.js   Battle Bots : génération des cartes, décors, rendu lissé du terrain
 js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
-js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots), infos, bouton son
+js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup), infos, bouton son
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent

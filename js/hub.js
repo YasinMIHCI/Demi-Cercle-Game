@@ -1,4 +1,4 @@
-/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots),
+/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup),
    modale d'infos et bouton son. Chargé en dernier. */
 (function(){
   'use strict';
@@ -36,6 +36,9 @@
     } else if(r.route==='cameleon'){
       showView('cameleon');
       if(isInitial && r.query.room) CG.cameleon.enterJoinFlow(r.query.room);
+    } else if(r.route==='loup'){
+      showView('loup');
+      if(isInitial && r.query.room) CG.loup.enterJoinFlow(r.query.room);
     } else if(r.route==='bots'){
       showView('bots');
       if(isInitial && r.query.room) CG.bots.enterJoinFlow(r.query.room);
@@ -48,6 +51,7 @@
       CG.cameleon.reset();
       CG.imposteur.reset();
       CG.bots.reset();
+      CG.loup.reset();
       showView('hub');
     }
   }
@@ -56,6 +60,7 @@
   function goHome(){ location.hash='hub'; }
   $('hubReturnBtn').addEventListener('click',function(){ CG.sfxToggle(); goHome(); });
   $('playDemicercleBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='demicercle'; });
+  $('playLoupBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='loup'; });
   $('playBotsBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='bots'; });
   $('playImposteurBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='imposteur'; });
   $('playCameleonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='cameleon'; });
