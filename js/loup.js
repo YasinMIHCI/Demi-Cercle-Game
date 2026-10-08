@@ -189,12 +189,13 @@
     ls.connected[seat]=false;
     hostBroadcastLobby();
     if(!isRoundLive() || ls.roundSeats.indexOf(seat)===-1) return;
-    if(seat===ls.mayorSeat){
+    if(seat===ls.mayorSeat && (ls.phase==='choosing' || ls.phase==='asking')){
       /* sans Maire, personne ne peut répondre : on l'attend un peu */
       clearTimeout(ls.mayorTimer);
       ls.mayorTimer=setTimeout(function(){
         ls.mayorTimer=null;
-        if(isRoundLive() && !isConnected(ls.mayorSeat)) hostAbort('le Maire a quitté la partie (aucun point attribué).');
+        /* pendant les votes, le Maire n'a plus de rôle à jouer : on continue */
+        if((ls.phase==='choosing' || ls.phase==='asking') && !isConnected(ls.mayorSeat)) hostAbort('le Maire a quitté la partie (aucun point attribué).');
       }, MAYOR_GRACE);
     }
     if(ls.phase==='loupvote' || ls.phase==='villagevote') hostCheckVotes();
@@ -215,7 +216,7 @@
     var role=ls.roles[seat];
     var knows = role==='loup' || role==='voyant' || seat===ls.mayorSeat;
     return {type:'round_start', round:ls.round, roundSeats:ls.roundSeats.slice(), mayorSeat:ls.mayorSeat,
-      role:role, word:(knows && ls.word) ? ls.word : null,
+      role:role, word:(knows && ls.word) ? ls.word : null, chosen:ls.phase!=='choosing',
       loups: role==='loup' ? ls.roundSeats.filter(function(s){ return ls.roles[s]==='loup'; }) : [],
       choices: (seat===ls.mayorSeat && ls.phase==='choosing') ? ls.choices.slice() : null,
       ms: ls.phase==='choosing' ? Math.max(0, ls.deadline-Date.now()) : 0};
@@ -237,9 +238,10 @@
     var seats=[];
     for(var i=0;i<ls.players.length;i++){ if(ls.players[i] && isConnected(i)) seats.push(i); }
     if(seats.length<MIN_PLAYERS){
-      setNetStatus('error', MIN_PLAYERS+' JOUEURS CONNECTÉS MINIMUM');
       ls.phase='lobby_wait';
-      renderLobby(); gotoScreen('lobby');
+      if(gameStarted) broadcast({type:'round_aborted', reason:'il faut '+MIN_PLAYERS+' joueurs connectés pour continuer.'});
+      else { renderLobby(); gotoScreen('lobby'); }
+      setNetStatus('error', MIN_PLAYERS+' JOUEURS CONNECTÉS MINIMUM');
       return;
     }
     setNetStatus('connected','PARTIE EN COURS');
@@ -458,7 +460,7 @@
     $('loupRoundBadge').textContent='MANCHE N°'+msg.round;
     $('loupRoundBadge').style.display='inline-block';
     renderRoleCard();
-    if(!msg.word){
+    if(!msg.chosen){
       /* le mot n'est pas encore choisi */
       view.phase='choosing';
       var box=$('loupChooseBox');

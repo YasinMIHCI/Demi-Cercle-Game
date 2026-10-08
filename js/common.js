@@ -87,7 +87,26 @@
     try{ localStorage.setItem('crazygames_muted', audioMuted?'1':'0'); }catch(e){}
   }
 
+  /* Barre de temps (même style que Battle Bots) : start(ms restantes, durée totale). */
+  function timerBar(fillId, textId){
+    var tick=null, endsAt=0, total=1;
+    function update(){
+      var left=Math.max(0, endsAt-Date.now());
+      $(fillId).style.width=(left/total*100)+'%';
+      $(textId).textContent='⏳ '+Math.ceil(left/1000)+' s';
+      if(!left){ clearInterval(tick); tick=null; }
+    }
+    return {
+      start:function(ms, totalMs){
+        endsAt=Date.now()+Math.max(0,ms||0); total=totalMs||ms||1;
+        clearInterval(tick); tick=setInterval(update, 250); update();
+      },
+      stop:function(){ clearInterval(tick); tick=null; }
+    };
+  }
+
   CG.$=$;
+  CG.timerBar=timerBar;
   CG.escapeHtml=escapeHtml;
   CG.shuffle=shuffle;
   CG.shake=shake;

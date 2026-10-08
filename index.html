@@ -331,6 +331,7 @@
 
       <div class="btn-row center">
         <button class="btn yellow" id="revealContinueBtn"><span>▶ Manche suivante</span></button>
+        <button class="btn ghost" id="endGameBtn" style="display:none;"><span>🏁 Terminer la partie</span></button>
         <span class="waiting-label" id="waitingHostLabel" style="display:none;"></span>
       </div>
     </div>
@@ -442,6 +443,7 @@
 
         <div class="cham-turn-banner" id="chamTurnBanner">AU TOUR DE ... DE DESSINER</div>
         <div class="cham-progress" id="chamProgress"></div>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="chamTurnTimerFill"></div><span id="chamTurnTimerText"></span></div>
 
         <div class="cham-canvas-frame">
           <canvas class="cham-canvas" id="chamCanvas" width="800" height="500"></canvas>
@@ -459,6 +461,7 @@
         <div class="cham-canvas-frame">
           <canvas class="cham-canvas readonly" id="chamVoteCanvas" width="800" height="500"></canvas>
         </div>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="chamVoteTimerFill"></div><span id="chamVoteTimerText"></span></div>
         <div class="cham-player-list" id="chamVoteList"></div>
         <p class="lobby-status" id="chamVoteStatus"></p>
       </div>
@@ -469,6 +472,7 @@
       <div class="panel">
         <h1 class="screen-title">😱 LE CAMÉLÉON EST DÉMASQUÉ !</h1>
         <p class="subtitle" id="chamGuessSubtitle"></p>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="chamGuessTimerFill"></div><span id="chamGuessTimerText"></span></div>
         <div id="chamGuessSelfBox" style="display:none;">
           <label for="chamGuessInput">Ta tentative</label>
           <input type="text" id="chamGuessInput" placeholder="Le mot secret était..." maxlength="30">
@@ -592,6 +596,7 @@
             <button class="btn yellow" id="impAnswerBtn"><span>✅ Valider ma réponse</span></button>
           </div>
         </div>
+<div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="impAnswerTimerFill"></div><span id="impAnswerTimerText"></span></div>
         <p class="lobby-status" id="impAnswerStatus"></p>
         <div class="cham-player-list" id="impAnswerList"></div>
       </div>
@@ -605,6 +610,7 @@
         <div class="clue-bubble"><small>Question</small><span id="impRealQuestion"></span></div>
         <div class="imp-line" id="impVoteLine"></div>
         <p class="subtitle">Discutez, puis accusez le joueur dont la réponse cache une autre question. Si c'est toi qui as reçu une autre question… bluffe !</p>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="impVoteTimerFill"></div><span id="impVoteTimerText"></span></div>
         <div class="cham-player-list" id="impVoteList"></div>
         <p class="lobby-status" id="impVoteStatus"></p>
       </div>
