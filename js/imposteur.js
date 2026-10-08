@@ -73,6 +73,12 @@
   var impMyVoteTarget=null;
   var impImposterTimer=null;
   var IMP_IMPOSTER_GRACE=30000;  /* délai laissé à l'imposteur déconnecté pour revenir */
+  /* sans limite de temps, un joueur inactif bloquait la manche pour tout le monde */
+  var IMP_ANSWER_MS=90000, IMP_VOTE_MS=60000;
+  var impPhaseTimer=null, impDeadline=0;
+  var impAnswerBar=CG.timerBar('impAnswerTimerFill','impAnswerTimerText');
+  var impVoteBar=CG.timerBar('impVoteTimerFill','impVoteTimerText');
+  function impLeft(){ return Math.max(0, impDeadline-Date.now()); }
 
   /* ----- screens ----- */
   function impGoto_(name){
@@ -119,7 +125,8 @@
     onReconnected: function(){ impHideBanner(); },
     onLost: function(){ impShowLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
-  function impBroadcast(msg){ impHandleNetMessage(msg); net.sendToAll(msg); }
+  /* l'hôte traite une copie : l'affichage ne doit pas toucher l'état qui fait foi */
+  function impBroadcast(msg){ impHandleNetMessage(JSON.parse(JSON.stringify(msg))); net.sendToAll(msg); }
 
   function impCleanupOnline(){
     net.close(impNetRole==='host' ? {type:'room_closed'} : null);
@@ -129,6 +136,8 @@
     impState.answers={}; impState.votes={}; impState.roundSeats=[]; impState.round=0;
     impState.phase='lobby'; impState.lastPhaseMsg=null;
     if(impImposterTimer){ clearTimeout(impImposterTimer); impImposterTimer=null; }
+    clearTimeout(impPhaseTimer); impPhaseTimer=null;
+    impAnswerBar.stop(); impVoteBar.stop();
     $('impRoundBadge').style.display='none';
     impHideBanner();
     impSetNetStatus('offline','HORS LIGNE');
@@ -271,6 +280,7 @@
     } else if(impState.phase==='voting'){
       var m=impState.lastPhaseMsg, copy={};
       for(var k in m) copy[k]=m[k];
+      copy.ms=impLeft();
       copy.alreadyVoted=impState.votes.hasOwnProperty(seat);
       net.sendTo(seat, copy);
       net.sendTo(seat, {type:'vote_status', voted:Object.keys(impState.votes).map(Number)});
@@ -327,16 +337,17 @@
   /* ----- round flow (host authoritative) ----- */
   function impRoundStartMsg(seat){
     return {type:'round_start', round:impState.round, roundSeats:impState.roundSeats.slice(),
-      question: seat===impState.imposterSeat ? impState.imposterQuestion : impState.question};
+      question: seat===impState.imposterSeat ? impState.imposterQuestion : impState.question,
+      ms: impState.phase==='answering' ? impLeft() : 0, total:IMP_ANSWER_MS};
   }
   function impHostStartRound(){
     var seats=[];
     for(var i=0;i<impState.players.length;i++){ if(impState.players[i] && impIsConnected(i)) seats.push(i); }
     if(seats.length<3){
-      impSetNetStatus('error','3 JOUEURS CONNECTÉS MINIMUM');
       impState.phase='lobby_wait';
-      impRenderLobby();
-      impGoto_('lobby');
+      if(impGameStarted) impBroadcast({type:'round_aborted', reason:'il faut 3 joueurs connectés pour continuer.'});
+      else { impRenderLobby(); impGoto_('lobby'); }
+      impSetNetStatus('error','3 JOUEURS CONNECTÉS MINIMUM');
       return;
     }
     impSetNetStatus('connected','PARTIE EN COURS');
@@ -354,6 +365,9 @@
     impState.lastPhaseMsg=null;
     impState.phase='answering';
     if(impImposterTimer){ clearTimeout(impImposterTimer); impImposterTimer=null; }
+    impDeadline=Date.now()+IMP_ANSWER_MS;
+    clearTimeout(impPhaseTimer);
+    impPhaseTimer=setTimeout(function(){ if(impState.phase==='answering') impHostRevealAnswers(); }, IMP_ANSWER_MS+300);
     seats.forEach(function(s){
       var m=impRoundStartMsg(s);
       if(s===0) impHandleNetMessage(m); else net.sendTo(s, m);
@@ -373,8 +387,16 @@
     if(impState.phase!=='answering') return;
     var pending=impState.roundSeats.filter(function(s){ return (impIsConnected(s) || s===impState.imposterSeat) && !impState.answers.hasOwnProperty(s); });
     if(pending.length) return;
+    impHostRevealAnswers();
+  }
+  /* tout le monde a répondu, ou le temps est écoulé (réponses manquantes : —) */
+  function impHostRevealAnswers(){
     impState.phase='voting';
-    var msg={type:'reveal_answers', question:impState.question, answers:impState.answers, roundSeats:impState.roundSeats.slice()};
+    impDeadline=Date.now()+IMP_VOTE_MS;
+    clearTimeout(impPhaseTimer);
+    impPhaseTimer=setTimeout(function(){ if(impState.phase==='voting') impHostFinishRound(); }, IMP_VOTE_MS+300);
+    var msg={type:'reveal_answers', question:impState.question, answers:impState.answers, roundSeats:impState.roundSeats.slice(),
+      ms:IMP_VOTE_MS, total:IMP_VOTE_MS};
     impState.lastPhaseMsg=msg;
     impBroadcast(msg);
   }
@@ -393,6 +415,7 @@
     impHostFinishRound();
   }
   function impHostFinishRound(){
+    clearTimeout(impPhaseTimer); impPhaseTimer=null;
     var tally={};
     impState.roundSeats.forEach(function(s){ tally[s]=0; });
     Object.keys(impState.votes).forEach(function(v){ var t=impState.votes[v]; if(tally.hasOwnProperty(t)) tally[t]++; });
@@ -456,6 +479,7 @@
         impState.myQuestion=msg.question;
         impState.answers={}; impState.votes={};
         impShowAnswerScreen(null);
+        impAnswerBar.start(msg.ms||IMP_ANSWER_MS, msg.total||IMP_ANSWER_MS);
         break;
       case 'answer_status':
         if(!impInRound) break;
@@ -465,7 +489,9 @@
       case 'reveal_answers':
         if(!impInRound) break;
         impState.answers=msg.answers;
+        impAnswerBar.stop();
         impShowVoteScreen(msg, !!msg.alreadyVoted);
+        impVoteBar.start(msg.ms||IMP_VOTE_MS, msg.total||IMP_VOTE_MS);
         break;
       case 'vote_status':
         if(!impInRound) break;
@@ -477,7 +503,8 @@
         break;
       case 'round_aborted':
         impInRound=false; impRoundLiveForLobby=false;
-        if(impNetRole==='host') impState.phase='lobby_wait';
+        impAnswerBar.stop(); impVoteBar.stop();
+        if(impNetRole==='host'){ impState.phase='lobby_wait'; clearTimeout(impPhaseTimer); impPhaseTimer=null; }
         impRenderLobby();
         impGoto_('lobby');
         $('impLobbyStatus').textContent='⚠ Manche annulée : '+msg.reason;
@@ -597,6 +624,7 @@
   /* ----- result ----- */
   function impShowResult(msg){
     impInRound=false;
+    impAnswerBar.stop(); impVoteBar.stop();
     var imp=impState.players[msg.imposterSeat]||{name:'?'};
     var banner=$('impResultBanner');
     banner.textContent = msg.caught ? '🎯 IMPOSTEUR DÉMASQUÉ !' : "🕵️ L'IMPOSTEUR S'ÉCHAPPE !";

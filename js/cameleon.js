@@ -64,6 +64,19 @@
   var chamMyVoteTarget=null;
   var chamGuessTimer=null;
   var CHAM_GUESS_GRACE=30000;   /* délai laissé au Caméléon démasqué pour revenir */
+  /* limites de temps : sans elles, un joueur inactif bloquait toute la manche */
+  var CHAM_TURN_MS=45000, CHAM_VOTE_MS=60000, CHAM_GUESS_MS=45000;
+  var chamPhaseTimer=null, chamDeadline=0;
+  var chamTurnBar=CG.timerBar('chamTurnTimerFill','chamTurnTimerText');
+  var chamVoteBar=CG.timerBar('chamVoteTimerFill','chamVoteTimerText');
+  var chamGuessBar=CG.timerBar('chamGuessTimerFill','chamGuessTimerText');
+  function chamLeft(){ return Math.max(0, chamDeadline-Date.now()); }
+  function chamSetPhaseTimer(ms, fn){
+    clearTimeout(chamPhaseTimer);
+    chamDeadline=Date.now()+ms;
+    chamPhaseTimer=setTimeout(fn, ms+300);
+  }
+  function chamStopBars(){ chamTurnBar.stop(); chamVoteBar.stop(); chamGuessBar.stop(); }
 
   function chamRenderColorPicker(){
     var wrap=$('chamColorPicker');
@@ -152,10 +165,11 @@
   function chamCleanupOnline(){
     net.close(chamNetRole==='host' ? {type:'room_closed'} : null);
     if(chamGuessTimer){ clearTimeout(chamGuessTimer); chamGuessTimer=null; }
+    clearTimeout(chamPhaseTimer); chamPhaseTimer=null; chamStopBars();
     chamNetRole=null; chamMySeat=0; chamGameStarted=false; chamCurrentRoomCode='';
     chamState.players=[]; chamState.scores=[]; chamState.connected=[]; chamState.clientIds=[];
     chamState.strokes=[]; chamState.votes={}; chamState.roundSeats=[];
-    chamState.phase='lobby'; chamState.lastPhaseMsg=null;
+    chamState.phase='lobby'; chamState.lastPhaseMsg=null; chamState.round=0;
     chamLiveStrokes={}; chamDrawing=false; chamInRound=false;
     chamHideBanner();
     chamSetNetStatus('offline','HORS LIGNE');
@@ -327,13 +341,17 @@
     net.sendTo(seat, {type:'role_info', theme:chamState.theme, word:isCham?null:chamState.word, isChameleon:isCham, roundSeats:chamState.roundSeats.slice()});
     net.sendTo(seat, {type:'sync_strokes', strokes:chamState.strokes});
     if(chamState.phase==='drawing'){
-      net.sendTo(seat, {type:'turn_start', seat:chamState.currentTurnSeat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length});
+      net.sendTo(seat, {type:'turn_start', seat:chamState.currentTurnSeat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length,
+        ms:chamLeft(), total:CHAM_TURN_MS});
     } else if(chamState.lastPhaseMsg){
-      var m=chamState.lastPhaseMsg;
+      var m=chamState.lastPhaseMsg, copy={};
+      for(var k in m) copy[k]=m[k];
+      copy.ms=chamLeft();
       if(m.type==='vote_phase_start'){
-        m={type:'vote_phase_start', strokes:chamState.strokes, alreadyVoted:chamState.votes.hasOwnProperty(seat)};
+        copy.alreadyVoted=chamState.votes.hasOwnProperty(seat);
+        copy.voted=Object.keys(chamState.votes).map(Number);
       }
-      net.sendTo(seat, m);
+      net.sendTo(seat, copy);
     }
   }
 
@@ -394,10 +412,10 @@
     var activeSeats=[];
     for(var i=0;i<chamState.players.length;i++){ if(chamState.players[i] && chamIsConnected(i)) activeSeats.push(i); }
     if(activeSeats.length<3){
-      chamSetNetStatus('error','3 JOUEURS CONNECTÉS MINIMUM');
       chamState.phase='lobby_wait';
-      chamRenderLobby();
-      chamGoto_('lobby');
+      if(chamState.round) chamBroadcast({type:'round_aborted', reason:'il faut 3 joueurs connectés pour continuer.'});
+      else { chamRenderLobby(); chamGoto_('lobby'); }
+      chamSetNetStatus('error','3 JOUEURS CONNECTÉS MINIMUM');
       return;
     }
     chamSetNetStatus('connected','PARTIE EN COURS');
@@ -416,6 +434,7 @@
     chamState.turnQueue=activeSeats.slice().concat(activeSeats.slice());
     chamState.turnPointer=0;
     chamState.phase='drawing';
+    chamState.round=(chamState.round||0)+1;
 
     activeSeats.forEach(function(s){
       var isCham=s===chamState.chameleonSeat;
@@ -433,8 +452,17 @@
       chamState.turnPointer++;
     }
     if(chamState.turnPointer>=chamState.turnQueue.length){ chamHostStartVoting(); return; }
-    var seat=chamState.turnQueue[chamState.turnPointer];
-    chamBroadcast({type:'turn_start', seat:seat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length});
+    var seat=chamState.turnQueue[chamState.turnPointer], ptr=chamState.turnPointer;
+    chamSetPhaseTimer(CHAM_TURN_MS, function(){ chamHostTurnTimeout(seat, ptr); });
+    chamBroadcast({type:'turn_start', seat:seat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length,
+      ms:CHAM_TURN_MS, total:CHAM_TURN_MS});
+  }
+  /* temps écoulé : on garde ce qui a déjà été tracé et on passe au suivant */
+  function chamHostTurnTimeout(seat, ptr){
+    if(chamState.phase!=='drawing' || chamState.turnPointer!==ptr) return;
+    if(seat===chamMySeat && chamDrawing) chamFinishMyStroke();
+    else if(chamLiveStrokes[seat]) chamBroadcast({type:'stroke_end', seat:seat});
+    else chamHostAdvanceTurn(seat);
   }
   function chamHostAdvanceTurn(finishedSeat){
     if(chamState.phase!=='drawing' || chamState.turnQueue[chamState.turnPointer]!==finishedSeat) return;
@@ -444,7 +472,8 @@
   function chamHostStartVoting(){
     chamState.phase='voting';
     /* la liste de traits de l'hôte fait foi : tout le monde vote sur le même dessin */
-    var msg={type:'vote_phase_start', strokes:chamState.strokes};
+    chamSetPhaseTimer(CHAM_VOTE_MS, function(){ if(chamState.phase==='voting') chamHostResolveVotes(); });
+    var msg={type:'vote_phase_start', strokes:chamState.strokes, ms:CHAM_VOTE_MS, total:CHAM_VOTE_MS};
     chamState.lastPhaseMsg=msg;
     chamBroadcast(msg);
   }
@@ -504,9 +533,12 @@
         break;
       case 'turn_start':
         if(!chamInRound) break;
+        /* tour coupé par le chrono pendant qu'on dessinait : l'hôte a déjà clos le trait */
+        if(chamDrawing && msg.seat!==chamMySeat){ chamDrawing=false; chamCurrentPoints=[]; }
         chamState.currentTurnSeat=msg.seat;
         chamHasDrawnThisTurn=false;
         chamUpdateTurnUI(msg.turnIndex, msg.totalTurns);
+        chamTurnBar.start(msg.ms||CHAM_TURN_MS, msg.total||CHAM_TURN_MS);
         break;
       case 'stroke_start': if(chamInRound) chamHandleStrokeStart(msg); break;
       case 'stroke_points': if(chamInRound) chamHandleStrokePoints(msg); break;
@@ -514,9 +546,18 @@
       case 'vote_phase_start':
         if(!chamInRound) break;
         if(msg.strokes) chamState.strokes=msg.strokes.slice();
+        chamTurnBar.stop();
         chamShowVoting(!!msg.alreadyVoted);
+        chamRenderVoteCount(msg.voted||[]);
+        chamVoteBar.start(msg.ms||CHAM_VOTE_MS, msg.total||CHAM_VOTE_MS);
         break;
-      case 'vote_result': if(chamInRound) chamShowVoteResult(msg); break;
+      case 'vote_status': if(chamInRound) chamRenderVoteCount(msg.voted); break;
+      case 'vote_result':
+        if(!chamInRound) break;
+        chamVoteBar.stop();
+        chamShowVoteResult(msg);
+        chamGuessBar.start(msg.ms||CHAM_GUESS_MS, msg.total||CHAM_GUESS_MS);
+        break;
       case 'game_result':
         if(msg.scores) chamState.scores=msg.scores.slice();
         chamShowResult(msg);
@@ -524,7 +565,9 @@
       case 'round_aborted':
         chamRoundLiveForLobby=false;
         chamInRound=false;
-        if(chamNetRole==='host') chamState.phase='lobby_wait';
+        chamDrawing=false;
+        chamStopBars();
+        if(chamNetRole==='host'){ chamState.phase='lobby_wait'; clearTimeout(chamPhaseTimer); chamPhaseTimer=null; }
         chamRenderLobby();
         chamGoto_('lobby');
         $('chamLobbyStatus').textContent='⚠ Manche annulée : '+msg.reason;
@@ -626,11 +669,14 @@
   }
   function chamPointerUp(evt){
     if(!chamDrawing) return;
+    try{ chamCanvasEl.releasePointerCapture(evt.pointerId); }catch(e){}
+    chamFinishMyStroke();
+  }
+  function chamFinishMyStroke(){
     chamDrawing=false;
     chamHasDrawnThisTurn=true;
     chamFlushStrokePoints();
     chamSend({type:'stroke_end', seat:chamMySeat});
-    try{ chamCanvasEl.releasePointerCapture(evt.pointerId); }catch(e){}
     if(chamNetRole==='host'){
       chamState.strokes.push({seat:chamMySeat, color:chamMyDrawColor(), points:chamCurrentPoints.slice()});
       chamRedrawAll(chamCtx);
@@ -715,10 +761,16 @@
         for(var j=0;j<btns.length;j++){ btns[j].classList.remove('voted'); }
         this.classList.add('voted');
         chamCastVote(chamMyVoteTarget);
-        $('chamVoteStatus').textContent='Vote envoyé. En attente des autres joueurs...';
+        chamRenderVoteCount(chamVotedSeats);
         sfxValidate();
       });
     }
+  }
+  var chamVotedSeats=[];
+  function chamRenderVoteCount(voted){
+    chamVotedSeats=voted||[];
+    if(chamState.roundSeats.indexOf(chamMySeat)===-1) return;
+    $('chamVoteStatus').textContent=(chamMyVoteTarget!==null?'Vote envoyé. ':'')+chamVotedSeats.length+' / '+chamState.roundSeats.length+' vote(s)';
   }
   function chamCastVote(target){
     var msg={type:'vote_cast', voter:chamMySeat, target:target};
@@ -731,6 +783,7 @@
     if(rs.indexOf(msg.voter)===-1 || rs.indexOf(msg.target)===-1 || msg.voter===msg.target) return;
     if(chamState.votes.hasOwnProperty(msg.voter)) return;
     chamState.votes[msg.voter]=msg.target;
+    chamBroadcast({type:'vote_status', voted:Object.keys(chamState.votes).map(Number)});
     chamHostCheckVotes();
   }
   /* tous les joueurs encore connectés de la manche ont voté ? */
@@ -742,6 +795,7 @@
     if(pending.length===0) chamHostResolveVotes();
   }
   function chamHostResolveVotes(){
+    clearTimeout(chamPhaseTimer); chamPhaseTimer=null;
     var activeSeats=chamState.roundSeats.slice();
     var tally={};
     activeSeats.forEach(function(s){ tally[s]=0; });
@@ -761,7 +815,8 @@
       return;
     }
     chamState.phase='guess';
-    var msg={type:'vote_result', tally:tally, accusedSeat:accusedSeat, wasChameleon:true};
+    chamSetPhaseTimer(CHAM_GUESS_MS, function(){ if(chamState.phase==='guess') chamHostResolveGuess(''); });
+    var msg={type:'vote_result', tally:tally, accusedSeat:accusedSeat, wasChameleon:true, ms:CHAM_GUESS_MS, total:CHAM_GUESS_MS};
     chamState.lastPhaseMsg=msg;
     chamBroadcast(msg);
     /* démasqué alors qu'il est déjà parti : on lui laisse le temps de revenir */
@@ -803,6 +858,7 @@
 
   /* ----- result & scoring (calculés par l'hôte uniquement) ----- */
   function chamHostFinishRound(winner, guessText, accusedSeat, tally){
+    clearTimeout(chamPhaseTimer); chamPhaseTimer=null;
     chamState.roundSeats.forEach(function(s){
       if(!chamState.players[s]) return;
       if(winner==='chameleon'){
@@ -821,6 +877,7 @@
     chamBroadcastLobby();
   }
   function chamShowResult(msg){
+    chamStopBars();
     if(msg.strokes) chamState.strokes=msg.strokes.slice();
     var canvas=$('chamResultCanvas');
     chamRedrawAll(canvas.getContext('2d'));

@@ -17,12 +17,14 @@ place l'aiguille. Plus c'est proche, plus ça rapporte (100 / 80 / 50 / 20 / 0).
 - **En ligne** : 1 vs 1 ou 2 vs 2, avec l'aiguille du devin visible en direct et le
   *Pari de Confiance* (×1,5 si réussi, −30 si raté).
 - Banque de thèmes modifiable, sauvegardée dans le navigateur.
+- Sans limite de manches, le bouton « Terminer la partie » affiche les résultats finaux.
 
 ### 🦎 Le Caméléon
 Dessin partagé et déduction sociale, de 3 à 8 joueurs en ligne.
 Tout le monde connaît le mot secret, sauf le Caméléon. Chacun trace un trait à tour de
 rôle (deux passages), puis on vote. Démasqué, le Caméléon peut encore gagner en
 devinant le mot (majuscules, accents et ponctuation ignorés).
+Limites de temps : 45 s par trait, 60 s pour voter, 45 s pour la dernière chance.
 
 ### 🕵️ L'Imposteur des chiffres
 Bluff et déduction, de 3 à 8 joueurs en ligne.
@@ -32,7 +34,8 @@ semaine fais-tu du sport ? ») **sans le savoir**. Les réponses sont révélée
 ligne graduée avec la vraie question : l'Imposteur découvre le piège et doit bluffer,
 puis tout le monde vote. Si l'Imposteur est le seul plus accusé, ceux qui ont voté
 contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de 30 paires
-de questions, complétable avec les vôtres.
+de questions, complétable avec les vôtres. Limites de temps : 90 s pour répondre, 60 s
+pour voter.
 
 ### 🐺 Le Loup des mots
 Déduction et bluff, de 4 à 10 joueurs en ligne (dans l'esprit de *Werewords*).

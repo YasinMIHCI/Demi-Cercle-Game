@@ -348,7 +348,7 @@
     players:[], connected:[], clientIds:[],
     mode:'1v1', timer:30, map:'random', phase:'lobby',      /* 'lobby' | 'aiming' | 'resolving' | 'ended' */
     match:null,                                /* hôte : état qui fait foi */
-    actions:{}, turnDeadline:0, turnTimer:null, nextTimer:null, stats:{}
+    actions:{}, turnDeadline:0, turnTimer:null, nextTimer:null, stats:{}, lastEnd:null
   };
   var botsNetRole=null, botsMySeat=0, botsMyName='', botsRoomCode='';
   var botsSelectedMode='1v1', botsSelectedTimer=30;
@@ -382,7 +382,7 @@
     net.close(botsNetRole==='host' ? {type:'room_closed'} : null);
     clearTimeout(bs.turnTimer); clearTimeout(bs.nextTimer);
     botsNetRole=null; botsMySeat=0; botsRoomCode='';
-    bs.players=[]; bs.connected=[]; bs.clientIds=[]; bs.phase='lobby'; bs.match=null; bs.actions={};
+    bs.players=[]; bs.connected=[]; bs.clientIds=[]; bs.phase='lobby'; bs.match=null; bs.actions={}; bs.lastEnd=null;
     view.grid=null; view.tanks=[]; view.replay=null; view.phase='idle';
     $('botsTurnBadge').style.display='none';
     hideBanner();
@@ -460,7 +460,7 @@
     for(var s=1;s<bs.clientIds.length;s++){
       if(msg.clientId && bs.clientIds[s]===msg.clientId && bs.players[s]) return s;
     }
-    if(bs.phase!=='lobby'){
+    if(bs.phase!=='lobby' && bs.phase!=='ended'){
       /* en plein combat : seul un joueur déconnecté peut reprendre sa place */
       for(s=1;s<bs.players.length;s++){
         if(bs.players[s] && !isConnected(s) && bs.players[s].name===msg.name) return s;
@@ -483,7 +483,10 @@
     bs.connected[seat]=true;
     net.sendTo(seat, {type:'seat_assigned', seat:seat, mode:bs.mode, timer:bs.timer});
     hostBroadcastLobby();
-    if(bs.phase!=='lobby' && bs.match) net.sendTo(seat, hostSyncMsg(seat));
+    if(bs.phase==='ended'){
+      /* combat terminé : un participant revenu retrouve l'écran de fin */
+      if(bs.lastEnd && bs.lastEnd.tanks.some(function(t){ return t.seat===seat; })) net.sendTo(seat, bs.lastEnd);
+    } else if(bs.phase!=='lobby' && bs.match) net.sendTo(seat, hostSyncMsg(seat));
     if(!isRepeat) sfxValidate();
   }
   function hostOnSeatLost(seat){
@@ -626,7 +629,8 @@
       if(alive.length<=1){
         bs.phase='ended';
         var winners=m.tanks.filter(function(t){ return alive.length && String(t.team)===alive[0]; }).map(function(t){ return t.seat; });
-        broadcast({type:'match_end', winners:winners, draw:!alive.length, stats:bs.stats, tanks:m.tanks, mode:bs.mode});
+        bs.lastEnd={type:'match_end', winners:winners, draw:!alive.length, stats:bs.stats, tanks:m.tanks, mode:bs.mode};
+        broadcast(bs.lastEnd);
         hostBroadcastLobby();
       } else {
         hostStartTurn();
@@ -635,7 +639,7 @@
   }
   $('botsRematchBtn').addEventListener('click',function(){
     sfxToggle();
-    bs.phase='lobby'; bs.match=null;
+    bs.phase='lobby'; bs.match=null; bs.lastEnd=null;
     /* les joueurs partis pendant le combat libèrent leur place */
     for(var s=1;s<bs.players.length;s++){ if(bs.players[s] && !isConnected(s)){ bs.players[s]=null; bs.clientIds[s]=null; } }
     hostBroadcastLobby();
@@ -678,6 +682,7 @@
         else { view.phase='resolving'; setTurnStatus('Résolution du tour en cours...'); }
         break;
       case 'turn_start':
+        flushReplay();
         view.tanks=keepVisual(msg.tanks); view.waterY=msg.waterY; view.turn=msg.turn;
         lockedSeats=[];
         beginAiming(msg.ms, false);
@@ -686,7 +691,7 @@
         lockedSeats=msg.seats; renderRoster(); renderTurnStatus();
         break;
       case 'turn_result': startReplay(msg); break;
-      case 'match_end': showEnd(msg); break;
+      case 'match_end': flushReplay(); showEnd(msg); break;
       case 'room_closed':
         net.close();
         showLostModal("L'hôte a fermé la salle.");
@@ -817,7 +822,8 @@
     $('botsPlayerList').innerHTML=html;
     var problem= botsNetRole==='host' ? lobbyProblem() : null;
     var st=$('botsLobbyStatus');
-    if(bs.phase!=='lobby') st.textContent='Combat en cours...';
+    if(bs.phase==='ended') st.textContent='Combat terminé — en attente de la revanche...';
+    else if(bs.phase!=='lobby') st.textContent='Combat en cours...';
     else if(botsNetRole==='host') st.textContent = problem || 'Tout le monde est prêt. Lance le combat !';
     else st.textContent="Choisis ton tank. L'hôte lancera le combat.";
     $('botsStartBtn').style.display = (botsNetRole==='host' && bs.phase==='lobby' && !problem) ? 'inline-block' : 'none';
@@ -1051,13 +1057,20 @@
     }
     view.projs=projs;
   }
-  function applyEvent(e){
+  /* Replay pas fini quand la suite arrive (onglet en arrière-plan : l'animation
+     est en pause) : on applique tout d'un coup, sinon le terrain restait
+     dans son état d'avant le tour. */
+  function flushReplay(){
+    var r=view.replay; if(!r) return;
+    while(r.evIdx<r.msg.events.length){ applyEvent(r.msg.events[r.evIdx], true); r.evIdx++; }
+    finishReplay(r.msg);
+  }
+  function applyEvent(e, quiet){
     var t;
     if(e.type==='boom'){
       carve(view.grid, e.x, e.y, e.r, e.wr);
       markDirty(e.x-e.r-8, e.y-e.r-8, e.x+e.r+8, e.y+e.r+16);
-      addExplosion(e.x, e.y, e.r);
-      CG.sfxWhoosh();
+      if(!quiet){ addExplosion(e.x, e.y, e.r); CG.sfxWhoosh(); }
     } else if(e.type==='wall'){
       e.cells.forEach(function(i){
         view.grid[i]=STONE;
@@ -1502,6 +1515,6 @@
       $('botsJoinCode').value=decodeURIComponent(code).toUpperCase();
     },
     /* exposé pour les tests */
-    _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank
+    _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank, _view: function(){ return view; }
   };
 })();

@@ -74,6 +74,7 @@
     guessPercent:50,
     clueText:'',
     wagerActive:false,
+    roundPhase:'',                      /* online : 'clue' | 'guess' | 'reveal' (ignore les doublons) */
     /* online 2v2 */
     teamNames:['ÉQUIPE ROUGE','ÉQUIPE BLEUE'],
     teamScores:[0,0],
@@ -449,8 +450,11 @@
   }
 
   $('rerollTargetBtn').addEventListener('click',function(){
+    if(gameMode==='online' && state.roundPhase!=='clue') return;
     state.targetPercent = 6+Math.random()*88;
     dialTarget.setTarget(state.targetPercent,true);
+    /* en ligne, tout le monde doit avoir la même cible (sinon les points diffèrent) */
+    if(gameMode==='online') send({type:'target', percent:state.targetPercent});
     sfxToggle();
   });
 
@@ -459,11 +463,14 @@
   });
 
   $('validateClueBtn').addEventListener('click',function(){
+    if(!$('screen-target').classList.contains('active')) return;
+    if(gameMode==='online' && state.roundPhase!=='clue') return;
     var clue=$('clueInput').value.trim();
     if(!clue){ shake($('clueInput')); return; }
     state.clueText=clue;
     sfxValidate();
     if(gameMode==='online'){
+      state.roundPhase='guess';
       send({type:'clue', text:clue});
       renderSpectateScreenOnline();
       goto_('spectate');
@@ -520,8 +527,12 @@
   }
 
   $('validateGuessBtn').addEventListener('click',function(){
+    /* double clic : les points étaient comptés deux fois */
+    if(!$('screen-guess').classList.contains('active')) return;
+    if(gameMode==='online' && state.roundPhase!=='guess') return;
     sfxValidate();
     if(gameMode==='online'){
+      state.roundPhase='reveal';
       var w = state.wagerActive;
       send({type:'guess_final', percent: state.guessPercent, wager:w});
       revealRoundOnline(w);
@@ -578,6 +589,7 @@
 
     contEl.style.display='inline-block';
     waitingLabel.style.display='none';
+    showEndGameBtn(!isLastRound, function(){ renderEndScreen(); goto_('end'); });
     if(isLastRound){
       contEl.querySelector('span').textContent='🏁 Voir les résultats finaux';
       contEl.onclick=function(){ sfxValidate(); renderEndScreen(); goto_('end'); };
@@ -591,6 +603,13 @@
       };
     }
     goto_('reveal');
+  }
+
+  /* sans limite de manches, c'était le seul moyen de voir les résultats finaux */
+  function showEndGameBtn(show, onEnd){
+    var b=$('endGameBtn');
+    b.style.display=show?'inline-block':'none';
+    b.onclick=function(){ sfxValidate(); onEnd(); };
   }
 
   function renderEndScreenLocal(){
@@ -652,7 +671,7 @@
     net.send(msg);
   }
   function logRoundMsg(msg){
-    if(msg.type==='round_setup'||msg.type==='clue'||msg.type==='guess_final'||msg.type==='game_end'){
+    if(msg.type==='round_setup'||msg.type==='target'||msg.type==='clue'||msg.type==='guess_final'||msg.type==='game_end'){
       roundLog.push(msg);
     }
   }
@@ -832,9 +851,11 @@
   }
   function hostOnGuestMessage(seat, msg){
     /* on n'accepte que les actions du joueur dont c'est le tour */
-    if(msg.type==='clue' && seat!==state.giverSeat) return;
-    if((msg.type==='cursor'||msg.type==='guess_final') && seat!==state.guesserSeat) return;
-    if(msg.type!=='clue' && msg.type!=='cursor' && msg.type!=='guess_final') return;
+    /* ... et seulement à la bonne étape de la manche (pas de doublon) */
+    if((msg.type==='clue'||msg.type==='target') && (seat!==state.giverSeat || state.roundPhase!=='clue')) return;
+    if((msg.type==='cursor'||msg.type==='guess_final') && (seat!==state.guesserSeat || state.roundPhase!=='guess')) return;
+    if(msg.type!=='clue' && msg.type!=='target' && msg.type!=='cursor' && msg.type!=='guess_final') return;
+    if(msg.type==='target'){ var pc=+msg.percent; if(!(pc>=0 && pc<=100)) return; msg={type:'target', percent:pc}; }
     logRoundMsg(msg);
     handleNetMessage(msg);
     net.sendToAllExcept(msg, seat);
@@ -998,6 +1019,7 @@
         state.guesserSeat = msg.guesserSeat;
         state.clueText='';
         state.wagerActive=false;
+        state.roundPhase='clue';
         updateRoundBadge();
         renderScoreboard();
         if(mySeat===state.giverSeat){
@@ -1008,7 +1030,14 @@
           goto_('pass');
         }
         break;
+      case 'target':
+        if(state.roundPhase!=='clue') break;
+        state.targetPercent = msg.percent;
+        if(dialTarget && mySeat===state.giverSeat) dialTarget.setTarget(state.targetPercent, true);
+        break;
       case 'clue':
+        if(state.roundPhase!=='clue') break;
+        state.roundPhase='guess';
         state.clueText = msg.text;
         if(mySeat===state.guesserSeat){
           renderGuessScreenOnline();
@@ -1022,6 +1051,8 @@
         if(dialSpectate){ dialSpectate.setNeedle(msg.percent); }
         break;
       case 'guess_final':
+        if(state.roundPhase!=='guess') break;
+        state.roundPhase='reveal';
         state.guessPercent = msg.percent;
         revealRoundOnline(!!msg.wager);
         break;
@@ -1158,6 +1189,11 @@
     if(netRole==='host'){
       contEl.style.display='inline-block';
       waitingLabel.style.display='none';
+      showEndGameBtn(!isLastRound, function(){
+        var endMsg={type:'game_end'};
+        send(endMsg);
+        handleNetMessage(endMsg);
+      });
       contEl.querySelector('span').textContent = isLastRound ? '🏁 Voir les résultats finaux' : '▶ Manche suivante';
       contEl.onclick=function(){
         sfxToggle();
@@ -1171,6 +1207,7 @@
       };
     } else {
       contEl.style.display='none';
+      showEndGameBtn(false);
       waitingLabel.style.display='inline-block';
       waitingLabel.textContent = isLastRound ? "⏳ En attente que l'hôte affiche les résultats..." : "⏳ En attente que l'hôte lance la manche suivante...";
     }
