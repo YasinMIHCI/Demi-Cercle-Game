@@ -608,6 +608,7 @@
   /* sans limite de manches, c'était le seul moyen de voir les résultats finaux */
   function showEndGameBtn(show, onEnd){
     var b=$('endGameBtn');
+    if(!b) return;
     b.style.display=show?'inline-block':'none';
     b.onclick=function(){ sfxValidate(); onEnd(); };
   }

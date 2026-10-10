@@ -91,9 +91,9 @@
   function timerBar(fillId, textId){
     var tick=null, endsAt=0, total=1;
     function update(){
-      var left=Math.max(0, endsAt-Date.now());
-      $(fillId).style.width=(left/total*100)+'%';
-      $(textId).textContent='⏳ '+Math.ceil(left/1000)+' s';
+      var left=Math.max(0, endsAt-Date.now()), fill=$(fillId), text=$(textId);
+      if(fill) fill.style.width=(left/total*100)+'%';
+      if(text) text.textContent='⏳ '+Math.ceil(left/1000)+' s';
       if(!left){ clearInterval(tick); tick=null; }
     }
     return {
