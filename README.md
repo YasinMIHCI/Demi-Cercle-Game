@@ -98,6 +98,10 @@ js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #lou
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent
 l'objet global `window.CG`.
 
+**À chaque mise à jour**, augmenter le numéro `?v=` des fichiers CSS/JS dans `index.html`.
+Sinon un navigateur peut garder en cache une partie des anciens fichiers et les mélanger
+avec les nouveaux (le jeu ne se charge plus et tout reste « HORS LIGNE »).
+
 ### Ajouter un jeu
 1. Ajouter une vue `<div id="view-monjeu" class="view">` dans `index.html` et une carte dans le hub.
 2. Créer `js/monjeu.js` et utiliser `CG.createRoomNet({...})` pour le multijoueur

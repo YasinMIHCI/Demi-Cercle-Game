@@ -67,9 +67,11 @@
   /* limites de temps : sans elles, un joueur inactif bloquait toute la manche */
   var CHAM_TURN_MS=45000, CHAM_VOTE_MS=60000, CHAM_GUESS_MS=45000;
   var chamPhaseTimer=null, chamDeadline=0;
-  var chamTurnBar=CG.timerBar('chamTurnTimerFill','chamTurnTimerText');
-  var chamVoteBar=CG.timerBar('chamVoteTimerFill','chamVoteTimerText');
-  var chamGuessBar=CG.timerBar('chamGuessTimerFill','chamGuessTimerText');
+  /* repli si un ancien common.js est encore en cache : le jeu doit se charger quand même */
+  var timerBar=CG.timerBar||function(){ return {start:function(){}, stop:function(){}}; };
+  var chamTurnBar=timerBar('chamTurnTimerFill','chamTurnTimerText');
+  var chamVoteBar=timerBar('chamVoteTimerFill','chamVoteTimerText');
+  var chamGuessBar=timerBar('chamGuessTimerFill','chamGuessTimerText');
   function chamLeft(){ return Math.max(0, chamDeadline-Date.now()); }
   function chamSetPhaseTimer(ms, fn){
     clearTimeout(chamPhaseTimer);

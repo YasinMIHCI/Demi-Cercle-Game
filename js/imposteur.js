@@ -76,8 +76,10 @@
   /* sans limite de temps, un joueur inactif bloquait la manche pour tout le monde */
   var IMP_ANSWER_MS=90000, IMP_VOTE_MS=60000;
   var impPhaseTimer=null, impDeadline=0;
-  var impAnswerBar=CG.timerBar('impAnswerTimerFill','impAnswerTimerText');
-  var impVoteBar=CG.timerBar('impVoteTimerFill','impVoteTimerText');
+  /* repli si un ancien common.js est encore en cache : le jeu doit se charger quand même */
+  var timerBar=CG.timerBar||function(){ return {start:function(){}, stop:function(){}}; };
+  var impAnswerBar=timerBar('impAnswerTimerFill','impAnswerTimerText');
+  var impVoteBar=timerBar('impVoteTimerFill','impVoteTimerText');
   function impLeft(){ return Math.max(0, impDeadline-Date.now()); }
 
   /* ----- screens ----- */

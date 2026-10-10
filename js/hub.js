@@ -47,11 +47,10 @@
       if(isInitial && r.query.room) CG.imposteur.enterJoinFlow(r.query.room);
     } else {
       /* retour au hub : on quitte proprement les salles en cours */
-      CG.demicercle.reset();
-      CG.cameleon.reset();
-      CG.imposteur.reset();
-      CG.bots.reset();
-      CG.loup.reset();
+      /* un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
+      ['demicercle','cameleon','imposteur','bots','loup'].forEach(function(k){
+        try{ if(CG[k]) CG[k].reset(); }catch(e){}
+      });
       showView('hub');
     }
   }
