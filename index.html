@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
 
@@ -60,6 +60,12 @@
         <h3>LE LOUP DES MOTS</h3>
         <p>Trouvez le mot du Maire en questions fermées… mais un Loup qui le connaît vous sabote. 4 à 10 joueurs, en ligne.</p>
         <button class="btn yellow" id="playLoupBtn"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🏆</div>
+        <h3>LE CLASSEMENT</h3>
+        <p>« Qui est le plus fort au bras de fer ? » Classez-vous en secret… et découvrez ce que le groupe pense vraiment. 3 à 8 joueurs, en ligne.</p>
+        <button class="btn yellow" id="playClassementBtn"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
@@ -636,6 +642,132 @@
   </div>
 </div>
 
+<!-- ================= LE CLASSEMENT ================= -->
+<div id="view-classement" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="clsHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>LE <em>CLASSEMENT</em></span></div>
+        <div class="badge-round" id="clsRoundBadge" style="display:none;">MANCHE N°1</div>
+      </div>
+      <div class="net-status offline" id="clsNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="clsNetBanner" role="status">
+      <span id="clsNetBannerText"></span>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="cls-screen active" id="cls-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">QUI EST LE PLUS… ?</h1>
+        <p class="subtitle">3 à 8 joueurs. Une question sur le groupe, et chacun classe tout le monde en secret, soi-même compris. Puis on découvre le podium du groupe… et qui a une bien meilleure image de soi que les autres.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="clsRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="clsName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="clsName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label for="clsCustomQ">Question personnalisée (optionnel)</label>
+        <input type="text" id="clsCustomQ" placeholder="Ex : Qui est le plus fort au bras de fer ?" maxlength="90">
+        <div class="btn-row">
+          <button class="btn ghost small" id="clsAddQBtn"><span>＋ Ajouter à la banque</span></button>
+          <span class="theme-count" id="clsBankCount" style="margin:0;align-self:center;"></span>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn yellow small" id="clsCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="clsJoinCode">Code de la salle</label>
+        <input type="text" id="clsJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="clsJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="cls-screen" id="cls-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="clsBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="clsCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="clsCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="clsCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="clsPlayerList"></div>
+        <p class="lobby-status" id="clsLobbyStatus">En attente de joueurs... (3 minimum)</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="clsStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RANK -->
+    <section class="cls-screen" id="cls-screen-rank">
+      <div class="panel">
+        <div class="clue-bubble"><small>La question</small><span id="clsQuestion"></span></div>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="clsTimerFill"></div><span id="clsTimerText"></span></div>
+        <div class="cls-slots" id="clsSlots"></div>
+        <p class="cls-hint" id="clsPoolHint"></p>
+        <div class="cls-pool" id="clsPool"></div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="clsResetBtn"><span>↺ Recommencer</span></button>
+          <button class="btn yellow" id="clsSubmitBtn" disabled><span>✅ Valider mon classement</span></button>
+        </div>
+        <p class="lobby-status" id="clsRankStatus"></p>
+        <div class="cham-player-list" id="clsRankList"></div>
+      </div>
+    </section>
+
+    <!-- RESULT -->
+    <section class="cls-screen" id="cls-screen-result">
+      <div class="panel">
+        <div class="cham-result-banner b-perfect">🏆 LE PODIUM DU GROUPE</div>
+        <div class="clue-bubble"><small>La question</small><span id="clsResultQuestion"></span></div>
+        <div class="cls-podium" id="clsPodium"></div>
+        <div class="cls-titles" id="clsTitles" style="display:none;"></div>
+        <div id="clsResultScores" style="display:none;">
+          <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">SCORES</h3>
+          <div class="cham-player-list" id="clsScoreList"></div>
+        </div>
+        <div class="btn-row center" id="clsResultBtns" style="margin-top:16px;display:none;">
+          <button class="btn yellow" id="clsNextRoundBtn" style="display:none;"><span>🔄 Question suivante</span></button>
+          <button class="btn ghost" id="clsEndGameBtn" style="display:none;"><span>🏁 Terminer la partie</span></button>
+          <span class="waiting-label" id="clsWaitingHostLabel" style="display:none;"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME OVER -->
+    <section class="cls-screen" id="cls-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
+        <div class="end-winner-text" id="clsWinnerText"></div>
+        <div class="cls-podium" id="clsFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="clsNewGameBtn" style="display:none;"><span>🔁 Nouvelle partie</span></button>
+          <span class="waiting-label" id="clsOverWaitLabel" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
 <!-- ================= BATTLE BOTS ================= -->
 <div id="view-bots" class="view">
   <div class="hub-return-bar">
@@ -950,6 +1082,33 @@
   </div>
 </div>
 
+<!-- CLASSEMENT RULES MODAL -->
+<div class="modal-overlay" id="clsRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="clsRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LE CLASSEMENT</h2>
+    <ol class="rules-list">
+      <li>Chaque manche, une question sur le groupe : « Qui est le plus fort au bras de fer ? »</li>
+      <li>En secret, chacun <b>classe tous les joueurs</b>, lui compris : d'abord celui qui l'est le plus, jusqu'à celui qui l'est le moins.</li>
+      <li>On révèle le <b>podium du groupe</b> (la moyenne de tous les classements), du dernier au premier.</li>
+      <li><b>Points :</b> jusqu'à 10 points par manche, selon la proximité de ton classement avec celui du groupe. Lis dans la tête des autres !</li>
+      <li><b>Les titres :</b> 🪞 l'Ego se classe bien plus haut que le groupe ne le fait, 🙈 le Modeste bien plus bas, et 🤘 le Rebelle est le moins d'accord avec tout le monde.</li>
+      <li>75 secondes pour classer. L'hôte enchaîne les questions et termine la partie quand il veut.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- CLASSEMENT DISCONNECT MODAL -->
+<div class="modal-overlay" id="clsDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="clsDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="clsDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- IMPOSTEUR RULES MODAL -->
 <div class="modal-overlay" id="impRulesModal">
   <div class="modal-box">
@@ -1058,14 +1217,15 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=10"></script>
-<script src="js/net.js?v=10"></script>
-<script src="js/demicercle.js?v=10"></script>
-<script src="js/cameleon.js?v=10"></script>
-<script src="js/imposteur.js?v=10"></script>
-<script src="js/loup.js?v=10"></script>
-<script src="js/bots-maps.js?v=10"></script>
-<script src="js/bots.js?v=10"></script>
-<script src="js/hub.js?v=10"></script>
+<script src="js/common.js?v=11"></script>
+<script src="js/net.js?v=11"></script>
+<script src="js/demicercle.js?v=11"></script>
+<script src="js/cameleon.js?v=11"></script>
+<script src="js/imposteur.js?v=11"></script>
+<script src="js/loup.js?v=11"></script>
+<script src="js/classement.js?v=11"></script>
+<script src="js/bots-maps.js?v=11"></script>
+<script src="js/bots.js?v=11"></script>
+<script src="js/hub.js?v=11"></script>
 </body>
 </html>

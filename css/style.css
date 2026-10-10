@@ -606,3 +606,30 @@ footer b{color:#777;}
 .loup-ask input{flex:1;margin:0;}
 .loup-ask .btn{margin:0;}
 .loup-sys{text-align:center;color:#999;font-size:0.82rem;font-style:italic;}
+
+/* ================= LE CLASSEMENT ================= */
+.cls-screen{display:none;animation:fadeIn .35s ease;}
+.cls-screen.active{display:block;}
+.cls-slots,.cls-podium{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
+.cls-slot,.cls-podium-row{display:flex;align-items:center;gap:10px;background:#181818;border:2px solid #333;color:#fff;
+  padding:9px 12px;font:inherit;text-align:left;width:100%;}
+button.cls-slot{cursor:pointer;}
+button.cls-slot:disabled{cursor:default;opacity:1;}
+.cls-slot.empty{border-style:dashed;color:#666;}
+.cls-pos{font-family:var(--font-display);font-size:1.4rem;color:var(--yellow);min-width:28px;text-align:center;}
+.cls-slot-name{flex:1;font-weight:600;}
+.cls-x{color:#888;font-size:0.9rem;}
+.cls-hint{text-align:center;color:#bbb;font-size:0.85rem;margin:8px 0 4px;}
+.cls-pool{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px;}
+.cls-chip{display:inline-flex;align-items:center;gap:6px;background:var(--red);color:#fff;border:2px solid #000;
+  font:inherit;font-weight:700;padding:8px 14px;cursor:pointer;transform:skewX(-6deg);box-shadow:3px 3px 0 #000;}
+.cls-chip:active{transform:skewX(-6deg) translate(2px,2px);box-shadow:1px 1px 0 #000;}
+.cls-podium-row{animation:clsDrop .45s ease;}
+.cls-podium-row.first{border-color:var(--yellow);background:#2a2400;box-shadow:0 0 0 2px var(--yellow);}
+.cls-podium-row.first .cls-slot-name{font-size:1.15rem;}
+.cls-podium-row.me{border-color:#fff;}
+@keyframes clsDrop{from{opacity:0;transform:translateY(-14px) scale(1.04);}to{opacity:1;transform:none;}}
+.cls-titles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:14px;}
+.cls-title-card{background:#111;border:2px solid var(--red-bright);padding:10px 12px;display:flex;flex-direction:column;gap:4px;animation:clsDrop .45s ease;}
+.cls-title-card > b{font-family:var(--font-display);letter-spacing:1px;color:var(--yellow);font-size:1.1rem;}
+.cls-title-card span{color:#ddd;font-size:0.9rem;}

@@ -47,6 +47,17 @@ Peut-être, Tu chauffes ! ou Loin ! (une fois chacun), jusqu'à « Trouvé ! ».
 - Chrono écoulé : tout le monde vote contre un Loup présumé.
 Le camp gagnant marque 1 point par joueur ; le rôle de Maire tourne à chaque manche.
 
+### 🏆 Le Classement
+« Qui est le plus… ? », de 3 à 8 joueurs en ligne (dans l'esprit des classements entre
+potes). Chaque manche, une question sur le groupe (« Qui est le plus fort au bras de
+fer ? ») : chacun classe en secret tous les joueurs, lui compris (75 s).
+- On révèle le **podium du groupe** (moyenne des classements), du dernier au premier.
+- Jusqu'à 10 points selon la proximité de ton classement avec celui du groupe.
+- Les titres : 🪞 **l'Ego** (se classe bien plus haut que le groupe ne le fait),
+  🙈 **le Modeste**, 🤘 **le Rebelle** (le moins d'accord avec tout le monde).
+- Une centaine de questions, complétable avec les vôtres ; l'hôte termine la partie
+  quand il veut.
+
 ### 🤖 Battle Bots
 Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1 vs 1,
 2 vs 2 ou chacun pour soi (jusqu'à 6).
@@ -90,9 +101,10 @@ js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres
 js/loup.js        Le Loup des mots
+js/classement.js  Le Classement
 js/bots-maps.js   Battle Bots : génération des cartes, décors, rendu lissé du terrain
 js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
-js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup), infos, bouton son
+js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement), infos, bouton son
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent
