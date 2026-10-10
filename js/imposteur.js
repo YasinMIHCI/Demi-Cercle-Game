@@ -10,7 +10,8 @@
 
   var IMP_ROOM_PREFIX = 'p5imposteur-';
   var IMP_PALETTE = ['#E60012','#ffffff','#FFE600','#00e5ff','#ff6ec7','#ff9d2f','#7cff6e','#b388ff'];
-  var IMP_BANK_KEY = 'imp_questions_v1';
+  var IMP_OLD_BANK_KEY = 'imp_questions_v1';   /* ancien format : toute la banque */
+  var IMP_CUSTOM_KEY = 'imp_custom_v2';        /* seulement les paires ajoutées par le joueur */
   /* [question de tout le monde, question de l'imposteur] : des réponses du
      même ordre de grandeur, pour que l'imposteur puisse se fondre dans la masse */
   var IMP_DEFAULT_BANK = [
@@ -43,22 +44,172 @@
     ["Combien d'applis as-tu sur la première page de ton téléphone ?", "Combien d'onglets as-tu ouverts sur ton navigateur ?"],
     ["Combien d'heures dors-tu par nuit ?", "Combien d'heures passes-tu sur ton téléphone par jour ?"],
     ["Sur 10, à quel point es-tu fan de Persona ?", "Sur 10, à quel point aimes-tu les animes ?"],
-    ["Combien de fois as-tu pleuré devant un film ?", "Combien de fois as-tu ri aux éclats cette semaine ?"]
+    ["Combien de fois as-tu pleuré devant un film ?", "Combien de fois as-tu ri aux éclats cette semaine ?"],
+    /* Quotidien et maison */
+    ["Combien de réveils mets-tu le matin ?", "Combien de fois par jour te brosses-tu les dents ?"],
+    ["Combien de minutes passes-tu dans la salle de bain le matin ?", "Combien de minutes mets-tu à prendre ton petit-déjeuner ?"],
+    ["Combien de paires de chaussettes possèdes-tu ?", "Combien de t-shirts possèdes-tu ?"],
+    ["Combien de coussins as-tu chez toi ?", "Combien de plantes as-tu chez toi ?"],
+    ["Combien de mugs ou de tasses as-tu dans ta cuisine ?", "Combien d'assiettes as-tu dans ta cuisine ?"],
+    ["Combien de clés as-tu sur ton trousseau ?", "Combien de cartes as-tu dans ton portefeuille ?"],
+    ["Combien de minutes mets-tu pour faire tes courses ?", "Combien de minutes mets-tu pour cuisiner un repas ?"],
+    ["Combien de fois par semaine fais-tu une sieste ?", "Combien de fois par semaine fais-tu une grasse matinée ?"],
+    ["Combien d'heures as-tu dormi la nuit dernière ?", "Combien d'heures as-tu travaillé ou étudié hier ?"],
+    ["Combien de cafés ou thés as-tu bus aujourd'hui ?", "Combien de repas as-tu mangés aujourd'hui ?"],
+    ["À quelle heure te lèves-tu le week-end ?", "À quelle heure te lèves-tu en semaine ?"],
+    ["Quelle température fait-il dans ta chambre (en °C) ?", "Quelle température extérieure trouves-tu idéale (en °C) ?"],
+    ["Combien de jours peux-tu porter le même jean sans le laver ?", "Combien de jours gardes-tu les mêmes draps ?"],
+    ["Sur 10, à quel point ta chambre est-elle rangée en ce moment ?", "Sur 10, à quel point ton bureau est-il propre en ce moment ?"],
+    ["Combien d'heures par semaine passes-tu dans les transports ?", "Combien d'heures par semaine passes-tu à cuisiner ?"],
+    ["Combien d'étages montes-tu à pied par jour ?", "Combien de fois par jour prends-tu l'ascenseur ?"],
+    /* Téléphone et écrans */
+    ["Combien de messages envoies-tu par jour ?", "Combien de vidéos regardes-tu par jour sur les réseaux ?"],
+    ["Combien de mots de passe différents utilises-tu ?", "Combien de comptes as-tu sur des sites ou des applis ?"],
+    ["Combien de fois par jour déverrouilles-tu ton téléphone ?", "Combien de mails reçois-tu par jour ?"],
+    ["Quel pourcentage de batterie as-tu en ce moment ?", "Quel pourcentage de ta journée passes-tu assis(e) ?"],
+    ["Combien de personnes suis-tu sur Instagram ?", "Combien d'abonnés as-tu sur Instagram ?"],
+    ["Combien d'heures de musique écoutes-tu par semaine ?", "Combien d'heures de télé ou de streaming regardes-tu par semaine ?"],
+    ["Combien de fois par semaine postes-tu une story ?", "Combien de fois par semaine envoies-tu un message vocal ?"],
+    ["Combien de conversations non lues as-tu en ce moment ?", "Combien de groupes de discussion as-tu mis en sourdine ?"],
+    ["En quelle année as-tu eu ton premier téléphone ?", "En quelle année as-tu eu ta première console ?"],
+    ["Combien de selfies prends-tu par semaine ?", "Combien de photos de nourriture prends-tu par semaine ?"],
+    ["Combien de fois as-tu regardé la météo cette semaine ?", "Combien de fois as-tu ouvert ton appli bancaire cette semaine ?"],
+    ["Combien de minutes passes-tu à choisir quoi regarder sur Netflix ?", "Combien de minutes passes-tu à choisir quoi manger au restaurant ?"],
+    ["Combien de minutes mets-tu à répondre à un message de ta mère ?", "Combien de minutes mets-tu à répondre à un message de ton/ta meilleur(e) ami(e) ?"],
+    ["Combien d'abonnements payants as-tu (Netflix, Spotify...) ?", "Combien de cartes de fidélité as-tu ?"],
+    ["Combien de fois as-tu changé de téléphone en 5 ans ?", "Combien de fois as-tu changé de coupe de cheveux en 5 ans ?"],
+    /* Nourriture et boissons */
+    ["Combien de carrés de chocolat manges-tu d'affilée ?", "Combien de biscuits manges-tu d'affilée ?"],
+    ["Combien de fois par semaine manges-tu des pâtes ?", "Combien de fois par semaine manges-tu de la viande ?"],
+    ["Combien de sushis peux-tu manger en un repas ?", "Combien de nuggets peux-tu manger en un repas ?"],
+    ["Combien d'œufs manges-tu par semaine ?", "Combien de fruits manges-tu par semaine ?"],
+    ["Sur 10, à quel point aimes-tu le fromage ?", "Sur 10, à quel point aimes-tu le chocolat ?"],
+    ["Combien d'euros dépenses-tu par semaine en nourriture ?", "Combien d'euros dépenses-tu par mois en sorties ?"],
+    ["Combien de fois par mois commandes-tu à manger ?", "Combien de fois par mois vas-tu au restaurant ?"],
+    ["Combien de verres de soda bois-tu par semaine ?", "Combien de bonbons manges-tu par semaine ?"],
+    ["Combien de crêpes peux-tu manger d'affilée ?", "Combien de tranches de pain manges-tu par jour ?"],
+    ["Combien de plats sais-tu cuisiner sans recette ?", "Combien de numéros de téléphone connais-tu par cœur ?"],
+    ["Combien de minutes dure ton dîner ?", "Combien de minutes dure ta pause de midi ?"],
+    ["Combien de hot-dogs pourrais-tu manger en 10 minutes ?", "Combien de verres d'eau pourrais-tu boire en 10 minutes ?"],
+    ["Combien de pizzas commanderais-tu pour ce groupe ?", "Combien de bouteilles de soda prévoirais-tu pour ce groupe ?"],
+    ["Combien coûte une baguette selon toi (en centimes) ?", "Combien coûte un café au comptoir selon toi (en centimes) ?"],
+    /* Loisirs et culture */
+    ["Combien de films as-tu vus le mois dernier ?", "Combien d'épisodes de série as-tu vus la semaine dernière ?"],
+    ["Combien de concerts as-tu vus dans ta vie ?", "Combien de festivals ou de salons as-tu faits dans ta vie ?"],
+    ["Combien de jeux de société possèdes-tu ?", "Combien de mugs possèdes-tu ?"],
+    ["Combien d'heures as-tu joué à ton jeu vidéo préféré ?", "Combien d'épisodes compte ta série préférée ?"],
+    ["Combien de fois as-tu vu ton film préféré ?", "Combien de fois as-tu relu ton livre ou ton manga préféré ?"],
+    ["Combien de mangas ou de BD as-tu lus cette année ?", "Combien de jeux vidéo as-tu terminés cette année ?"],
+    ["Sur 10, à quel point chantes-tu bien ?", "Sur 10, à quel point dessines-tu bien ?"],
+    ["Combien d'instruments sais-tu jouer, même un peu ?", "Combien de langues parles-tu, même un peu ?"],
+    ["Combien de fois es-tu allé(e) dans un parc d'attractions ?", "Combien de fois es-tu allé(e) au zoo ?"],
+    ["Sur 10, à quel point aimes-tu le karaoké ?", "Sur 10, à quel point aimes-tu danser en soirée ?"],
+    ["Combien de séries as-tu abandonnées en cours de route ?", "Combien de livres as-tu abandonnés en cours de route ?"],
+    ["Combien de Pokémon peux-tu citer de tête ?", "Combien de footballeurs peux-tu citer de tête ?"],
+    ["Combien de jours peux-tu tenir sans jeux vidéo ?", "Combien de jours peux-tu tenir sans sucre ?"],
+    ["Combien de jeux vidéo as-tu achetés sans jamais y jouer ?", "Combien de vêtements as-tu achetés sans jamais les porter ?"],
+    ["Combien d'heures par jour écoutes-tu de la musique ?", "Combien d'heures par jour passes-tu à discuter avec des gens ?"],
+    ["Sur 10, à quel point es-tu fort(e) à Mario Kart ?", "Sur 10, à quel point es-tu fort(e) aux jeux de cartes ?"],
+    /* Sport et corps */
+    ["Combien de secondes peux-tu tenir en apnée ?", "Combien de secondes peux-tu tenir la planche ?"],
+    ["Combien d'abdos peux-tu faire d'affilée ?", "Combien de squats peux-tu faire d'affilée ?"],
+    ["Combien de minutes marches-tu par jour ?", "Combien de minutes passes-tu dehors par jour ?"],
+    ["Combien de fois par mois vas-tu à la salle de sport ?", "Combien de fois par mois vas-tu à une soirée ?"],
+    ["Combien de fois t'es-tu cassé un os ?", "Combien de fois as-tu eu des points de suture ?"],
+    ["Combien de cicatrices as-tu ?", "Combien de grains de beauté as-tu sur les mains ?"],
+    ["Combien de sports différents as-tu pratiqués en club ?", "Combien d'écoles différentes as-tu fréquentées ?"],
+    ["Sur 10, à quel point es-tu sportif(ve) ?", "Sur 10, à quel point es-tu du matin ?"],
+    ["Sur 100, combien de points de vie as-tu ce matin ?", "Sur 100, à combien est ta jauge de motivation aujourd'hui ?"],
+    /* Vie et souvenirs */
+    ["À combien de mariages as-tu assisté ?", "À combien d'anniversaires surprises as-tu participé ?"],
+    ["Combien de cousins et cousines as-tu ?", "Combien de voisins connais-tu par leur prénom ?"],
+    ["Combien de personnes as-tu appelées cette semaine ?", "Combien de personnes t'ont envoyé un message aujourd'hui ?"],
+    ["Combien de personnes inviterais-tu à ton anniversaire ?", "Combien de personnes peuvent tenir dans ton salon ?"],
+    ["À quel âge as-tu eu ton premier téléphone ?", "À quel âge as-tu commencé à avoir de l'argent de poche ?"],
+    ["À quel âge as-tu appris à nager ?", "À quel âge as-tu appris à faire du vélo ?"],
+    ["À quel âge aimerais-tu avoir ton premier enfant ?", "À quel âge aimerais-tu acheter ta maison ?"],
+    ["À quel âge aimerais-tu prendre ta retraite ?", "À quel âge penses-tu qu'on devient vieux ?"],
+    ["Combien d'amis as-tu gardés depuis le collège ?", "Combien d'amis as-tu rencontrés au travail ou à la fac ?"],
+    ["Combien de fois as-tu été en retard ce mois-ci ?", "Combien de fois as-tu oublié quelque chose chez toi ce mois-ci ?"],
+    ["Combien de fois as-tu menti cette semaine ?", "Combien de fois as-tu dit « désolé » aujourd'hui ?"],
+    ["Combien de nuits par an dors-tu hors de chez toi ?", "Combien de jours de vacances prends-tu par an ?"],
+    ["Combien de fois as-tu pris l'avion ?", "Combien de fois as-tu dormi sous une tente ?"],
+    ["Dans combien de villes différentes as-tu habité ?", "Combien de jobs différents as-tu eus ?"],
+    ["Combien de fois par an vas-tu chez le dentiste ?", "Combien de fois par an vas-tu chez le médecin ?"],
+    ["Combien de fois as-tu failli rater un train ou un avion ?", "Combien de fois as-tu perdu tes clés ?"],
+    ["Combien de fois t'es-tu endormi(e) devant un film ce mois-ci ?", "Combien de fois t'es-tu endormi(e) en cours ou au travail cette année ?"],
+    ["Combien de fois par semaine te parles-tu à toi-même ?", "Combien de fois par semaine chantes-tu sous la douche ?"],
+    ["Combien de fois as-tu vu la mer cette année ?", "Combien de fois as-tu vu la neige cette année ?"],
+    ["Combien de fois as-tu pleuré cette année ?", "Combien de fois t'es-tu disputé(e) avec quelqu'un cette année ?"],
+    ["Combien de rendez-vous amoureux as-tu eus cette année ?", "Combien de soirées as-tu faites ce mois-ci ?"],
+    /* Personnalité (sur 10) */
+    ["Sur 10, à quel point es-tu tête en l'air ?", "Sur 10, à quel point es-tu gourmand(e) ?"],
+    ["Sur 10, à quel point es-tu frileux(se) ?", "Sur 10, à quel point es-tu maniaque du rangement ?"],
+    ["Sur 10, à quel point supportes-tu les insectes ?", "Sur 10, à quel point aimes-tu les montagnes russes ?"],
+    ["Sur 10, à quel point es-tu jaloux(se) ?", "Sur 10, à quel point es-tu rancunier(ère) ?"],
+    ["Sur 10, à quel point crois-tu aux fantômes ?", "Sur 10, à quel point crois-tu à l'astrologie ?"],
+    ["Sur 10, à quel point aimes-tu ton prénom ?", "Sur 10, à quel point aimes-tu ta ville ?"],
+    ["Sur 10, quelle note donnes-tu à ta journée d'hier ?", "Sur 10, quelle note donnes-tu à ta dernière soirée ?"],
+    ["Sur 10, à quel point as-tu le vertige ?", "Sur 10, à quel point as-tu peur des araignées ?"],
+    ["Sur 10, à quel point es-tu patient(e) ?", "Sur 10, à quel point es-tu têtu(e) ?"],
+    ["Sur 10, à quel point es-tu dépensier(ère) ?", "Sur 10, à quel point es-tu fan de shopping ?"],
+    ["Sur 10, à quel point aimes-tu les chats ?", "Sur 10, à quel point aimes-tu les chiens ?"],
+    ["Sur 10, à quel point es-tu drôle ?", "Sur 10, à quel point es-tu sociable ?"],
+    ["Sur 10, à quel point es-tu stressé(e) en ce moment ?", "Sur 10, à quel point es-tu fatigué(e) en ce moment ?"],
+    ["Sur 10, à quel point es-tu nostalgique ?", "Sur 10, à quel point es-tu romantique ?"],
+    ["Sur 10, à quel point détestes-tu le lundi ?", "Sur 10, à quel point aimes-tu la pluie ?"],
+    ["Sur 10, à quel point sais-tu garder un secret ?", "Sur 10, à quel point es-tu curieux(se) ?"],
+    /* Pourcentages */
+    ["En %, quelles sont tes chances de survie dans un film d'horreur ?", "En %, quelles sont tes chances de survie face à une apocalypse zombie ?"],
+    ["En %, quelle part de ton argent mets-tu de côté ?", "En %, quelle part de ta journée passes-tu devant un écran ?"],
+    ["En %, à quel point fais-tu confiance à la météo ?", "En %, à quel point fais-tu confiance à ton GPS ?"],
+    /* Argent */
+    ["Combien d'euros as-tu sur toi en ce moment ?", "Combien d'euros dépenses-tu en moyenne par jour ?"],
+    ["Combien d'euros mettrais-tu dans une paire de baskets ?", "Combien d'euros mettrais-tu dans un manteau ?"],
+    ["Combien d'euros mettrais-tu dans un téléphone ?", "Combien d'euros mettrais-tu dans un ordinateur ?"],
+    ["Combien d'euros paierais-tu pour dîner avec ton idole ?", "Combien d'euros paierais-tu pour un week-end de rêve ?"],
+    ["Combien d'euros faudrait-il te donner pour manger un insecte ?", "Combien d'euros faudrait-il te donner pour te raser la tête ?"],
+    ["Combien d'euros faudrait-il te donner pour lâcher ton téléphone pendant un mois ?", "Combien d'euros faudrait-il te donner pour arrêter le sucre pendant un mois ?"],
+    /* Et si... ? */
+    ["Combien de jours pourrais-tu survivre seul(e) sur une île déserte ?", "Combien de jours pourrais-tu tenir sans internet ?"],
+    ["Combien de joueurs de cette partie pourrais-tu battre au bras de fer ?", "Combien de joueurs de cette partie pourrais-tu battre à la course ?"],
+    ["Combien de zombies pourrais-tu affronter avant d'être mordu(e) ?", "Combien de poulets en colère pourrais-tu affronter en même temps ?"],
+    ["Combien d'heures pourrais-tu rester coincé(e) dans un ascenseur sans paniquer ?", "Combien d'heures pourrais-tu rester sans parler ?"],
+    ["De combien d'années voudrais-tu remonter dans le temps ?", "De combien d'années voudrais-tu voyager dans le futur ?"],
+    ["Combien d'enfants aimerais-tu avoir ?", "Combien d'animaux de compagnie aimerais-tu avoir ?"],
+    ["Combien de pièces aurait ta maison de rêve ?", "Combien de voitures aurais-tu si tu étais milliardaire ?"],
+    ["Combien de langues aimerais-tu parler couramment ?", "Combien de pays aimerais-tu visiter dans ta vie ?"],
+    ["Combien de minutes faut-il pour t'énerver dans un bouchon ?", "Combien de minutes faut-il pour que tu t'ennuies en réunion ou en cours ?"]
   ];
-  function impLoadBank(){
+  /* On ne sauvegarde que les paires personnalisées : avant, toute la banque
+     était enregistrée et les nouvelles questions par défaut n'apparaissaient
+     jamais chez ceux qui avaient ajouté une question. */
+  function impLoadCustom(){
+    var custom=[];
     try{
-      var raw=localStorage.getItem(IMP_BANK_KEY);
-      if(raw){ var arr=JSON.parse(raw); if(Array.isArray(arr)&&arr.length) return arr; }
+      var raw=localStorage.getItem(IMP_CUSTOM_KEY);
+      if(raw){ var arr=JSON.parse(raw); if(Array.isArray(arr)) custom=arr; }
+      else {
+        var old=localStorage.getItem(IMP_OLD_BANK_KEY);
+        if(old){
+          var known={};
+          IMP_DEFAULT_BANK.forEach(function(q){ known[q[0]]=true; });
+          (JSON.parse(old)||[]).forEach(function(q){ if(Array.isArray(q) && q.length===2 && !known[q[0]]) custom.push(q); });
+          localStorage.setItem(IMP_CUSTOM_KEY, JSON.stringify(custom));
+          localStorage.removeItem(IMP_OLD_BANK_KEY);
+        }
+      }
     }catch(e){}
-    return IMP_DEFAULT_BANK.slice();
+    return custom.filter(function(q){ return Array.isArray(q) && q.length===2 && q[0] && q[1]; });
   }
-  function impSaveBank(){
-    try{ localStorage.setItem(IMP_BANK_KEY, JSON.stringify(impState.bank)); }catch(e){}
+  var impCustom=impLoadCustom();
+  function impSaveCustom(){
+    try{ localStorage.setItem(IMP_CUSTOM_KEY, JSON.stringify(impCustom)); }catch(e){}
   }
 
   var impState = {
     players:[], scores:[], connected:[],
-    bank: impLoadBank(), pool:[],
+    bank: impCustom.concat(IMP_DEFAULT_BANK), pool:[],
     round:0, roundSeats:[],
     myQuestion:'', answers:{}, votes:{},
     /* host only */
@@ -107,8 +258,9 @@
   $('impAddQBtn').addEventListener('click',function(){
     var q=$('impCustomQ').value.trim(), qi=$('impCustomQImp').value.trim();
     if(!q||!qi){ shake($('impCustomQ')); return; }
+    impCustom.unshift([q,qi]);
     impState.bank.unshift([q,qi]);
-    impSaveBank();
+    impSaveCustom();
     $('impCustomQ').value=''; $('impCustomQImp').value='';
     impRenderBankCount();
     sfxToggle();

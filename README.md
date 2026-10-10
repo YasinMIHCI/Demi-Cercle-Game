@@ -33,7 +33,7 @@ semaine ? »)… sauf l'Imposteur, qui a reçu une autre question (« Combien de
 semaine fais-tu du sport ? ») **sans le savoir**. Les réponses sont révélées sur une
 ligne graduée avec la vraie question : l'Imposteur découvre le piège et doit bluffer,
 puis tout le monde vote. Si l'Imposteur est le seul plus accusé, ceux qui ont voté
-contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de 30 paires
+contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de plus de 150 paires
 de questions, complétable avec les vôtres. Limites de temps : 90 s pour répondre, 60 s
 pour voter.
 
