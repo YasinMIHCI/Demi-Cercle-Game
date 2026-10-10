@@ -633,3 +633,30 @@ button.cls-slot:disabled{cursor:default;opacity:1;}
 .cls-title-card{background:#111;border:2px solid var(--red-bright);padding:10px 12px;display:flex;flex-direction:column;gap:4px;animation:clsDrop .45s ease;}
 .cls-title-card > b{font-family:var(--font-display);letter-spacing:1px;color:var(--yellow);font-size:1.1rem;}
 .cls-title-card span{color:#ddd;font-size:0.9rem;}
+
+/* ================= QUI A ÉCRIT ÇA ? ================= */
+.qae-screen{display:none;animation:fadeIn .35s ease;}
+.qae-screen.active{display:block;}
+.qae-input{width:100%;resize:vertical;min-height:80px;font:inherit;}
+.qae-charcount{text-align:right;color:#888;font-size:0.75rem;margin:-4px 0 6px;}
+.qae-progress{text-align:center;font-family:var(--font-display);letter-spacing:2px;color:var(--yellow);font-size:1.2rem;}
+.qae-card{position:relative;background:#fff;color:#000;border:4px solid #000;box-shadow:6px 6px 0 var(--red);
+  padding:22px 26px;margin:10px auto 14px;max-width:620px;font-size:1.35rem;font-weight:700;line-height:1.35;
+  transform:rotate(-1deg);word-break:break-word;animation:clsDrop .45s ease;}
+.qae-card.revealed{box-shadow:6px 6px 0 var(--yellow);}
+.qae-quote{position:absolute;left:8px;top:-10px;font-family:var(--font-display);font-size:3.2rem;color:var(--red);line-height:1;}
+.qae-hint{text-align:center;color:#ddd;margin:6px 0 10px;}
+.qae-hint.mine{color:var(--yellow);font-weight:700;}
+.qae-hint.author{font-size:1.35rem;font-family:var(--font-display);letter-spacing:1px;color:#fff;}
+.qae-vote.picked{background:var(--yellow);color:#000;}
+.qae-vote:disabled{opacity:0.55;cursor:default;}
+.qae-vote.picked:disabled{opacity:1;}
+.qae-verdict{text-align:center;font-weight:700;color:var(--yellow);margin:6px 0 10px;}
+.qae-votes{display:flex;flex-direction:column;gap:4px;max-width:420px;margin:0 auto;}
+.qae-vote-line{display:flex;align-items:center;gap:6px;background:#181818;border:2px solid #2a2a2a;padding:6px 10px;}
+.qae-ok{color:#7cff6e;font-weight:700;margin-left:auto;}
+.qae-ko{color:var(--red-bright);font-weight:700;margin-left:auto;}
+.qae-bluff{color:#aaa;margin-left:auto;font-style:italic;}
+.qae-recap{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
+.qae-answer-recap{display:flex;align-items:baseline;gap:8px;background:#181818;border:2px solid #333;padding:8px 12px;flex-wrap:wrap;}
+.qae-answer-recap span{color:#ddd;flex:1;min-width:60%;}
