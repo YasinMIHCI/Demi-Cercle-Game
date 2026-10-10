@@ -1,4 +1,4 @@
-/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement),
+/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit),
    modale d'infos et bouton son. Chargé en dernier. */
 (function(){
   'use strict';
@@ -36,6 +36,9 @@
     } else if(r.route==='cameleon'){
       showView('cameleon');
       if(isInitial && r.query.room) CG.cameleon.enterJoinFlow(r.query.room);
+    } else if(r.route==='quiaecrit'){
+      showView('quiaecrit');
+      if(isInitial && r.query.room) CG.quiaecrit.enterJoinFlow(r.query.room);
     } else if(r.route==='classement'){
       showView('classement');
       if(isInitial && r.query.room) CG.classement.enterJoinFlow(r.query.room);
@@ -51,7 +54,7 @@
     } else {
       /* retour au hub : on quitte proprement les salles en cours */
       /* un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
-      ['demicercle','cameleon','imposteur','bots','loup','classement'].forEach(function(k){
+      ['demicercle','cameleon','imposteur','bots','loup','classement','quiaecrit'].forEach(function(k){
         try{ if(CG[k]) CG[k].reset(); }catch(e){}
       });
       showView('hub');
@@ -62,6 +65,7 @@
   function goHome(){ location.hash='hub'; }
   $('hubReturnBtn').addEventListener('click',function(){ CG.sfxToggle(); goHome(); });
   $('playDemicercleBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='demicercle'; });
+  $('playQuiaecritBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='quiaecrit'; });
   $('playClassementBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='classement'; });
   $('playLoupBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='loup'; });
   $('playBotsBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='bots'; });

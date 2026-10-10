@@ -47,6 +47,14 @@ Peut-être, Tu chauffes ! ou Loin ! (une fois chacun), jusqu'à « Trouvé ! ».
 - Chrono écoulé : tout le monde vote contre un Loup présumé.
 Le camp gagnant marque 1 point par joueur ; le rôle de Maire tourne à chaque manche.
 
+### 🎭 Qui a écrit ça ?
+Réponses anonymes et devinettes, de 3 à 8 joueurs en ligne. Une question drôle (« Ce que
+tu penses vraiment des pieds ? ») : chacun répond par écrit en secret (90 s). Les
+réponses sont révélées une par une, sans nom, et tout le monde vote : qui a écrit ça ?
+(30 s). L'auteur vote aussi pour brouiller les pistes. +1 par bonne devinette, et
+l'auteur gagne +1 par joueur berné (3 au maximum). Plus de 80 questions, complétables
+avec les vôtres.
+
 ### 🏆 Le Classement
 « Qui est le plus… ? », de 3 à 8 joueurs en ligne (dans l'esprit des classements entre
 potes). Chaque manche, une question sur le groupe (« Qui est le plus fort au bras de
@@ -102,9 +110,10 @@ js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres
 js/loup.js        Le Loup des mots
 js/classement.js  Le Classement
+js/quiaecrit.js   Qui a écrit ça ?
 js/bots-maps.js   Battle Bots : génération des cartes, décors, rendu lissé du terrain
 js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
-js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement), infos, bouton son
+js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit), infos, bouton son
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent

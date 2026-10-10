@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
 
@@ -66,6 +66,12 @@
         <h3>LE CLASSEMENT</h3>
         <p>« Qui est le plus fort au bras de fer ? » Classez-vous en secret… et découvrez ce que le groupe pense vraiment. 3 à 8 joueurs, en ligne.</p>
         <button class="btn yellow" id="playClassementBtn"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🎭</div>
+        <h3>QUI A ÉCRIT ÇA ?</h3>
+        <p>« Ce que tu penses vraiment des pieds ? » Réponses anonymes, puis on devine qui a écrit quoi. 3 à 8 joueurs, en ligne.</p>
+        <button class="btn yellow" id="playQuiaecritBtn"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
@@ -642,6 +648,149 @@
   </div>
 </div>
 
+<!-- ================= QUI A ÉCRIT ÇA ? ================= -->
+<div id="view-quiaecrit" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="qaeHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>QUI A <em>ÉCRIT ÇA ?</em></span></div>
+        <div class="badge-round" id="qaeRoundBadge" style="display:none;">MANCHE N°1</div>
+      </div>
+      <div class="net-status offline" id="qaeNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="qaeNetBanner" role="status">
+      <span id="qaeNetBannerText"></span>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="qae-screen active" id="qae-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">QUI A ÉCRIT ÇA ?</h1>
+        <p class="subtitle">3 à 8 joueurs. Une question drôle, tout le monde répond en secret… puis les réponses tombent une par une, sans nom. À vous de deviner qui a écrit quoi — et de brouiller les pistes.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="qaeRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="qaeName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="qaeName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label for="qaeCustomQ">Question personnalisée (optionnel)</label>
+        <input type="text" id="qaeCustomQ" placeholder="Ex : Ce que tu penses vraiment des pieds ?" maxlength="90">
+        <div class="btn-row">
+          <button class="btn ghost small" id="qaeAddQBtn"><span>＋ Ajouter à la banque</span></button>
+          <span class="theme-count" id="qaeBankCount" style="margin:0;align-self:center;"></span>
+        </div>
+        <div class="btn-row" style="margin-top:14px;">
+          <button class="btn yellow small" id="qaeCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="qaeJoinCode">Code de la salle</label>
+        <input type="text" id="qaeJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="qaeJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="qae-screen" id="qae-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="qaeBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="qaeCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="qaeCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="qaeCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="qaePlayerList"></div>
+        <p class="lobby-status" id="qaeLobbyStatus">En attente de joueurs... (3 minimum)</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="qaeStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- WRITE -->
+    <section class="qae-screen" id="qae-screen-write">
+      <div class="panel">
+        <div class="clue-bubble"><small>La question</small><span id="qaeQuestion"></span></div>
+        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="qaeWriteTimerFill"></div><span id="qaeWriteTimerText"></span></div>
+        <label for="qaeAnswerInput">Ta réponse (anonyme… jusqu'à ce qu'on te démasque)</label>
+        <textarea id="qaeAnswerInput" class="qae-input" maxlength="140" rows="3" placeholder="Sois honnête. Ou pas."></textarea>
+        <div class="qae-charcount" id="qaeCharCount">0 / 140</div>
+        <div class="btn-row center">
+          <button class="btn yellow" id="qaeAnswerBtn"><span>✅ Envoyer ma réponse</span></button>
+        </div>
+        <p class="lobby-status" id="qaeWriteStatus"></p>
+        <div class="cham-player-list" id="qaeWriteList"></div>
+      </div>
+    </section>
+
+    <!-- GUESS + REVEAL -->
+    <section class="qae-screen" id="qae-screen-guess">
+      <div class="panel">
+        <div class="qae-progress" id="qaeGuessProgress">RÉPONSE 1 / 1</div>
+        <p class="subtitle" style="text-align:center;margin-bottom:6px;" id="qaeGuessQuestion"></p>
+        <div class="qae-card" id="qaeGuessCard"><span class="qae-quote">“</span><span id="qaeGuessText"></span></div>
+        <p class="qae-hint" id="qaeGuessHint"></p>
+        <div id="qaeGuessTimer"><div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="qaeGuessTimerFill"></div><span id="qaeGuessTimerText"></span></div></div>
+        <div class="cls-pool" id="qaeVoteChoices"></div>
+        <p class="lobby-status" id="qaeVoteStatus"></p>
+        <div id="qaeRevealBox" style="display:none;">
+          <div class="qae-verdict" id="qaeRevealVerdict"></div>
+          <div class="qae-votes" id="qaeRevealVotes"></div>
+        </div>
+        <div class="btn-row center" id="qaeHostBtns" style="display:none;margin-top:14px;">
+          <button class="btn yellow" id="qaeNextAnswerBtn"><span>▶ Réponse suivante</span></button>
+        </div>
+        <p class="waiting-label" id="qaeGuessWait" style="display:none;text-align:center;">⏳ L'hôte passe à la suite quand vous avez fini de rire...</p>
+      </div>
+    </section>
+
+    <!-- ROUND SCORES -->
+    <section class="qae-screen" id="qae-screen-scores">
+      <div class="panel">
+        <div class="cham-result-banner b-perfect">📜 TOUTES LES RÉPONSES</div>
+        <div class="clue-bubble"><small>La question</small><span id="qaeRecapQuestion"></span></div>
+        <div class="qae-recap" id="qaeRecapAnswers"></div>
+        <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">SCORES</h3>
+        <div class="cham-player-list" id="qaeScoreList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="qaeNextRoundBtn" style="display:none;"><span>🔄 Question suivante</span></button>
+          <button class="btn ghost" id="qaeEndGameBtn" style="display:none;"><span>🏁 Terminer la partie</span></button>
+          <span class="waiting-label" id="qaeWaitingHostLabel" style="display:none;">⏳ En attente que l'hôte lance la question suivante...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME OVER -->
+    <section class="qae-screen" id="qae-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
+        <div class="end-winner-text" id="qaeWinnerText"></div>
+        <div class="cls-podium" id="qaeFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="qaeNewGameBtn" style="display:none;"><span>🔁 Nouvelle partie</span></button>
+          <span class="waiting-label" id="qaeOverWaitLabel" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
 <!-- ================= LE CLASSEMENT ================= -->
 <div id="view-classement" class="view">
   <div class="hub-return-bar">
@@ -1082,6 +1231,33 @@
   </div>
 </div>
 
+<!-- QUI A ÉCRIT ÇA RULES MODAL -->
+<div class="modal-overlay" id="qaeRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="qaeRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — QUI A ÉCRIT ÇA ?</h2>
+    <ol class="rules-list">
+      <li>Une question tombe pour tout le monde : « Ce que tu penses vraiment des pieds ? »</li>
+      <li>Chacun écrit sa réponse en secret (90 s, 140 caractères).</li>
+      <li>Les réponses s'affichent une par une, <b>sans nom</b>, dans le désordre. Tout le monde vote : <b>qui a écrit ça ?</b> (30 s)</li>
+      <li>Si c'est ta réponse, vote quand même pour quelqu'un d'autre : personne ne doit deviner que c'est toi !</li>
+      <li><b>Points :</b> +1 par bonne devinette. L'auteur gagne +1 par joueur qu'il a berné (3 au maximum).</li>
+      <li>Après chaque réponse, on voit qui a voté pour qui. L'hôte passe à la suite, enchaîne les questions et termine la partie quand il veut.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- QUI A ÉCRIT ÇA DISCONNECT MODAL -->
+<div class="modal-overlay" id="qaeDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="qaeDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="qaeDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- CLASSEMENT RULES MODAL -->
 <div class="modal-overlay" id="clsRulesModal">
   <div class="modal-box">
@@ -1217,15 +1393,16 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=11"></script>
-<script src="js/net.js?v=11"></script>
-<script src="js/demicercle.js?v=11"></script>
-<script src="js/cameleon.js?v=11"></script>
-<script src="js/imposteur.js?v=11"></script>
-<script src="js/loup.js?v=11"></script>
-<script src="js/classement.js?v=11"></script>
-<script src="js/bots-maps.js?v=11"></script>
-<script src="js/bots.js?v=11"></script>
-<script src="js/hub.js?v=11"></script>
+<script src="js/common.js?v=12"></script>
+<script src="js/net.js?v=12"></script>
+<script src="js/demicercle.js?v=12"></script>
+<script src="js/cameleon.js?v=12"></script>
+<script src="js/imposteur.js?v=12"></script>
+<script src="js/loup.js?v=12"></script>
+<script src="js/classement.js?v=12"></script>
+<script src="js/quiaecrit.js?v=12"></script>
+<script src="js/bots-maps.js?v=12"></script>
+<script src="js/bots.js?v=12"></script>
+<script src="js/hub.js?v=12"></script>
 </body>
 </html>
