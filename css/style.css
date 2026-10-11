@@ -673,3 +673,8 @@ html.intro-playing, html.intro-playing body{overflow:hidden;}
 #introSkip span{display:inline-block;transform:skewX(12deg);}
 #introSkip:hover{background:var(--red);opacity:1;}
 #introOverlay.exiting #introSkip{display:none;}
+#introSoundHint{display:none;position:absolute;left:18px;bottom:22px;z-index:1;color:#fff;background:rgba(0,0,0,0.6);
+  border:2px solid var(--red);font-family:var(--font-display);letter-spacing:1px;font-size:1rem;padding:5px 12px;
+  transform:skewX(-10deg);animation:introHint 1.2s ease-in-out infinite alternate;pointer-events:none;}
+@keyframes introHint{from{opacity:0.45;}to{opacity:1;}}
+#introOverlay.exiting #introSoundHint{display:none !important;}

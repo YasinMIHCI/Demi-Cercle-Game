@@ -28,8 +28,11 @@
     return {route: route||'hub', query: query};
   }
 
+  /* musique de fond selon l'écran (js/audio.js) */
+  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', classement:'heist', quiaecrit:'heist'};
   function router(isInitial){
     var r = parseHash();
+    if(window.CGAudio) CGAudio.play(MUSIC[r.route]||'lounge');
     if(r.route==='demicercle'){
       showView('demicercle');
       if(isInitial && r.query.room) CG.demicercle.enterJoinFlow(r.query.room);
@@ -85,7 +88,16 @@
     refreshMuteBtn();
     if(!CG.isMuted()) CG.sfxToggle();
   });
+  function refreshMusicBtn(){
+    var on=window.CGAudio && CGAudio.isMusicOn();
+    $('musicBtn').querySelector('span').textContent = on ? '🎵 Musique activée' : '🎵 Musique coupée';
+  }
+  $('musicBtn').addEventListener('click',function(){
+    if(window.CGAudio) CGAudio.setMusicOn(!CGAudio.isMusicOn());
+    refreshMusicBtn(); CG.sfxToggle();
+  });
 
   refreshMuteBtn();
+  refreshMusicBtn();
   router(true);
 })();

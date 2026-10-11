@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=14">
+<link rel="stylesheet" href="css/style.css?v=15">
 </head>
 <body>
 
@@ -18,8 +18,10 @@
 <div id="introOverlay" aria-hidden="true">
   <canvas id="introCanvas"></canvas>
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
+  <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/intro.js?v=14"></script>
+<script src="js/audio.js?v=15"></script>
+<script src="js/intro.js?v=15"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -34,6 +36,7 @@
       <div class="btn-row center">
         <button class="btn ghost small" id="hubInfoBtn"><span>📖 Règles / Infos</span></button>
         <button class="btn ghost small" id="muteBtn"><span>🔊 Son activé</span></button>
+        <button class="btn ghost small" id="musicBtn"><span>🎵 Musique activée</span></button>
       </div>
     </header>
 
@@ -1400,16 +1403,16 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=14"></script>
-<script src="js/net.js?v=14"></script>
-<script src="js/demicercle.js?v=14"></script>
-<script src="js/cameleon.js?v=14"></script>
-<script src="js/imposteur.js?v=14"></script>
-<script src="js/loup.js?v=14"></script>
-<script src="js/classement.js?v=14"></script>
-<script src="js/quiaecrit.js?v=14"></script>
-<script src="js/bots-maps.js?v=14"></script>
-<script src="js/bots.js?v=14"></script>
-<script src="js/hub.js?v=14"></script>
+<script src="js/common.js?v=15"></script>
+<script src="js/net.js?v=15"></script>
+<script src="js/demicercle.js?v=15"></script>
+<script src="js/cameleon.js?v=15"></script>
+<script src="js/imposteur.js?v=15"></script>
+<script src="js/loup.js?v=15"></script>
+<script src="js/classement.js?v=15"></script>
+<script src="js/quiaecrit.js?v=15"></script>
+<script src="js/bots-maps.js?v=15"></script>
+<script src="js/bots.js?v=15"></script>
+<script src="js/hub.js?v=15"></script>
 </body>
 </html>
