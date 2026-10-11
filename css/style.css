@@ -660,3 +660,16 @@ button.cls-slot:disabled{cursor:default;opacity:1;}
 .qae-recap{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
 .qae-answer-recap{display:flex;align-items:baseline;gap:8px;background:#181818;border:2px solid #333;padding:8px 12px;flex-wrap:wrap;}
 .qae-answer-recap span{color:#ddd;flex:1;min-width:60%;}
+
+/* ================= INTRO ANIMÉE ================= */
+html.intro-playing, html.intro-playing body{overflow:hidden;}
+#introOverlay{position:fixed;inset:0;z-index:10000;background:#050505;overflow:hidden;cursor:pointer;touch-action:none;
+  -webkit-user-select:none;user-select:none;}
+#introOverlay.exiting{background:transparent;pointer-events:none;}
+#introCanvas{position:absolute;left:0;top:0;display:block;}
+#introSkip{position:absolute;right:18px;bottom:18px;z-index:1;background:#000;color:#fff;border:3px solid #fff;
+  font-family:var(--font-display);font-size:1.15rem;letter-spacing:2px;padding:6px 18px;cursor:pointer;
+  transform:skewX(-12deg);box-shadow:4px 4px 0 var(--red);opacity:0.85;}
+#introSkip span{display:inline-block;transform:skewX(12deg);}
+#introSkip:hover{background:var(--red);opacity:1;}
+#introOverlay.exiting #introSkip{display:none;}
