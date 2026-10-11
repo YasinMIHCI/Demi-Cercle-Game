@@ -11,7 +11,12 @@ Hébergeable tel quel sur GitHub Pages.
 sur un canvas, sans image ni vidéo) : un voleur masqué court et saute de toit en toit dans
 une ville néon sous une lune rouge, arrêt sur image « SHOWTIME! », plongée vers la caméra,
 titre en lettres découpées, puis des bandes diagonales dévoilent le hub. On peut la passer
-(bouton, clic, Échap). Elle n'est pas jouée quand on arrive par un lien d'invitation, ni si
+(bouton, clic, Échap).
+- Le personnage est animé par images clés (cycle de sprint complet, appel, saut, réception
+  amortie) et les pans de son manteau sont simulés physiquement.
+- Effets sonores et petite boucle musicale synthétisés en direct (Web Audio, aucun fichier).
+  Les navigateurs bloquant le son avant un premier geste, l'intro commence alors par un écran
+  « Touche pour entrer ». Si le son est coupé dans le hub, elle se joue directement, sans son. Elle n'est pas jouée quand on arrive par un lien d'invitation, ni si
 l'appareil demande de réduire les animations. `?introt=1.5` fige l'image à 1,5 s.
 
 ## Les jeux
