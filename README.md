@@ -5,6 +5,15 @@ Aucun serveur de jeu : tout tourne dans la page, et le mode en ligne relie
 directement les navigateurs entre eux (WebRTC via [PeerJS](https://peerjs.com/)).
 Hébergeable tel quel sur GitHub Pages.
 
+## L'intro
+
+À l'ouverture de la page, une intro animée de 5 secondes façon Persona 5 (dessinée en code
+sur un canvas, sans image ni vidéo) : un voleur masqué court et saute de toit en toit dans
+une ville néon sous une lune rouge, arrêt sur image « SHOWTIME! », plongée vers la caméra,
+titre en lettres découpées, puis des bandes diagonales dévoilent le hub. On peut la passer
+(bouton, clic, Échap). Elle n'est pas jouée quand on arrive par un lien d'invitation, ni si
+l'appareil demande de réduire les animations. `?introt=1.5` fige l'image à 1,5 s.
+
 ## Les jeux
 
 ### 🌗 Le Demi-Cercle
@@ -103,6 +112,7 @@ quelqu'un d'autre. L'hôte doit rester connecté : c'est lui qui fait tourner la
 ```
 index.html        le balisage des écrans (hub + jeux + modales)
 css/style.css     tout le style
+js/intro.js       l'intro animée façon Persona 5 (canvas)
 js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
 js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur
 js/demicercle.js  le Demi-Cercle

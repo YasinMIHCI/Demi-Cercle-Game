@@ -10,9 +10,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
+
+<!-- ================= INTRO ANIMÉE (5 s, voir js/intro.js) ================= -->
+<div id="introOverlay" aria-hidden="true">
+  <canvas id="introCanvas"></canvas>
+  <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
+</div>
+<script src="js/intro.js?v=13"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1393,16 +1400,16 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=12"></script>
-<script src="js/net.js?v=12"></script>
-<script src="js/demicercle.js?v=12"></script>
-<script src="js/cameleon.js?v=12"></script>
-<script src="js/imposteur.js?v=12"></script>
-<script src="js/loup.js?v=12"></script>
-<script src="js/classement.js?v=12"></script>
-<script src="js/quiaecrit.js?v=12"></script>
-<script src="js/bots-maps.js?v=12"></script>
-<script src="js/bots.js?v=12"></script>
-<script src="js/hub.js?v=12"></script>
+<script src="js/common.js?v=13"></script>
+<script src="js/net.js?v=13"></script>
+<script src="js/demicercle.js?v=13"></script>
+<script src="js/cameleon.js?v=13"></script>
+<script src="js/imposteur.js?v=13"></script>
+<script src="js/loup.js?v=13"></script>
+<script src="js/classement.js?v=13"></script>
+<script src="js/quiaecrit.js?v=13"></script>
+<script src="js/bots-maps.js?v=13"></script>
+<script src="js/bots.js?v=13"></script>
+<script src="js/hub.js?v=13"></script>
 </body>
 </html>
