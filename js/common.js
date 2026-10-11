@@ -46,19 +46,13 @@
     }
   }
 
-  /* ---------- AUDIO ---------- */
-  var actx=null;
-  var audioMuted=false;
-  try{ audioMuted = localStorage.getItem('crazygames_muted')==='1'; }catch(e){}
-  function ensureAudio(){
-    if(!actx){
-      var AC = window.AudioContext||window.webkitAudioContext;
-      if(AC) actx = new AC();
-    }
-    if(actx && actx.state==='suspended') actx.resume();
-  }
+  /* ---------- AUDIO ----------
+     Le contexte audio, son déblocage et le réglage « son coupé » sont communs
+     à tout le site (js/audio.js) ; ici, les petits bruitages des menus. */
+  var AU=window.CGAudio||null;
   function tone(freq,dur,type,gainVal,delay){
-    if(!actx || audioMuted) return;
+    var actx=AU && AU.ctx;
+    if(!actx || actx.state!=='running' || AU.isMuted()) return;
     type=type||'square'; gainVal=gainVal||0.15; delay=delay||0;
     var t0=actx.currentTime+delay;
     var osc=actx.createOscillator();
@@ -67,7 +61,7 @@
     osc.frequency.setValueAtTime(freq,t0);
     gain.gain.setValueAtTime(gainVal,t0);
     gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
-    osc.connect(gain); gain.connect(actx.destination);
+    osc.connect(gain); gain.connect(AU.sfx);
     osc.start(t0); osc.stop(t0+dur+0.03);
   }
   function sfxToggle(){ tone(330,0.06,'square',0.10,0); }
@@ -80,12 +74,8 @@
     else if(points>=20){ tone(294,0.2,'triangle',0.14,0); }
     else { tone(140,0.28,'sawtooth',0.14,0); tone(90,0.3,'sawtooth',0.12,0.1); }
   }
-  document.addEventListener('pointerdown', ensureAudio);
-  function isMuted(){ return audioMuted; }
-  function setMuted(v){
-    audioMuted=!!v;
-    try{ localStorage.setItem('crazygames_muted', audioMuted?'1':'0'); }catch(e){}
-  }
+  function isMuted(){ return AU ? AU.isMuted() : false; }
+  function setMuted(v){ if(AU) AU.setMuted(v); }
 
   /* Barre de temps (même style que Battle Bots) : start(ms restantes, durée totale). */
   function timerBar(fillId, textId){

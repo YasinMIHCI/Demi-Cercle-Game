@@ -11,13 +11,22 @@ Hébergeable tel quel sur GitHub Pages.
 sur un canvas, sans image ni vidéo) : un voleur masqué court et saute de toit en toit dans
 une ville néon sous une lune rouge, arrêt sur image « SHOWTIME! », plongée vers la caméra,
 titre en lettres découpées, puis des bandes diagonales dévoilent le hub. On peut la passer
-(bouton, clic, Échap).
+(bouton « Passer », Échap).
 - Le personnage est animé par images clés (cycle de sprint complet, appel, saut, réception
   amortie) et les pans de son manteau sont simulés physiquement.
-- Effets sonores et petite boucle musicale synthétisés en direct (Web Audio, aucun fichier).
-  Les navigateurs bloquant le son avant un premier geste, l'intro commence alors par un écran
-  « Touche pour entrer ». Si le son est coupé dans le hub, elle se joue directement, sans son. Elle n'est pas jouée quand on arrive par un lien d'invitation, ni si
-l'appareil demande de réduire les animations. `?introt=1.5` fige l'image à 1,5 s.
+- Effets sonores et musique synthétisés en direct (Web Audio, aucun fichier).
+
+## Son et musiques
+
+Tout le son passe par `js/audio.js` (un seul contexte audio pour le site) :
+- **OST originales**, composées pour le site dans l'esprit acid-jazz de Persona et jouées
+  par un petit séquenceur : *lounge* (hub et menus), *heist* (jeux de soirée), *riot*
+  (Battle Bots). La musique change toute seule selon l'écran, avec un fondu.
+- Boutons du hub : 🔊 Son (tout) et 🎵 Musique (seulement la musique), mémorisés.
+- Les navigateurs gardent une page muette tant qu'on n'a rien touché : le son démarre au
+  premier geste (pendant l'intro, toucher l'écran active le son sans la passer). Sur
+  iPhone, le son est débloqué au relâché du doigt et une piste muette empêche le bouton
+  « silencieux » de couper le son.
 
 ## Les jeux
 
@@ -117,6 +126,7 @@ quelqu'un d'autre. L'hôte doit rester connecté : c'est lui qui fait tourner la
 ```
 index.html        le balisage des écrans (hub + jeux + modales)
 css/style.css     tout le style
+js/audio.js       son commun : déblocage, instruments synthétisés, musiques
 js/intro.js       l'intro animée façon Persona 5 (canvas)
 js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
 js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur

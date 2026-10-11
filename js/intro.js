@@ -15,7 +15,8 @@
    4,55 s  sortie : des bandes noires, rouges et blanches balaient l'écran et
            dévoilent le hub.
 
-   On peut passer l'intro (bouton, clic, touche). Elle n'est pas jouée quand on
+   On peut passer l'intro (bouton « Passer », Échap). Toucher l'écran active le
+   son s'il est encore bloqué par le navigateur. Elle n'est pas jouée quand on
    arrive par un lien d'invitation (#jeu?room=...), ni si l'utilisateur préfère
    réduire les animations. ?introt=1.5 fige l'image à 1,5 s (pour la mise au
    point). */
@@ -25,8 +26,10 @@
   if(!overlay) return;
   var reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var debugT=(/[?&]introt=([0-9.]+)/.exec(location.search)||[])[1];
+  var AU=window.CGAudio||null;
   if(!debugT && (window.CG_NO_INTRO || /room=/.test(location.hash) || reduce)){
     overlay.parentNode.removeChild(overlay);
+    if(AU) AU.allowMusic(true);
     return;
   }
 
@@ -1040,24 +1043,18 @@
      lames, impacts, whooshs, pas, réceptions, coup de « SHOWTIME! », montée
      pendant la plongée, tampons des lettres, et une petite boucle basse +
      batterie (140 BPM) qui s'étouffe pendant le ralenti. */
-  var AC=window.AudioContext||window.webkitAudioContext;
-  var muted=false; try{ muted=localStorage.getItem('crazygames_muted')==='1'; }catch(e){}
-  var actx=null, sfxBus=null, musicBus=null, musicFilter=null, exitBus=null, noiseBuf=null, audioT0=0, audioOn=false;
+  var actx=AU ? AU.ctx : null, sfxBus=null, musicBus=null, musicFilter=null, exitBus=null, noiseBuf=null, audioT0=0, audioOn=false;
+  /* l'intro a ses propres bus, branchés sur la sortie commune (js/audio.js) */
   function audioCreate(){
-    if(muted || !AC || debugT) return;
-    try{ actx=new AC(); }catch(e){ actx=null; return; }
-    var comp=actx.createDynamicsCompressor();
-    comp.threshold.value=-16; comp.knee.value=8; comp.ratio.value=5; comp.attack.value=0.003; comp.release.value=0.15;
-    var master=actx.createGain(); master.gain.value=0.6;
-    master.connect(comp); comp.connect(actx.destination);
-    sfxBus=actx.createGain(); sfxBus.connect(master);
-    exitBus=actx.createGain(); exitBus.connect(master);
+    if(!actx || debugT || sfxBus) return;
+    sfxBus=actx.createGain(); sfxBus.gain.value=0.62; sfxBus.connect(AU.master);
+    exitBus=actx.createGain(); exitBus.gain.value=0.62; exitBus.connect(AU.master);
     musicFilter=actx.createBiquadFilter(); musicFilter.type='lowpass'; musicFilter.frequency.value=18000; musicFilter.Q.value=1.2;
     musicBus=actx.createGain(); musicBus.gain.value=0.75;
-    musicFilter.connect(musicBus); musicBus.connect(sfxBus);
-    var len=Math.floor(actx.sampleRate*1.5);
-    noiseBuf=actx.createBuffer(1, len, actx.sampleRate);
-    var d=noiseBuf.getChannelData(0); for(var i=0;i<len;i++) d[i]=Math.random()*2-1;
+    /* la musique de l'intro respecte le bouton « Musique » du hub */
+    var musicGate=actx.createGain(); musicGate.gain.value=AU.isMusicOn()?1:0;
+    musicFilter.connect(musicBus); musicBus.connect(musicGate); musicGate.connect(sfxBus);
+    noiseBuf=AU.noiseBuf;
   }
   function env(g, at, peak, attack, dur){
     g.gain.setValueAtTime(0.0001, at);
@@ -1126,6 +1123,7 @@
   };
   var BEAT=60/140, E2=82.41, G2=98.0, A2=110.0, B2=123.47, D3=146.83;
   var BASS=[E2,E2,G2,E2,A2,E2,B2,D3];
+  var ARP=[76,79,83,86,83,79,74,71];
   /* liste de tous les sons, en temps de l'intro */
   function audioEvents(){
     var ev=[];
@@ -1145,6 +1143,9 @@
             if(i%4===2) SFX.snare(a, M);
             if(i%8===7) SFX.kick(a, 0.5, M);
             SFX.bass(a, BASS[i%8], M);
+            var I=AU.inst;
+            if(i%8===0) I.epiano(a, M, (Math.floor(i/8)%2 ? [52,55,59,62] : [55,59,62,66]), BEAT*3.2, 0.32);
+            I.pluck(a, M, ARP[i%8], BEAT*0.45, 0.07);
           });
         })(i,t);
       }
@@ -1190,13 +1191,18 @@
     add(T_TITLE+0.78, function(a){ SFX.whoosh(a,0.25,400,3000,0.35); });
     add(T_TITLE+0.95, function(a){ SFX.shing(a,0.09); });
     for(var i=0, t=T_TITLE+0.24; t<T_EXIT; i++, t=T_TITLE+0.24+i*BEAT/2){
-      (function(i,t){ add(t, function(a){ SFX.hat(a, i%2?0.06:0.1); if(i%4===0) SFX.kick(a,0.6); SFX.bass(a, BASS[(i+4)%8]); }); })(i,t);
+      (function(i,t){ add(t, function(a){
+        SFX.hat(a, i%2?0.06:0.1); if(i%4===0) SFX.kick(a,0.6); SFX.bass(a, BASS[(i+4)%8]);
+        AU.inst.pluck(a, musicFilter, ARP[(i+3)%8]+12, BEAT*0.4, 0.06);
+        if(i%8===0) AU.inst.brass(a, musicFilter, [76,79,83][Math.floor(i/8)%3], BEAT*1.5, 0.12);
+      }); })(i,t);
     }
     return ev;
   }
   var EVENTS=null;
   function audioStart(fromT){
-    if(!actx || actx.state!=='running') return;
+    if(!actx || actx.state!=='running' || audioOn || AU.isMuted()) return;
+    audioCreate();
     audioOn=true;
     EVENTS=EVENTS||audioEvents();
     audioT0=actx.currentTime+0.05-fromT;
@@ -1216,10 +1222,13 @@
     SFX.whoosh(a, 0.42, 250, 3200, 0.5, exitBus);
     noise(a+0.3, 0.3, {type:'lowpass', f0:500, gain:0.25, bus:exitBus});
   }
+  /* fin de l'intro : on coupe ce qui reste et on laisse la musique du hub prendre le relais */
   function audioStop(){
-    if(!actx) return;
-    var a=actx;
-    setTimeout(function(){ try{ a.close(); }catch(e){} }, 900);
+    if(audioOn){
+      var now=actx.currentTime;
+      sfxBus.gain.setValueAtTime(sfxBus.gain.value, now); sfxBus.gain.linearRampToValueAtTime(0.0001, now+0.3);
+    }
+    if(AU) AU.allowMusic(true);
   }
 
   /* ===================== BOUCLE ===================== */
@@ -1239,38 +1248,9 @@
     if(t>=T_EXIT) drawExit(seg(t,T_EXIT,TOTAL));
   }
 
-  /* ===================== ÉCRAN « TOUCHE POUR ENTRER » =====================
-     Les navigateurs interdisent le son avant un premier geste : si le son est
-     bloqué, on attend un toucher (façon écran titre) pour lancer l'intro avec
-     le son. Si le son est coupé dans le hub, l'intro démarre directement. */
-  function drawGate(time){
-    base();
-    ctx.fillStyle=BLACK; ctx.fillRect(-10,-10,VW+20,1100);
-    sunburst(ctx, VW/2, 470, 24, time*0.12, 'rgba(230,0,18,0.55)');
-    ctx.globalAlpha=0.35; ctx.drawImage(halftoneRed,0,0,VW,1080); ctx.globalAlpha=1;
-    var mw=Math.min(VW*0.86, 640)*(1+0.02*Math.sin(time*2.4));
-    ctx.save(); ctx.translate(0, 8*Math.sin(time*1.7));
-    drawMask(ctx, VW/2, 400, mw, WHITE);
-    ctx.restore();
-    var fs=Math.min(64, VW/11);
-    ctx.font=fs+'px '+FONT_DISPLAY;
-    var label='▶ TOUCHE POUR ENTRER', tw=ctx.measureText(label).width;
-    if(tw>VW*0.8){ fs*=VW*0.8/tw; ctx.font=fs+'px '+FONT_DISPLAY; tw=ctx.measureText(label).width; }
-    ctx.save(); ctx.translate(VW/2, 700); ctx.rotate(-0.05);
-    var pad=fs*0.6;
-    ctx.fillStyle=RED; ctx.fillRect(-tw/2-pad+10, -fs*0.75+10, tw+pad*2, fs*1.5);
-    ctx.fillStyle=BLACK; ctx.fillRect(-tw/2-pad, -fs*0.75, tw+pad*2, fs*1.5);
-    ctx.strokeStyle=WHITE; ctx.lineWidth=5; ctx.strokeRect(-tw/2-pad+6, -fs*0.75+6, tw+pad*2-12, fs*1.5-12);
-    ctx.globalAlpha=0.6+0.4*Math.sin(time*5);
-    ctx.fillStyle=WHITE; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(label, 0, fs*0.05);
-    ctx.restore(); ctx.globalAlpha=1;
-    ctx.font=Math.round(fs*0.5)+'px '+FONT_DISPLAY; ctx.fillStyle='#bbb'; ctx.textAlign='center';
-    ctx.fillText('🔊 AVEC LE SON', VW/2, 700+fs*1.35);
-    drawVignette();
-  }
-
   /* ===================== BOUCLE ===================== */
-  var start=0, offset=0, raf=0, done=false, exiting=false, begun=false, gateOn=false, gateStart=0;
+  var start=0, offset=0, raf=0, done=false, exiting=false, begun=false;
+  var hint=document.getElementById('introSoundHint');
   function finish(){
     if(done) return;
     done=true;
@@ -1290,50 +1270,35 @@
   function frame(now){
     if(!start) start=now;
     var t=introTime(now);
-    if(t>=T_EXIT && !exiting){ exiting=true; overlay.classList.add('exiting'); audioExit(); }
+    if(t>=T_EXIT && !exiting){ exiting=true; overlay.classList.add('exiting'); audioExit(); if(hint) hint.style.display='none'; }
     if(t>=TOTAL){ finish(); return; }
     render(t);
     raf=requestAnimationFrame(frame);
   }
-  function gateFrame(now){
-    if(!gateOn) return;
-    if(!gateStart) gateStart=now;
-    drawGate((now-gateStart)/1000);
-    raf=requestAnimationFrame(gateFrame);
-  }
   function begin(){
     if(begun || done) return;
-    begun=true; gateOn=false;
-    cancelAnimationFrame(raf);
-    overlay.classList.remove('gate');
+    begun=true;
     if(actx && actx.state==='running') audioStart(0);
     start=performance.now()+(audioOn?50:0);
     raf=requestAnimationFrame(frame);
-  }
-  function showGate(){
-    if(begun || done) return;
-    gateOn=true; overlay.classList.add('gate');
-    raf=requestAnimationFrame(gateFrame);
-  }
-  function gateEnter(){
-    if(!gateOn) return;
-    gateOn=false;
-    /* dans le geste : on débloque le son, puis on lance (même si le son refuse) */
-    try{ actx.resume().then(begin, begin); }catch(e){ begin(); }
-    setTimeout(begin, 400);
+    /* son encore bloqué : il démarrera au premier geste, calé sur l'image */
+    if(AU && !audioOn && !AU.isMuted()){
+      if(hint) hint.style.display='block';
+      AU.onUnlock(function(){
+        if(hint) hint.style.display='none';
+        if(done || exiting) return;
+        audioStart(introTime(performance.now()));
+      });
+    }
   }
   /* passer : on saute directement aux bandes de sortie */
   function skip(){
     if(done || exiting) return;
-    if(!begun){ finish(); return; }
     offset+=T_EXIT-introTime(performance.now());
     audioSkip();
   }
-  function onKey(e){
-    if(e.key!=='Escape' && e.key!==' ' && e.key!=='Enter') return;
-    e.preventDefault();
-    if(gateOn && e.key!=='Escape') gateEnter(); else skip();
-  }
+  /* Échap passe l'intro (les autres touches servent juste à activer le son) */
+  function onKey(e){ if(e.key==='Escape'){ e.preventDefault(); skip(); } }
 
   resize();
   window.addEventListener('resize', resize);
@@ -1341,23 +1306,13 @@
     var dt=parseFloat(debugT);
     if(dt>=T_EXIT) overlay.classList.add('exiting');
     render(dt);
-    window.CG_INTRO_DEBUG={drawChar:drawChar, charAt:charAt, tailsAt:tailsAt, poseRun:poseRun, drawGate:drawGate};
+    window.CG_INTRO_DEBUG={drawChar:drawChar, charAt:charAt, tailsAt:tailsAt, poseRun:poseRun};
     window.CG_INTRO_RENDER=function(t){ overlay.classList.toggle('exiting', t>=T_EXIT); render(t); };
     return;
   }
   document.documentElement.classList.add('intro-playing');
-  overlay.addEventListener('pointerdown', function(){ if(gateOn) gateEnter(); else skip(); });
-  document.getElementById('introSkip').addEventListener('pointerdown', function(e){ e.stopPropagation(); if(gateOn){ gateOn=false; finish(); } else skip(); });
+  /* toucher l'écran active le son (js/audio.js) ; seul le bouton ou Échap passent l'intro */
+  document.getElementById('introSkip').addEventListener('click', function(e){ e.stopPropagation(); skip(); });
   document.addEventListener('keydown', onKey);
-  audioCreate();
-  if(!actx) begin();
-  else if(/[?&]introgate=1/.test(location.search)) showGate();
-  else {
-    /* le son est-il autorisé sans geste ? sinon, écran « touche pour entrer » */
-    var decided=false;
-    /* si le son se débloque pendant l'écran d'entrée, on lance tout seul */
-    actx.onstatechange=function(){ if(gateOn && actx.state==='running'){ gateOn=false; begin(); } };
-    try{ actx.resume().then(function(){ if(!decided && actx.state==='running'){ decided=true; begin(); } }, function(){}); }catch(e){}
-    setTimeout(function(){ if(!decided){ decided=true; if(actx.state==='running') begin(); else showGate(); } }, 350);
-  }
+  begin();
 })();
