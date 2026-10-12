@@ -9,7 +9,8 @@ Hébergeable tel quel sur GitHub Pages.
 
 À l'ouverture de la page, une intro animée de 5 secondes façon Persona 5 (dessinée en code
 sur un canvas, sans image ni vidéo) : un voleur masqué court et saute de toit en toit dans
-une ville néon sous une lune rouge, arrêt sur image « SHOWTIME! », plongée vers la caméra,
+une ville néon sous une lune rouge, arrêt sur image « SHOWTIME! », bond en salto vers le fond
+du décor (il disparaît devant la lune), grande bande rouge « TAKE YOUR HEART » en transition,
 titre en lettres découpées, puis des bandes diagonales dévoilent le hub. On peut la passer
 (bouton « Passer », Échap).
 - Le personnage est animé par images clés (cycle de sprint complet, appel, saut, réception

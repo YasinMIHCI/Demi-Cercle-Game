@@ -9,10 +9,12 @@
            et saute de building en building ;
    1,68 s  arrêt sur image « SHOWTIME! » au sommet du grand saut (façon
            All-Out Attack), puis retour à la scène par une découpe en diagonale ;
-   2,68 s  il bondit vers la caméra : son manteau envahit l'écran ;
-   3,03 s  titre : étoile rouge qui explose, lettres découpées façon carte de
-           visite des Phantom Thieves, bandeau PHANTOM WAVE ;
-   4,55 s  sortie : des bandes noires, rouges et blanches balaient l'écran et
+   2,68 s  au bord du dernier toit, il bondit en salto vers le fond du décor et
+           disparaît dans un éclat devant la lune ; une énorme bande rouge
+           « TAKE YOUR HEART » balaie l'écran et le recouvre ;
+   3,38 s  titre : la bande repart en s'affinant, lettres découpées façon carte
+           de visite des Phantom Thieves, bandeau PHANTOM WAVE ;
+   4,65 s  sortie : des bandes noires, rouges et blanches balaient l'écran et
            dévoilent le hub.
 
    On peut passer l'intro (bouton « Passer », Échap). Toucher l'écran active le
@@ -59,7 +61,7 @@
   var canvas=document.getElementById('introCanvas');
   var ctx=canvas.getContext('2d');
   var W=0, H=0, DPR=1, S=1, VW=1920;        /* on dessine en « unités » : l'écran fait 1080 de haut */
-  var halftoneRed=null, halftoneBlack=null, moonSprite=null, midSprites=[];
+  var halftoneRed=null, halftoneBlack=null, moonSprite=null, midSprites=[], towerSprite=null;
   var freezeCanvas=document.createElement('canvas'), fctx=freezeCanvas.getContext('2d'), freezeReady=false;
 
   function resize(){
@@ -72,7 +74,9 @@
     halftoneRed=makeHalftone('rgba(255,26,58,1)');
     halftoneBlack=makeHalftone('rgba(0,0,0,1)');
     moonSprite=makeMoon();
-    var maxX=(VX*P_DIVE0-VW*0.36)*0.5+VW+200;
+    var maxX=(VX*P_LEAP-VW*0.36)*0.5+VW+200;
+    towerSprite=makeTower();
+    ROOFS.forEach(function(rf){ if(rf.board) rf.sprite=makeBoard(rf); });
     midSprites=MID.map(function(b){ return (b.x+b.w>-VW*0.5 && b.x<maxX) ? makeMidSprite(b) : null; });
   }
   function base(c){ (c||ctx).setTransform(DPR*S,0,0,DPR*S,0,0); }
@@ -118,6 +122,34 @@
     }
     x.restore();
     return o.c;
+  }
+
+  /* tour rouge façon Tokyo Tower, halo compris, dessinée une fois */
+  function makeTower(){
+    var o=newCanvas(280,640), x=o.x, tx=140, ty=20;
+    x.strokeStyle='rgba(255,40,60,0.85)'; x.lineWidth=3; x.shadowColor=RED_HOT; x.shadowBlur=12;
+    x.beginPath();
+    x.moveTo(tx-110,550); x.lineTo(tx-14,ty+80); x.lineTo(tx,ty); x.lineTo(tx+14,ty+80); x.lineTo(tx+110,550);
+    for(var k=0;k<8;k++){
+      var yy=ty+90+k*75, half=14+(yy-ty-80)/(550-ty-80)*96;
+      if(yy>550) break;
+      x.moveTo(tx-half,yy); x.lineTo(tx+half,yy);
+      if(k<6){ var yn=yy+75, hn=14+(yn-ty-80)/(550-ty-80)*96; x.moveTo(tx-half,yy); x.lineTo(tx+hn,yn); x.moveTo(tx+half,yy); x.lineTo(tx-hn,yn); }
+    }
+    x.stroke(); x.shadowBlur=0;
+    x.fillStyle=RED_HOT; x.fillRect(tx-30,ty+300,60,14); x.fillRect(tx-46,ty+470,92,16);
+    return o.c;
+  }
+  function makeBoard(rf){
+    var bw=Math.min(380, rf.x1-rf.x0-180), o=newCanvas(bw+60, 170), x=o.x;
+    x.translate(30,30);
+    x.fillStyle=BLACK; x.fillRect(30, 110, 8, 30); x.fillRect(bw-38, 110, 8, 30);
+    x.fillStyle='#160006'; x.fillRect(0, 0, bw, 110);
+    x.strokeStyle=RED_HOT; x.lineWidth=4; x.shadowColor=RED_HOT; x.shadowBlur=18;
+    x.strokeRect(0, 0, bw, 110);
+    x.fillStyle=RED_HOT; x.font='64px '+FONT_DISPLAY; x.textAlign='center'; x.textBaseline='middle';
+    x.fillText('TAKE YOUR HEART', bw/2, 56, bw-30);
+    return {c:o.c, w:bw+60};
   }
 
   /* ===================== LA VILLE ===================== */
@@ -189,14 +221,15 @@
     x.shadowBlur=0;
     return {c:o.c, ox:pad, oy:pad+80, w:b.w+pad*2, h:hgt+pad+80};
   }
-  /* toits où court le voleur (parallaxe 1) */
+  /* toits où court le voleur (parallaxe 1), calés sur ses sauts */
+  var VX=1500;                         /* vitesse de course (unités par seconde) */
   var ROOFS=[
-    {x0:-2600, x1:437, top:760, tank:true},
-    {x0:900, x1:1312, top:680, antenna:true},
-    {x0:2250, x1:2950, top:790, board:true},
-    {x0:3200, x1:4300, top:700, tank:true},
-    {x0:4550, x1:5800, top:760, antenna:true},
-    {x0:6050, x1:7600, top:690}
+    {x0:-2600, x1:VX*0.35, top:760, tank:true},
+    {x0:VX*0.72-12, x1:VX*1.05+8, top:680, antenna:true},
+    {x0:VX*1.80-40, x1:VX*2.0+14, top:790},
+    {x0:VX*2.0+330, x1:VX*2.0+1500, top:720, board:true},
+    {x0:VX*2.0+1750, x1:VX*2.0+3000, top:760, antenna:true},
+    {x0:VX*2.0+3250, x1:VX*2.0+4700, top:690, tank:true}
   ];
   ROOFS.forEach(function(rf,i){
     var r=rng(100+i); rf.wins=[];
@@ -229,7 +262,7 @@
      pans du manteau sont de vraies chaînes simulées (inertie, traînée de l'air,
      gravité), calculées une fois pour toute la trajectoire. */
   var L_TH=46, L_SH=46, L_FT=21, L_TO=54, L_NK=7, L_UA=31, L_FA=28;
-  var CAD=3.2;                                   /* cycles de course par seconde (2 pas par cycle) */
+  var CAD=3.8;                                   /* cycles de course par seconde (2 pas par cycle) */
   function smooth(u){ u=clamp01(u); return u*u*(3-2*u); }
   function catmull(p0,p1,p2,p3,u){
     var u2=u*u, u3=u2*u;
@@ -248,25 +281,25 @@
   }
   /* une jambe sur un cycle : [phase, cuisse, flexion du genou, extension de la cheville] */
   var LEG=[
-    [0.00, 0.46, 0.16, 0.05],   /* le talon se pose devant */
-    [0.10, 0.22, 0.58, 0.00],   /* amorti */
-    [0.22,-0.16, 0.36, 0.05],   /* passage sous le bassin */
-    [0.34,-0.52, 0.20, 0.38],   /* poussée */
-    [0.45,-0.64, 0.92, 0.80],   /* les orteils quittent le sol */
-    [0.58,-0.24, 2.05, 0.55],   /* le talon remonte vers la fesse */
-    [0.72, 0.50, 2.20, 0.35],   /* le genou monte */
-    [0.86, 0.95, 1.25, 0.20],   /* la jambe se déplie */
-    [0.95, 0.74, 0.42, 0.10]    /* attaque du pas */
+    [0.00, 0.50, 0.16, 0.05],   /* le talon se pose devant */
+    [0.10, 0.24, 0.55, 0.00],   /* amorti */
+    [0.22,-0.18, 0.34, 0.05],   /* passage sous le bassin */
+    [0.34,-0.60, 0.18, 0.42],   /* poussée */
+    [0.45,-0.74, 0.95, 0.85],   /* les orteils quittent le sol */
+    [0.58,-0.28, 2.15, 0.55],   /* le talon remonte vers la fesse */
+    [0.72, 0.58, 2.25, 0.35],   /* le genou monte */
+    [0.86, 1.05, 1.25, 0.20],   /* la jambe se déplie */
+    [0.95, 0.82, 0.42, 0.10]    /* attaque du pas */
   ];
   function poseRun(p){
     var ph=p*CAD;
     var nT=cyc(LEG,ph,1), nK=cyc(LEG,ph,2), nA=cyc(LEG,ph,3);
     var fT=cyc(LEG,ph+0.5,1), fK=cyc(LEG,ph+0.5,2), fA=cyc(LEG,ph+0.5,3);
     /* chaque bras suit la jambe opposée ; le coude se ferme quand le bras passe devant */
-    var nS=1.05*fT-0.08, fS=1.05*nT-0.08;
+    var nS=1.3*fT-0.1, fS=1.3*nT-0.1;
     var g=(ph*2)%1;                                     /* deux pas par cycle */
-    return {lean:0.30+0.035*Math.sin(ph*TAU*2), head:-0.2, spin:0,
-      float:7*Math.pow(Math.max(0,Math.cos((g-0.47)*TAU)),4),
+    return {lean:0.42+0.035*Math.sin(ph*TAU*2), head:-0.32, spin:0,
+      float:11*Math.pow(Math.max(0,Math.cos((g-0.47)*TAU)),4),
       nT:nT, nK:nK, nA:nA, fT:fT, fK:fK, fA:fA,
       nS:nS, nE:1.25+0.55*clamp01(nS+0.2), fS:fS, fE:1.25+0.55*clamp01(fS+0.2)};
   }
@@ -443,13 +476,15 @@
   }
 
   /* ===================== CHRONOLOGIE ===================== */
-  var VX=1250;                         /* vitesse de course (unités par seconde) */
-  var CK=1.2;                          /* taille du voleur dans la ville */
-  var P_SLOW=1.25, SLOW=0.35, P_APEX=1.40, P_DIVE0=2.0, P_DIVE1=2.35;
+ var CK=1.2;                          /* taille du voleur dans la ville */
+  var P_SLOW=1.25, SLOW=0.35, P_APEX=1.40, P_LEAP=2.0, P_END=2.7;
   var F0=P_SLOW+(P_APEX-P_SLOW)/SLOW;  /* début de l'arrêt sur image */
   var F1=F0+0.40;                      /* fin */
-  var T_TITLE=F1+(P_DIVE1-P_APEX);     /* ≈ 3,03 s */
-  var T_EXIT=4.55, TOTAL=5.0;
+  var T_TITLE=F1+(P_END-P_APEX);     /* ≈ 3,38 s */
+  var T_EXIT=4.65, TOTAL=5.1;
+  var LT0=0.3;                         /* les lettres du titre commencent à claquer */
+  /* bond final : décollage, salto vers le fond, disparition, puis la grande bande */
+  var LEAP_GONE=0.66, BAND_IN=0.62;
   function warp(s){
     if(s<P_SLOW) return s;
     if(s<F0) return P_SLOW+(s-P_SLOW)*SLOW;
@@ -474,16 +509,22 @@
   }
   function charAt(p){
     var x=VX*p, y, pose, air=false, u, J;
-    if(p<P_DIVE0 && p>=JUMPS[1].t1){
+    if(p<P_LEAP && p>=JUMPS[1].t1){
       y=JUMPS[1].y1; pose=runWithLanding(p, JUMPS[1].t1);
-      var pre=smooth((p-(P_DIVE0-0.075))/0.075);
+      var pre=smooth((p-(P_LEAP-0.075))/0.075);
       if(pre>0) pose=mix(pose, POSE_PRE, pre);
     }
-    else if(p>=P_DIVE0){
-      /* bond final vers la caméra */
-      u=clamp01((p-P_DIVE0)/(P_DIVE1-P_DIVE0)); air=true;
-      y=JUMPS[1].y1-760*easeOutCubic(u);
-      pose=mix(POSE_TAKEOFF, POSE_DIVE, smooth(u/0.35));
+    else if(p>=P_LEAP){
+      /* bond final dans le décor : impulsion, salto, puis grand écart devant la lune */
+      u=clamp01((p-P_LEAP)/(P_END-P_LEAP)); air=true;
+      x=VX*P_LEAP+VX*0.6*(p-P_LEAP);
+      y=JUMPS[1].y1-700*easeOutCubic(Math.min(1,u/0.6));
+      if(u<0.08) pose=mix(POSE_PRE, POSE_TAKEOFF, smooth(u/0.08));
+      else if(u<0.2) pose=mix(POSE_TAKEOFF, POSE_TUCK, smooth((u-0.08)/0.12));
+      else if(u<0.42) pose=mix(POSE_TUCK, POSE_TUCK, 0);
+      else pose=mix(POSE_TUCK, POSE_LEAP, smooth((u-0.42)/0.14));
+      pose=mix(pose, pose, 0);
+      pose.spin=TAU*smooth((u-0.1)/0.38);
     }
     else {
       for(var i=0;i<JUMPS.length;i++){
@@ -506,7 +547,7 @@
       for(i=0;i<JUMPS.length;i++){ if(JUMPS[i].t1<=p) prev=JUMPS[i].t1; if(JUMPS[i].t0>p && next===null) next=JUMPS[i]; }
       y= prev===null ? JUMPS[0].y0 : (prev===JUMPS[0].t1 ? JUMPS[0].y1 : JUMPS[1].y1);
       pose=runWithLanding(p, prev);
-      var nextT= next ? next.t0 : P_DIVE0;
+      var nextT= next ? next.t0 : P_LEAP;
       /* appel : on se ramasse juste avant de sauter */
       var a=smooth((p-(nextT-0.075))/0.075);
       if(a>0) pose=mix(pose, POSE_PRE, a);
@@ -515,7 +556,7 @@
   }
 
   /* pans du manteau : chaînes simulées une fois pour toute la trajectoire */
-  var TAIL_N=8, TAIL_SEG=[12.5,10.5], TAIL_DT=1/240, TAIL_STEP=1/120, TAIL_P0=-0.5, TAIL_P1=P_DIVE1+0.05;
+  var TAIL_N=8, TAIL_SEG=[12.5,10.5], TAIL_DT=1/240, TAIL_STEP=1/120, TAIL_P0=-0.5, TAIL_P1=P_END+0.05;
   var TAIL_SAMPLES=[];
   (function(){
     var tails=[0,1].map(function(i){
@@ -556,7 +597,7 @@
     return A.map(function(pts,ti){ return pts.map(function(q,j){ return {x:lerp(q.x,B[ti][j].x,u), y:lerp(q.y,B[ti][j].y,u)}; }); });
   }
   function camera(p){
-    var pc=Math.min(p, P_DIVE0), ch=charAt(pc);
+    var pc=Math.min(p, P_LEAP), ch=charAt(pc);
     var cx=ch.x-VW*0.36, cy=(ch.y-720)*0.55;
     var shake=0;
     LANDINGS.forEach(function(L){ if(p>=L && p<L+0.22){ shake+=18*(1-(p-L)/0.22)*Math.sin(p*95); } });
@@ -583,23 +624,8 @@
       if(b.spire){ ctx.beginPath(); ctx.moveTo(b.x+b.w*0.3,b.top); ctx.lineTo(b.x+b.w*0.5,b.top-90); ctx.lineTo(b.x+b.w*0.7,b.top); ctx.fill(); }
     });
     FAR_WIN.forEach(function(w){ if(w.x<x0 || w.x>x1) return; ctx.fillStyle=w.c; ctx.fillRect(w.x,w.y,4,5); });
-    /* tour rouge façon Tokyo Tower */
-    var tx=1150, ty=170;
-    if(tx+200>x0 && tx-200<x1){
-      ctx.strokeStyle='rgba(255,40,60,0.85)'; ctx.lineWidth=3;
-      ctx.shadowColor=RED_HOT; ctx.shadowBlur=12;
-      ctx.beginPath();
-      ctx.moveTo(tx-110,700); ctx.lineTo(tx-14,ty+80); ctx.lineTo(tx,ty);
-      ctx.lineTo(tx+14,ty+80); ctx.lineTo(tx+110,700);
-      for(var k=0;k<8;k++){
-        var yy=ty+90+k*75, half=14+(yy-ty-80)/(700-ty-80)*96;
-        ctx.moveTo(tx-half,yy); ctx.lineTo(tx+half,yy);
-        if(k<7){ var yn=yy+75, hn=14+(yn-ty-80)/(700-ty-80)*96; ctx.moveTo(tx-half,yy); ctx.lineTo(tx+hn,yn); ctx.moveTo(tx+half,yy); ctx.lineTo(tx-hn,yn); }
-      }
-      ctx.stroke();
-      ctx.shadowBlur=0;
-      ctx.fillStyle=RED_HOT; ctx.fillRect(tx-30,ty+300,60,14); ctx.fillRect(tx-46,ty+470,92,16);
-    }
+    /* tour rouge façon Tokyo Tower (pré-rendue) */
+    if(1350>x0 && 950<x1) ctx.drawImage(towerSprite, 1010, 150, 280, 640);
     ctx.restore();
     /* brume rouge à l'horizon */
     var g=ctx.createLinearGradient(0,560-cam.y*0.2,0,900-cam.y*0.2);
@@ -644,25 +670,23 @@
         var axx=rf.x0+90;
         ctx.fillRect(axx, rf.top-190, 6, 190);
         ctx.fillRect(axx-26, rf.top-150, 58, 4); ctx.fillRect(axx-16, rf.top-120, 38, 4);
-        if(Math.sin(time*9)>0){ ctx.fillStyle=RED_HOT; ctx.shadowColor=RED_HOT; ctx.shadowBlur=16; ctx.beginPath(); ctx.arc(axx+3, rf.top-196, 6, 0, TAU); ctx.fill(); ctx.shadowBlur=0; ctx.fillStyle=BLACK; }
+        if(Math.sin(time*9)>0){
+          ctx.fillStyle='rgba(255,26,58,0.25)'; ctx.beginPath(); ctx.arc(axx+3, rf.top-196, 16, 0, TAU); ctx.fill();
+          ctx.fillStyle=RED_HOT; ctx.beginPath(); ctx.arc(axx+3, rf.top-196, 6, 0, TAU); ctx.fill(); ctx.fillStyle=BLACK;
+        }
       }
-      if(rf.board){
-        var bx=rf.x0+120, bw=Math.min(380, w-180);
-        ctx.fillRect(bx+30, rf.top-120, 8, 120); ctx.fillRect(bx+bw-38, rf.top-120, 8, 120);
-        ctx.fillStyle='#160006'; ctx.fillRect(bx, rf.top-230, bw, 110);
-        ctx.strokeStyle=RED_HOT; ctx.lineWidth=4; ctx.shadowColor=RED_HOT; ctx.shadowBlur=18;
-        ctx.strokeRect(bx, rf.top-230, bw, 110);
-        ctx.fillStyle=RED_HOT; ctx.font='64px '+FONT_DISPLAY; ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText('TAKE YOUR HEART', bx+bw/2, rf.top-174, bw-30);
-        ctx.shadowBlur=0; ctx.fillStyle=BLACK;
+      if(rf.board && rf.sprite){
+        var bx=rf.x0+120;
+        ctx.fillRect(bx+30, rf.top-120, 8, 120); ctx.fillRect(bx+rf.sprite.w-98, rf.top-120, 8, 120);
+        ctx.drawImage(rf.sprite.c, bx-30, rf.top-260, rf.sprite.w, 170);
       }
       /* rambarde + rebord, liseré rouge (la lune) */
       ctx.fillRect(rf.x0-10, rf.top-12, w+20, 16);
       ctx.fillRect(rf.x0-10, rf.top-46, w+20, 4);
       for(var px=rf.x0; px<=rf.x1; px+=34) ctx.fillRect(px, rf.top-46, 4, 36);
-      ctx.shadowColor=RED_HOT; ctx.shadowBlur=14;
+      /* liseré rouge + halo (sans flou en direct : trop coûteux sur téléphone) */
+      ctx.fillStyle='rgba(255,26,58,0.22)'; ctx.fillRect(rf.x0-14, rf.top-22, w+28, 18);
       ctx.fillStyle=RED_HOT; ctx.fillRect(rf.x0-10, rf.top-14, w+20, 4);
-      ctx.shadowBlur=0;
       ctx.fillStyle='rgba(255,26,58,0.35)'; ctx.fillRect(rf.x0-10, rf.top-48, w+20, 2);
     });
     ctx.restore();
@@ -707,13 +731,60 @@
     ctx.fillStyle=g; ctx.fillRect(0,0,VW,1080);
   }
 
+  /* appuis des pieds (pour la poussière) : chaque pied touche le sol une fois par cycle */
+  var CONTACTS=[];
+  [[0,0.35],[0.72,1.05],[1.80,P_LEAP]].forEach(function(sg){
+    for(var k=-1;k<12;k++){
+      [k/CAD, (k+0.5)/CAD].forEach(function(p){ if(p>=sg[0]+0.03 && p<sg[1]-0.02) CONTACTS.push(p); });
+    }
+  });
+  function moonPos(cam){ return {x:VW*0.68-cam.x*0.04, y:300-cam.y*0.05}; }
+
+  /* le bond final, en perspective : il s'éloigne vers la lune en rapetissant */
+  function leapState(p, cam){
+    var u=clamp01((p-P_LEAP)/(P_END-P_LEAP));
+    var c0=charAt(P_LEAP), s0={x:c0.x-cam.x, y:c0.y-cam.y}, mp=moonPos(cam);
+    var m=easeInOutCubic(clamp01((u-0.04)/(LEAP_GONE-0.04)));
+    var c1={x:lerp(s0.x, mp.x, 0.3), y:s0.y-560};
+    var x=(1-m)*(1-m)*s0.x+2*(1-m)*m*c1.x+m*m*mp.x;
+    var y=(1-m)*(1-m)*s0.y+2*(1-m)*m*c1.y+m*m*(mp.y+70);
+    return {u:u, m:m, x:x, y:y, k:CK*Math.pow(0.07, Math.pow(m,1.35)), pose:charAt(p).pose};
+  }
+  function drawLeaper(p, cam, s){
+    var L=leapState(p, cam);
+    if(L.u>=LEAP_GONE) return;
+    var tl=tailsAt(p);
+    /* traînées rouges le long de la trajectoire */
+    for(var i=3;i>=1;i--){
+      var g=leapState(Math.max(P_LEAP, p-0.03*i), cam);
+      ctx.globalAlpha=0.42-0.11*i;
+      drawChar(ctx, g.x, g.y, g.k, g.pose, s, {color:RED_HOT, tails:tailsAt(Math.max(P_LEAP,p-0.03*i))});
+    }
+    ctx.globalAlpha=1;
+    drawChar(ctx, L.x-2*L.k, L.y-L.k, L.k, L.pose, s, {color:RED_HOT, widen:5, tails:tl});
+    drawChar(ctx, L.x, L.y, L.k, L.pose, s, {tails:tl});
+  }
+  /* éclat à l'endroit où il disparaît, devant la lune */
+  function drawGlint(p, cam){
+    var u=clamp01((p-P_LEAP)/(P_END-P_LEAP)), a=seg(u, LEAP_GONE-0.06, LEAP_GONE+0.02), b=seg(u, LEAP_GONE+0.02, 0.95);
+    if(a<=0 || b>=1) return;
+    var mp=moonPos(cam), x=mp.x, y=mp.y+60, sc=(a<1 ? easeOutBack(a) : 1-easeInCubic(b))*1.4;
+    ctx.save(); ctx.translate(x,y); ctx.rotate(u*6);
+    ctx.fillStyle=WHITE; star4(ctx, 0, 0, 70*sc, 9*sc);
+    ctx.rotate(Math.PI/4); ctx.fillStyle=YELLOW; star4(ctx, 0, 0, 34*sc, 5*sc);
+    ctx.restore();
+    ctx.strokeStyle='rgba(255,255,255,'+(0.8*(1-b))+')'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.arc(x, y, 20+90*a+60*b, 0, TAU); ctx.stroke();
+  }
+
   /* la scène de la ville à l'instant s (temps de l'intro) */
   function drawCity(s){
-    var p=warp(s), cam=camera(p), ch=charAt(Math.min(p,P_DIVE0));
-    var diving=p>=P_DIVE0, du=diving ? (p-P_DIVE0)/(P_DIVE1-P_DIVE0) : 0;
-    /* léger coup de zoom au décollage du grand saut */
-    var zoom=1+0.08*Math.sin(Math.PI*seg(p,1.0,1.35))+0.18*easeInCubic(du);
-    var sx=(ch.x-cam.x), sy=(ch.y-cam.y)-80;
+    var p=warp(s), cam=camera(p), ch=charAt(Math.min(p,P_LEAP));
+    var leaping=p>=P_LEAP, lu=leaping ? clamp01((p-P_LEAP)/(P_END-P_LEAP)) : 0;
+    var mp=moonPos(cam);
+    /* coup de zoom au grand saut ; lente poussée vers la lune pendant le bond final */
+    var zoom=1+0.08*Math.sin(Math.PI*seg(p,1.0,1.35))+0.16*easeInOutCubic(lu);
+    var sx=leaping ? mp.x : (ch.x-cam.x), sy=leaping ? mp.y+60 : (ch.y-cam.y)-80;
     base();
     ctx.save();
     ctx.translate(sx, sy); ctx.scale(zoom,zoom); ctx.translate(-sx, -sy);
@@ -721,22 +792,42 @@
     drawSky(cam);
     drawFar(cam);
     drawEmbers(s);
+    /* au loin, il passe derrière les immeubles du milieu */
+    var deep=leaping && leapState(p, cam).m>0.45;
+    if(deep){ drawLeaper(p, cam, s); drawGlint(p, cam); }
     drawMid(cam);
     var hz=ctx.createLinearGradient(0,300,0,1080);
     hz.addColorStop(0,'rgba(60,0,18,0)'); hz.addColorStop(1,'rgba(40,0,12,0.6)');
     ctx.fillStyle=hz; ctx.fillRect(0,0,VW,1080);
     drawRoofs(cam, s);
-    /* traînées rouges (images rémanentes) pendant les sauts */
-    if(ch.air && !diving){
-      for(var i=4;i>=1;i--){
-        var gp=p-0.028*i, g=charAt(gp);
-        if(!g.air) continue;
-        ctx.globalAlpha=0.5-0.1*i;
-        drawChar(ctx, g.x-cam.x, g.y-cam.y, CK, g.pose, s, {color:RED_HOT, tails:tailsAt(gp)});
+    /* poussière à chaque appui */
+    CONTACTS.forEach(function(pc){
+      var a=(p-pc)/0.22;
+      if(a<0 || a>=1) return;
+      var c=charAt(pc), x=c.x-cam.x-10, y=c.y-cam.y-4;
+      ctx.fillStyle='rgba(255,230,230,'+(0.35*(1-a))+')';
+      for(var k=0;k<4;k++){
+        ctx.beginPath(); ctx.arc(x-k*14-a*40, y-a*14-k*3, (5+k*2)*(0.6+a), 0, TAU); ctx.fill();
+      }
+    });
+    if(!leaping){
+      if(ch.air){
+        /* traînées rouges pendant les sauts */
+        for(var i=4;i>=1;i--){
+          var gp=p-0.028*i, g=charAt(gp);
+          if(!g.air) continue;
+          ctx.globalAlpha=0.5-0.1*i;
+          drawChar(ctx, g.x-cam.x, g.y-cam.y, CK, g.pose, s, {color:RED_HOT, tails:tailsAt(gp)});
+        }
+      } else {
+        /* flou de mouvement en course : deux échos sombres */
+        for(i=2;i>=1;i--){
+          var rp=p-0.016*i, rg=charAt(rp);
+          ctx.globalAlpha=0.2-0.07*i;
+          drawChar(ctx, rg.x-cam.x, rg.y-cam.y, CK, rg.pose, s, {color:'#7a0012', tails:tailsAt(rp)});
+        }
       }
       ctx.globalAlpha=1;
-    }
-    if(!diving){
       var tl=tailsAt(p);
       drawChar(ctx, ch.x-cam.x-2, ch.y-cam.y-1, CK, ch.pose, s, {color:RED_HOT, widen:5, tails:tl});
       drawChar(ctx, ch.x-cam.x, ch.y-cam.y, CK, ch.pose, s, {tails:tl});
@@ -751,36 +842,49 @@
           ctx.beginPath(); ctx.moveTo(lx+Math.cos(ang)*r0, ly+Math.sin(ang)*r0*0.5); ctx.lineTo(lx+Math.cos(ang)*r1, ly+Math.sin(ang)*r1*0.5); ctx.stroke();
         }
       });
-    }
+    } else if(!deep){ drawLeaper(p, cam, s); drawGlint(p, cam); }
     drawForeground(cam);
     ctx.restore();
-    drawSpeedLines(s, ch.air ? 1 : 0.55);
+    drawSpeedLines(s, leaping ? 0.6*(1-lu) : (ch.air ? 1 : 0.8));
     ctx.globalAlpha=0.33; ctx.drawImage(halftoneRed,0,0,VW,1080); ctx.globalAlpha=1;
     drawVignette();
-    if(diving) drawDive(du, cam, ch, s, p);
+    /* la grande bande arrive et recouvre tout */
+    if(lu>BAND_IN) drawBigBand((lu-BAND_IN)/(1-BAND_IN), 'in', s);
   }
 
-  /* il bondit vers la caméra : la silhouette envahit l'écran */
-  function drawDive(u, cam, ch, s, p){
-    var e=easeInCubic(u);
-    var x0=ch.x-cam.x, y0=ch.y-cam.y;
-    var m=easeOutCubic(u), k=lerp(CK, 15, e);
-    var x=lerp(x0, VW*0.5, m)-40*k*m, y=lerp(y0, 540+95*k, m)-120*Math.sin(u*Math.PI);
-    /* traits de zoom autour */
+  /* ===================== LA GRANDE BANDE (transition) =====================
+     Une énorme bande rouge en diagonale, bordée de noir et de blanc, trame de
+     points et « TAKE YOUR HEART » qui défile : elle entre par le bas jusqu'à
+     couvrir l'écran, puis repart vers le haut en s'affinant (sur le titre). */
+  var BAND_ANG=-0.3;
+  function drawBigBand(v, mode, time){
+    var D=Math.hypot(VW,1080), w, off;
+    /* entrée : une bande épaisse traverse en diagonale puis s'élargit jusqu'à tout couvrir ;
+       sortie : elle s'affine en bandeau et s'envole vers le haut */
+    if(mode==='in'){ w=lerp(300, 2.4*D, easeInCubic(v)); off=lerp(0.85*D, 0, easeOutCubic(v)); }
+    else { w=lerp(2.4*D, 90, easeOutCubic(Math.min(1,v*1.25))); off=lerp(0, -1.05*D, easeInCubic(v)); }
+    if(w<=0) return;
+    var nx=-Math.sin(BAND_ANG), ny=Math.cos(BAND_ANG);
     ctx.save();
-    ctx.strokeStyle='rgba(255,255,255,'+(0.55*u)+')';
-    var r=rng(77);
-    for(var i=0;i<40;i++){
-      var a=r()*TAU, r0=200+r()*400, r1=r0+300+u*900;
-      ctx.lineWidth=2+r()*4;
-      ctx.beginPath(); ctx.moveTo(VW/2+Math.cos(a)*r0, 540+Math.sin(a)*r0); ctx.lineTo(VW/2+Math.cos(a)*r1, 540+Math.sin(a)*r1); ctx.stroke();
+    ctx.translate(VW/2+nx*off, 540+ny*off); ctx.rotate(BAND_ANG);
+    var L=D*1.6;
+    ctx.fillStyle=BLACK; ctx.fillRect(-L, -w/2-46, 2*L, w+92);
+    ctx.fillStyle=WHITE; ctx.fillRect(-L, -w/2-30, 2*L, 10); ctx.fillRect(-L, w/2+20, 2*L, 10);
+    ctx.fillStyle=RED; ctx.fillRect(-L, -w/2, 2*L, w);
+    ctx.save(); ctx.beginPath(); ctx.rect(-L, -w/2, 2*L, w); ctx.clip();
+    /* filets noirs le long des bords, façon Persona */
+    ctx.fillStyle=BLACK; ctx.fillRect(-L, -w/2+18, 2*L, 6); ctx.fillRect(-L, w/2-24, 2*L, 6);
+    /* texte qui défile, une ligne sur deux en sens inverse */
+    var fs=Math.min(Math.max(w*0.6, 60), 260), rows=Math.max(1, Math.min(7, Math.ceil(w/(fs*1.15)))), label='TAKE YOUR HEART ★ ';
+    ctx.font='italic '+fs+'px '+FONT_DISPLAY; ctx.textBaseline='middle'; ctx.textAlign='left';
+    var tw=ctx.measureText(label).width||1;
+    for(var r=0;r<rows;r++){
+      var ry=(r-(rows-1)/2)*fs*1.15, dir=r%2?1:-1, sh=((time*1400*dir)%tw+tw)%tw;
+      ctx.fillStyle= r%2 ? 'rgba(0,0,0,0.9)' : 'rgba(0,0,0,0.75)';
+      for(var x=-L-sh; x<L; x+=tw) ctx.fillText(label, x, ry+fs*0.04);
     }
     ctx.restore();
-    var dp=charAt(p).pose, dt=tailsAt(p);
-    drawChar(ctx, x, y, k, dp, s, {color:RED_HOT, widen:5, rot:-0.35*e, tails:dt});
-    drawChar(ctx, x, y, k, dp, s, {rot:-0.35*e, tails:dt});
-    var b=seg(u,0.72,1);
-    if(b>0){ ctx.fillStyle='rgba(5,5,5,'+b+')'; ctx.fillRect(0,0,VW,1080); }
+    ctx.restore();
   }
 
   /* ===================== RENDU : ARRÊT SUR IMAGE ===================== */
@@ -917,7 +1021,7 @@
   function drawTitle(q, time){
     base();
     var shake=0;
-    LETTERS.forEach(function(L,j){ var a=q-(0.24+j*0.05)-0.1; if(a>0 && a<0.12) shake+=(1-a/0.12)*7*Math.sin(a*120+j); });
+    LETTERS.forEach(function(L,j){ var a=q-(LT0+j*0.05)-0.1; if(a>0 && a<0.12) shake+=(1-a/0.12)*7*Math.sin(a*120+j); });
     ctx.save(); ctx.translate(shake, shake*0.6);
     ctx.fillStyle=RED; ctx.fillRect(-20,-20,VW+40,1120);
     sunburst(ctx, VW/2, 540, 24, time*0.25, 'rgba(0,0,0,0.9)');
@@ -956,7 +1060,7 @@
       var total=widths.reduce(function(a,b){ return a+b; },0);
       var gap=fs*1.18, x=VW/2-total/2+(line?fs*0.35:-fs*0.35), y=line?560+gap/2:560-gap/2;
       arr.forEach(function(L,i){
-        var j=LETTERS.indexOf(L), t0=0.24+j*0.05, a=seg(q,t0,t0+0.2);
+        var j=LETTERS.indexOf(L), t0=LT0+j*0.05, a=seg(q,t0,t0+0.2);
         var w=widths[i], cx=x+w/2; x+=w;
         if(a<=0) return;
         var sc=lerp(2.8,1,easeOutBack(a)), rot=L.rot+(1-easeOutCubic(a))*0.7;
@@ -976,7 +1080,7 @@
     });
     ctx.globalAlpha=1;
     /* bandeau PHANTOM WAVE */
-    var su=easeOutCubic(seg(q,0.78,0.98));
+    var su=easeOutCubic(seg(q,0.86,1.06));
     if(su>0){
       var sfs=Math.min(70, VW/11);
       ctx.save(); ctx.translate(lerp(VW+900, VW/2+fs*0.6, su), 840); ctx.rotate(-0.05);
@@ -997,17 +1101,8 @@
     }
     ctx.globalAlpha=1;
     ctx.restore();
-    /* entrée : une étoile rouge jaillit du noir */
-    var eu=seg(q,0,0.24);
-    if(eu<1){
-      ctx.save();
-      ctx.beginPath(); ctx.rect(-20,-20,VW+40,1120);
-      starPath(ctx, VW/2, 540, easeOutCubic(eu)*Math.hypot(VW,1080)*1.1, 12, q*2);
-      ctx.fillStyle=BLACK; ctx.fill('evenodd');
-      ctx.strokeStyle=WHITE; ctx.lineWidth=10;
-      starPath(ctx, VW/2, 540, easeOutCubic(eu)*Math.hypot(VW,1080)*1.1, 12, q*2); ctx.stroke();
-      ctx.restore();
-    }
+    /* entrée : la grande bande repart vers le haut en s'affinant */
+    if(q<0.32) drawBigBand(q/0.32, 'out', time);
   }
   function starPath(c, cx, cy, R, n, rot){
     c.moveTo(cx+Math.cos(rot)*R, cy+Math.sin(rot)*R);
@@ -1168,7 +1263,7 @@
       SFX.shing(a,0.1); SFX.slash(a,0.22,0.5);
     });
     /* pas et sauts (temps « du personnage » ramené au temps de l'intro) */
-    [[0,0.35],[0.72,1.05],[1.80,P_DIVE0]].forEach(function(seg2){
+    [[0,0.35],[0.72,1.05],[1.80,P_LEAP]].forEach(function(seg2){
       for(var k=0;k<20;k++){
         [k/CAD, (k+0.5)/CAD].forEach(function(p, j){
           if(p>=seg2[0]+0.02 && p<seg2[1]-0.02) add(unwarp(p), function(a){ SFX.step(a, j?0.18:0.24); });
@@ -1179,17 +1274,22 @@
     add(unwarp(0.72), function(a){ SFX.thud(a,0.75); });
     add(unwarp(1.05), function(a){ SFX.whoosh(a,0.45,300,5000,0.45); SFX.kick(a,0.5); });
     add(unwarp(1.80), function(a){ SFX.thud(a,1); SFX.crash(a,0.12); });
-    /* plongée : montée jusqu'au titre */
-    add(unwarp(P_DIVE0), function(a){ SFX.whoosh(a,0.25,600,4000,0.4); SFX.riser(a, T_TITLE-unwarp(P_DIVE0)); });
+    /* bond final dans le décor : impulsion, salto, éclat, puis la grande bande */
+    var LD=P_END-P_LEAP;
+    add(unwarp(P_LEAP), function(a){ SFX.whoosh(a,0.25,600,4000,0.45); SFX.kick(a,0.45); SFX.riser(a, T_TITLE-unwarp(P_LEAP)); });
+    add(unwarp(P_LEAP+0.18*LD), function(a){ SFX.whoosh(a,0.22,1500,400,0.3); });
+    add(unwarp(P_LEAP+(LEAP_GONE-0.05)*LD), function(a){ SFX.ting(a); SFX.shing(a,0.07); });
+    add(unwarp(P_LEAP+BAND_IN*LD), function(a){ SFX.whoosh(a,0.32,180,6500,0.6); noise(a,0.3,{type:'lowpass',f0:400,gain:0.35}); });
     /* titre */
     add(T_TITLE, function(a){
       SFX.kick(a,1); SFX.crash(a,0.42); tone(a, 0.9, {f0:55, f1:41, gain:0.55});
       SFX.stab(a,[164.8,196,246.9,293.7,370],0.95,0.075);
     });
     add(T_TITLE+0.1, function(a){ SFX.whoosh(a,0.22,800,5000,0.25); });
-    LETTERS.forEach(function(L,j){ add(T_TITLE+0.24+j*0.05+0.07, function(a){ SFX.stamp(a,j); }); });
-    add(T_TITLE+0.78, function(a){ SFX.whoosh(a,0.25,400,3000,0.35); });
-    add(T_TITLE+0.95, function(a){ SFX.shing(a,0.09); });
+    add(T_TITLE+0.02, function(a){ SFX.whoosh(a,0.3,5000,300,0.4); });
+    LETTERS.forEach(function(L,j){ add(T_TITLE+LT0+j*0.05+0.07, function(a){ SFX.stamp(a,j); }); });
+    add(T_TITLE+0.86, function(a){ SFX.whoosh(a,0.25,400,3000,0.35); });
+    add(T_TITLE+1.03, function(a){ SFX.shing(a,0.09); });
     for(var i=0, t=T_TITLE+0.24; t<T_EXIT; i++, t=T_TITLE+0.24+i*BEAT/2){
       (function(i,t){ add(t, function(a){
         SFX.hat(a, i%2?0.06:0.1); if(i%4===0) SFX.kick(a,0.6); SFX.bass(a, BASS[(i+4)%8]);
@@ -1302,6 +1402,7 @@
 
   resize();
   window.addEventListener('resize', resize);
+  if(document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ if(!done) resize(); });
   if(debugT){
     var dt=parseFloat(debugT);
     if(dt>=T_EXIT) overlay.classList.add('exiting');
