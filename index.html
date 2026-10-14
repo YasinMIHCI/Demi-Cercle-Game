@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 
@@ -20,8 +20,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=16"></script>
-<script src="js/intro.js?v=16"></script>
+<script src="js/audio.js?v=17"></script>
+<script src="js/intro.js?v=17"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -82,6 +82,12 @@
         <h3>QUI A ÉCRIT ÇA ?</h3>
         <p>« Ce que tu penses vraiment des pieds ? » Réponses anonymes, puis on devine qui a écrit quoi. 3 à 8 joueurs, en ligne.</p>
         <button class="btn yellow" id="playQuiaecritBtn"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🛏️</div>
+        <h3>CROUS OU PRISON ?</h3>
+        <p>Une photo de chambre, 10 secondes : chambre étudiante ou cellule de prison ? 9 photos, 1 min 30. En solo ou de 2 à 8 en ligne.</p>
+        <button class="btn yellow" id="playCrousprisonBtn"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card locked">
         <div class="game-card-icon">🔒</div>
@@ -801,6 +807,133 @@
   </div>
 </div>
 
+<!-- ================= CROUS OU PRISON ? ================= -->
+<div id="view-crousprison" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="copHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>CROUS <em>OU PRISON ?</em></span></div>
+      </div>
+      <div class="net-status offline" id="copNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="copNetBanner" role="status">
+      <span id="copNetBannerText"></span>
+    </div>
+
+    <!-- MENU -->
+    <section class="cop-screen active" id="cop-screen-menu">
+      <div class="panel">
+        <h1 class="screen-title">CROUS OU PRISON ?</h1>
+        <p class="subtitle">Une photo de chambre, 10 secondes pour trancher : chambre étudiante du CROUS… ou cellule de prison ? 9 photos, 1 min 30, et plus tu réponds vite, plus tu marques.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="copRulesBtn"><span>📖 Règles du jeu</span></button>
+          <button class="btn ghost small" id="copCreditsBtn"><span>📸 Crédits photos</span></button>
+        </div>
+        <p class="theme-count" id="copPhotoCount" style="margin:12px 0 0;"></p>
+        <label for="copName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="copName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🎓 SOLO</h2>
+        <p class="subtitle" id="copBest" style="margin-bottom:6px;"></p>
+        <div class="btn-row">
+          <button class="btn yellow small" id="copSoloBtn"><span>▶ Jouer en solo</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <p class="subtitle" style="margin-bottom:6px;">2 à 8 joueurs, tout le monde voit la même photo en même temps.</p>
+        <div class="btn-row">
+          <button class="btn yellow small" id="copCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="copJoinCode">Code de la salle</label>
+        <input type="text" id="copJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="copJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="cop-screen" id="cop-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="copBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="copCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="copCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="copCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="copPlayerList"></div>
+        <p class="lobby-status" id="copLobbyStatus">En attente de joueurs...</p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="copStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAY -->
+    <section class="cop-screen" id="cop-screen-play">
+      <div class="panel cop-panel">
+        <div class="cop-hud">
+          <span id="copProgress">PHOTO 1 / 9</span>
+          <span id="copStreak"></span>
+          <span id="copScore">0 PTS</span>
+        </div>
+        <div class="bots-timer" style="margin-bottom:12px;"><div class="bots-timer-fill" id="copTimerFill"></div><span id="copTimerText"></span></div>
+        <div class="cop-frame" id="copFrame">
+          <div class="cop-bg" id="copBg"></div>
+          <img id="copImg" alt="Photo de chambre">
+          <div class="cop-stamp" id="copStamp"></div>
+          <div class="cop-count" id="copCount"></div>
+          <div class="cop-credit" id="copCredit"></div>
+        </div>
+        <div class="cop-caption" id="copCaption"></div>
+        <div class="cop-choices">
+          <button class="cop-btn crous" id="copCrousBtn" disabled><span>🎓 CROUS</span></button>
+          <button class="cop-btn prison" id="copPrisonBtn" disabled><span>🔒 PRISON</span></button>
+        </div>
+        <div class="cop-result" id="copResult"></div>
+        <div class="cop-picks" id="copPicks"></div>
+        <p class="lobby-status" id="copAnswerStatus"></p>
+      </div>
+    </section>
+
+    <!-- GAME OVER -->
+    <section class="cop-screen" id="cop-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏁 FIN DE LA PARTIE</h1>
+        <div class="cop-final-score" id="copFinalScore"></div>
+        <div class="cop-final-good" id="copFinalGood"></div>
+        <div class="cop-title" id="copTitle"></div>
+        <div class="end-winner-text" id="copWinnerText"></div>
+        <div class="cls-podium" id="copFinalList"></div>
+        <div class="cop-recap" id="copRecap"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="copReplayBtn" style="display:none;"><span>🔁 Rejouer</span></button>
+          <button class="btn ghost" id="copLobbyBtn" style="display:none;"><span>◀ Retour au lobby</span></button>
+          <button class="btn ghost small" id="copOverCreditsBtn"><span>📸 Crédits photos</span></button>
+          <span class="waiting-label" id="copOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
 <!-- ================= LE CLASSEMENT ================= -->
 <div id="view-classement" class="view">
   <div class="hub-return-bar">
@@ -1257,6 +1390,42 @@
   </div>
 </div>
 
+<!-- CROUS OU PRISON RULES MODAL -->
+<div class="modal-overlay" id="copRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="copRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — CROUS OU PRISON ?</h2>
+    <ol class="rules-list">
+      <li>Une photo de chambre s'affiche. Tu as <b>10 secondes</b> pour décider : <b>CROUS</b> (chambre étudiante) ou <b>PRISON</b> (cellule) ?</li>
+      <li>Une partie = <b>9 photos</b>, soit 1 min 30 au maximum.</li>
+      <li><b>Points :</b> bonne réponse = 100 points, + jusqu'à 50 points selon ta rapidité. Mauvaise réponse ou trop tard = 0.</li>
+      <li>En ligne (2 à 8 joueurs), tout le monde voit la même photo en même temps ; on passe à la suivante dès que tout le monde a répondu.</li>
+      <li>Au clavier : <b>←</b> ou <b>C</b> pour CROUS, <b>→</b> ou <b>P</b> pour PRISON.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- CROUS OU PRISON CREDITS MODAL -->
+<div class="modal-overlay" id="copCreditsModal">
+  <div class="modal-box">
+    <button class="modal-close" id="copCreditsModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">📸 CRÉDITS PHOTOS</h2>
+    <p class="subtitle">Photos sous licence libre (Wikimedia Commons), redimensionnées pour le jeu. Merci à leurs auteurs.</p>
+    <ol class="rules-list cop-credits" id="copCreditsList"></ol>
+  </div>
+</div>
+
+<!-- CROUS OU PRISON DISCONNECT MODAL -->
+<div class="modal-overlay" id="copDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="copDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="copDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- QUI A ÉCRIT ÇA DISCONNECT MODAL -->
 <div class="modal-overlay" id="qaeDisconnectModal">
   <div class="modal-box" style="text-align:center;">
@@ -1361,6 +1530,9 @@
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question à réponse chiffrée, un joueur qui a reçu une autre question sans le savoir.</li>
       <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2 ou chacun pour soi (jusqu'à 6), en ligne.</li>
       <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
+      <li><b>Le Classement :</b> chacun classe le groupe en secret sur une question (« Qui est le plus fort au bras de fer ? »), puis on compare. 3 à 8 joueurs en ligne.</li>
+      <li><b>Qui a écrit ça ? :</b> réponses anonymes à des questions drôles, puis on devine qui a écrit quoi. 3 à 8 joueurs en ligne.</li>
+      <li><b>Crous ou Prison ? :</b> une photo de chambre, 10 secondes pour deviner si c'est une chambre étudiante ou une cellule. En solo ou de 2 à 8 en ligne.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
   </div>
@@ -1403,16 +1575,18 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=16"></script>
-<script src="js/net.js?v=16"></script>
-<script src="js/demicercle.js?v=16"></script>
-<script src="js/cameleon.js?v=16"></script>
-<script src="js/imposteur.js?v=16"></script>
-<script src="js/loup.js?v=16"></script>
-<script src="js/classement.js?v=16"></script>
-<script src="js/quiaecrit.js?v=16"></script>
-<script src="js/bots-maps.js?v=16"></script>
-<script src="js/bots.js?v=16"></script>
-<script src="js/hub.js?v=16"></script>
+<script src="js/common.js?v=17"></script>
+<script src="js/net.js?v=17"></script>
+<script src="js/demicercle.js?v=17"></script>
+<script src="js/cameleon.js?v=17"></script>
+<script src="js/imposteur.js?v=17"></script>
+<script src="js/loup.js?v=17"></script>
+<script src="js/classement.js?v=17"></script>
+<script src="js/quiaecrit.js?v=17"></script>
+<script src="js/crousprison-photos.js?v=17"></script>
+<script src="js/crousprison.js?v=17"></script>
+<script src="js/bots-maps.js?v=17"></script>
+<script src="js/bots.js?v=17"></script>
+<script src="js/hub.js?v=17"></script>
 </body>
 </html>

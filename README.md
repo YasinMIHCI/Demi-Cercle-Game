@@ -90,6 +90,14 @@ fer ? ») : chacun classe en secret tous les joueurs, lui compris (75 s).
 - Une centaine de questions, complétable avec les vôtres ; l'hôte termine la partie
   quand il veut.
 
+### 🛏️ Crous ou Prison ?
+Une photo de chambre, 10 secondes pour trancher : chambre étudiante du CROUS ou cellule
+de prison ? 9 photos par partie (1 min 30). En solo (avec record personnel) ou de 2 à 8
+joueurs en ligne, tout le monde voit la même photo en même temps. Bonne réponse : 100
+points + jusqu'à 50 points de rapidité. Les photos viennent de Wikimedia Commons, sous
+licence libre ; leurs auteurs sont crédités dans le jeu (bouton « Crédits photos ») et
+dans `js/crousprison-photos.js`.
+
 ### 🤖 Battle Bots
 Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1 vs 1,
 2 vs 2 ou chacun pour soi (jusqu'à 6).
@@ -137,9 +145,12 @@ js/imposteur.js   L'Imposteur des chiffres
 js/loup.js        Le Loup des mots
 js/classement.js  Le Classement
 js/quiaecrit.js   Qui a écrit ça ?
+js/crousprison-photos.js  Crous ou Prison ? : liste des photos et crédits
+js/crousprison.js Crous ou Prison ?
+img/cop/          Crous ou Prison ? : les photos
 js/bots-maps.js   Battle Bots : génération des cartes, décors, rendu lissé du terrain
 js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
-js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit), infos, bouton son
+js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison), infos, bouton son
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent
