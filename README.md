@@ -7,12 +7,14 @@ Hébergeable tel quel sur GitHub Pages.
 
 ## L'intro
 
-À l'ouverture de la page, une intro animée d'environ 5 secondes (dessinée en code sur un
-canvas, sans image ni vidéo) : la caméra glisse au ras des toits d'une ville néon sous une
-lune rouge, de longs rubans ondulent dans le ciel, puis elle s'élève et plonge vers la lune ;
-une grande bande rouge « CRAZY GAMES » fait la transition vers le titre en lettres découpées,
-et des bandes diagonales dévoilent le hub. On peut la passer (bouton « Passer », Échap).
-- Mouvements de caméra continus et amortis (vitesse intégrée, aucune coupe pendant le vol).
+À l'ouverture de la page, une intro en 3D d'environ 7 secondes (Three.js, dessinée en code,
+sans image ni vidéo) : vue à la première personne, on court sur les toits d'une ville néon
+rouge et on saute par-dessus l'avenue, puis salto arrière depuis une tour (la ville passe à
+l'envers) ; une grande bande rouge « CRAZY GAMES » fait la transition vers le titre en lettres
+découpées, et des bandes diagonales dévoilent le hub. On peut la passer (bouton « Passer », Échap).
+- La bibliothèque 3D (`js/vendor/three.min.js`) n'est chargée que si l'intro doit passer ;
+  si elle n'est pas prête au bout de 2,5 s (réseau lent) ou sans 3D, on arrive directement au hub.
+- Trajectoire de caméra calculée d'avance puis lissée : aucun à-coup aux sauts.
 - Effets sonores et musique synthétisés en direct (Web Audio, aucun fichier).
 
 ## L'app (iPhone / Android)
@@ -153,7 +155,8 @@ quelqu'un d'autre. L'hôte doit rester connecté : c'est lui qui fait tourner la
 index.html        le balisage des écrans (hub + jeux + modales)
 css/style.css     tout le style
 js/audio.js       son commun : déblocage, instruments synthétisés, musiques
-js/intro.js       l'intro animée (canvas)
+js/intro.js       l'intro 3D (Three.js + canvas)
+js/vendor/three.min.js  Three.js r128 (licence MIT), chargé seulement pour l'intro
 js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
 js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur
 js/demicercle.js  le Demi-Cercle
