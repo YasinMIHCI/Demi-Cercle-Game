@@ -110,7 +110,7 @@ fer ? ») : chacun classe en secret tous les joueurs, lui compris (75 s).
 Une photo de chambre, 10 secondes pour trancher : chambre étudiante du CROUS ou cellule
 de prison ? 9 photos par partie (1 min 30). En solo (avec record personnel) ou de 2 à 8
 joueurs en ligne, tout le monde voit la même photo en même temps. Bonne réponse : 100
-points + jusqu'à 50 points de rapidité. Les photos viennent de Wikimedia Commons, sous
+points + jusqu'à 50 points de rapidité. Les 60 photos (29 cellules, 31 chambres étudiantes) viennent de Wikimedia Commons, sous
 licence libre ; leurs auteurs sont crédités dans le jeu (bouton « Crédits photos ») et
 dans `js/crousprison-photos.js`.
 
