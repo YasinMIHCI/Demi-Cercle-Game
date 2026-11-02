@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-<title>CRAZY GAMES — Phantom Wave</title>
+<title>CRAZY GAMES</title>
 <meta name="theme-color" content="#0a0a0a">
 <!-- app installable (PWA) : manifest.webmanifest + sw.js + js/pwa.js -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=20">
+<link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
 
@@ -28,8 +28,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=20"></script>
-<script src="js/intro.js?v=20"></script>
+<script src="js/audio.js?v=21"></script>
+<script src="js/intro.js?v=21"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -40,7 +40,7 @@
         <h1 class="hub-title"><span>CRAZY</span><span class="hub-title-accent">GAMES</span></h1>
         <div class="hub-banner-stripe reverse"></div>
       </div>
-      <p class="subtitle" style="text-align:center;">Un hub de mini-jeux façon Phantom Thieves.</p>
+      <p class="subtitle" style="text-align:center;">Un hub de mini-jeux entre potes.</p>
       <div class="btn-row center">
         <button class="btn yellow small" id="installBtn" style="display:none;"><span>📲 Installer l'app</span></button>
         <button class="btn ghost small" id="hubInfoBtn"><span>📖 Règles / Infos</span></button>
@@ -105,7 +105,7 @@
       </div>
     </div>
   </div>
-  <footer>CrazyGames — hébergé sur GitHub Pages. Esthétique Phantom Thieves non-officielle.</footer>
+  <footer>CrazyGames — hébergé sur GitHub Pages.</footer>
 </div>
 
 <!-- ================= LE DEMI-CERCLE ================= -->
@@ -135,7 +135,7 @@
   <section class="screen active" id="screen-mode">
     <div class="panel">
       <h1 class="screen-title">LE DEMI-CERCLE</h1>
-      <p class="subtitle">Devinez la cible secrète à partir d'un simple indice, façon Phantom Thieves.</p>
+      <p class="subtitle">Devinez la cible secrète à partir d'un simple indice.</p>
       <div class="btn-row">
         <button class="btn ghost small" id="rulesBtn"><span>📖 Règles du jeu</span></button>
       </div>
@@ -210,7 +210,7 @@
     <div class="panel">
       <span class="back-link" id="backFromOnline">◀ Retour</span>
       <h1 class="screen-title">PARTIE EN LIGNE</h1>
-      <p class="subtitle">Affronte un autre Phantom Thief en 1 vs 1, ou forme une équipe de 2 en 2 vs 2. Choisis le format en créant la salle — les autres la rejoignent ensuite avec le code (ou le lien).</p>
+      <p class="subtitle">Affronte un autre joueur en 1 vs 1, ou forme une équipe de 2 en 2 vs 2. Choisis le format en créant la salle — les autres la rejoignent ensuite avec le code (ou le lien).</p>
       <label for="onlineName">Ton nom</label>
       <input type="text" id="onlineName" placeholder="Ton pseudo" maxlength="18">
     </div>
@@ -393,7 +393,7 @@
     </div>
   </section>
 
-  <footer>Inspiré du <b>Jeu du Demi-Cercle</b> (Wankil Studio) — édition non-officielle, esthétique Phantom Thieves. Le mode en ligne utilise une connexion directe (WebRTC/PeerJS) entre les navigateurs, sans serveur de jeu.</footer>
+  <footer>Inspiré du <b>Jeu du Demi-Cercle</b> (Wankil Studio) — édition non-officielle. Le mode en ligne utilise une connexion directe (WebRTC/PeerJS) entre les navigateurs, sans serveur de jeu.</footer>
 </div>
 </div>
 
@@ -1562,7 +1562,7 @@
   <div class="modal-box">
     <button class="modal-close" id="hubInfoModalClose" aria-label="Fermer">✕</button>
     <h2 class="screen-title" style="font-size:1.6rem;">CRAZY GAMES</h2>
-    <p class="subtitle">Un hub de mini-jeux gratuits façon Phantom Thieves, sans backend — hébergé sur GitHub Pages.</p>
+    <p class="subtitle">Un hub de mini-jeux gratuits, sans backend — hébergé sur GitHub Pages.</p>
     <ol class="rules-list">
       <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne en 1 vs 1 / 2 vs 2 via une connexion directe entre navigateurs (WebRTC).</li>
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
@@ -1614,19 +1614,19 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=20"></script>
-<script src="js/net.js?v=20"></script>
-<script src="js/demicercle.js?v=20"></script>
-<script src="js/cameleon.js?v=20"></script>
-<script src="js/imposteur.js?v=20"></script>
-<script src="js/loup.js?v=20"></script>
-<script src="js/classement.js?v=20"></script>
-<script src="js/quiaecrit.js?v=20"></script>
-<script src="js/crousprison-photos.js?v=20"></script>
-<script src="js/crousprison.js?v=20"></script>
-<script src="js/bots-maps.js?v=20"></script>
-<script src="js/bots.js?v=20"></script>
-<script src="js/pwa.js?v=20"></script>
-<script src="js/hub.js?v=20"></script>
+<script src="js/common.js?v=21"></script>
+<script src="js/net.js?v=21"></script>
+<script src="js/demicercle.js?v=21"></script>
+<script src="js/cameleon.js?v=21"></script>
+<script src="js/imposteur.js?v=21"></script>
+<script src="js/loup.js?v=21"></script>
+<script src="js/classement.js?v=21"></script>
+<script src="js/quiaecrit.js?v=21"></script>
+<script src="js/crousprison-photos.js?v=21"></script>
+<script src="js/crousprison.js?v=21"></script>
+<script src="js/bots-maps.js?v=21"></script>
+<script src="js/bots.js?v=21"></script>
+<script src="js/pwa.js?v=21"></script>
+<script src="js/hub.js?v=21"></script>
 </body>
 </html>

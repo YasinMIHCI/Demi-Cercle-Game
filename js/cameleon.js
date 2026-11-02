@@ -4,7 +4,7 @@
   var CG=window.CG;
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
-  var CHAM_ROOM_PREFIX = 'p5cameleon-';
+  var CHAM_ROOM_PREFIX = 'cgcameleon-';
   /* couleurs bien lisibles sur la toile crème (le blanc et le jaune ne se voyaient presque pas) */
   var CHAM_PALETTE = ['#E60012','#111111','#2E6FF2','#1f9e3a','#8e44ec','#ff7a00','#e0389b','#0aa3b5'];
   var CHAM_WORDBANK_KEY = 'cham_wordbank_v1';

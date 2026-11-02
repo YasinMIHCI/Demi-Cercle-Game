@@ -11,7 +11,7 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
 
-  var ROOM_PREFIX='p5classement-';
+  var ROOM_PREFIX='cgclassement-';
   var MIN_PLAYERS=3, MAX_PLAYERS=8;
   var RANK_MS=75000;
   var REVEAL_STEP=700;             /* délai entre deux places révélées */
@@ -55,7 +55,7 @@
     "Qui connaît le mieux les autres joueurs ?","Qui est le plus fiable ?","Qui donne les meilleurs conseils ?",
     "Qui met le plus l'ambiance en soirée ?","Qui part le plus tôt des soirées ?","Qui fait les meilleurs cadeaux ?",
     "Qui est le plus fort à ce genre de jeux ?","Qui triche le plus aux jeux de société ?","Qui a le plus changé depuis qu'on le connaît ?",
-    "Qui a le meilleur style ?","Qui a le plus de chances de lire ce message en retard ?","Qui est le plus fan de Persona ?"
+    "Qui a le meilleur style ?","Qui a le plus de chances de lire ce message en retard ?","Qui est le plus fan de mangas ?"
   ];
   function loadCustom(){
     try{ var arr=JSON.parse(localStorage.getItem(CUSTOM_KEY)||'[]'); if(Array.isArray(arr)) return arr.filter(function(q){ return typeof q==='string' && q; }); }catch(e){}

@@ -8,7 +8,7 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
 
-  var IMP_ROOM_PREFIX = 'p5imposteur-';
+  var IMP_ROOM_PREFIX = 'cgimposteur-';
   var IMP_PALETTE = ['#E60012','#ffffff','#FFE600','#00e5ff','#ff6ec7','#ff9d2f','#7cff6e','#b388ff'];
   var IMP_OLD_BANK_KEY = 'imp_questions_v1';   /* ancien format : toute la banque */
   var IMP_CUSTOM_KEY = 'imp_custom_v2';        /* seulement les paires ajoutées par le joueur */
@@ -43,7 +43,7 @@
     ["Combien de kilomètres peux-tu courir sans t'arrêter ?", "Combien de kilomètres marches-tu par jour ?"],
     ["Combien d'applis as-tu sur la première page de ton téléphone ?", "Combien d'onglets as-tu ouverts sur ton navigateur ?"],
     ["Combien d'heures dors-tu par nuit ?", "Combien d'heures passes-tu sur ton téléphone par jour ?"],
-    ["Sur 10, à quel point es-tu fan de Persona ?", "Sur 10, à quel point aimes-tu les animes ?"],
+    ["Sur 10, à quel point es-tu fan de jeux vidéo ?", "Sur 10, à quel point aimes-tu les animes ?"],
     ["Combien de fois as-tu pleuré devant un film ?", "Combien de fois as-tu ri aux éclats cette semaine ?"],
     /* Quotidien et maison */
     ["Combien de réveils mets-tu le matin ?", "Combien de fois par jour te brosses-tu les dents ?"],
