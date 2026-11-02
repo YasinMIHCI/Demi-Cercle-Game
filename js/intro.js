@@ -20,7 +20,8 @@
    On peut passer l'intro (bouton « Passer », Échap). Toucher l'écran active le
    son s'il est encore bloqué par le navigateur. Elle n'est pas jouée quand on
    arrive par un lien d'invitation (#jeu?room=...), ni si l'utilisateur préfère
-   réduire les animations. ?introt=1.5 fige l'image à 1,5 s (pour la mise au
+   réduire les animations. Dans l'app installée, elle ne passe qu'à la première
+   ouverture de la journée. ?introt=1.5 fige l'image à 1,5 s (pour la mise au
    point). */
 (function(){
   'use strict';
@@ -29,7 +30,13 @@
   var reduce=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var debugT=(/[?&]introt=([0-9.]+)/.exec(location.search)||[])[1];
   var AU=window.CGAudio||null;
-  if(!debugT && (window.CG_NO_INTRO || /room=/.test(location.hash) || reduce)){
+  /* dans l'app installée (écran d'accueil) : une seule fois par jour */
+  var isApp=(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone===true;
+  var today=new Date(), dayKey=today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate(), seenToday=false;
+  if(isApp){
+    try{ seenToday=localStorage.getItem('cg_intro_day')===dayKey; if(!seenToday) localStorage.setItem('cg_intro_day', dayKey); }catch(e){}
+  }
+  if(!debugT && (window.CG_NO_INTRO || /room=/.test(location.hash) || reduce || seenToday)){
     overlay.parentNode.removeChild(overlay);
     if(AU) AU.allowMusic(true);
     return;

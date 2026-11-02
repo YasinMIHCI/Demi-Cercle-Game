@@ -17,6 +17,19 @@ titre en lettres découpées, puis des bandes diagonales dévoilent le hub. On p
   amortie) et les pans de son manteau sont simulés physiquement.
 - Effets sonores et musique synthétisés en direct (Web Audio, aucun fichier).
 
+## L'app (iPhone / Android)
+
+Le site s'installe comme une app sur l'écran d'accueil (PWA) : icône, plein écran,
+ouverture même sans réseau (il en faut pour jouer en ligne). Bouton « 📲 Installer l'app »
+dans le hub, qui donne les étapes selon l'appareil :
+- **Android** (Chrome, Brave, Samsung Internet) : fenêtre d'installation du navigateur,
+  ou menu → « Installer l'application » / « Ajouter à l'écran d'accueil ».
+- **iPhone** : Safari → Partager → « Sur l'écran d'accueil ».
+
+Dans l'app, l'intro ne passe qu'à la première ouverture de la journée. Fichiers :
+`manifest.webmanifest`, `icons/`, `sw.js` (cache : la page en réseau d'abord, les fichiers
+`?v=` en cache ; rien à modifier à chaque mise à jour) et `js/pwa.js`.
+
 ## Son et musiques
 
 Tout le son passe par `js/audio.js` (un seul contexte audio pour le site) :
@@ -156,6 +169,9 @@ js/crousprison.js Crous ou Prison ?
 img/cop/          Crous ou Prison ? : les photos
 js/bots-maps.js   Battle Bots : génération des cartes, décors, rendu lissé du terrain
 js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
+js/pwa.js         app installable : service worker, bouton « Installer l'app »
+sw.js             service worker (cache hors ligne)
+manifest.webmanifest  nom, icônes et couleurs de l'app
 js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison), infos, bouton son
 ```
 
