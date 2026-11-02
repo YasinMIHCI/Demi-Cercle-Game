@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=17">
+<link rel="stylesheet" href="css/style.css?v=18">
 </head>
 <body>
 
@@ -20,8 +20,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=17"></script>
-<script src="js/intro.js?v=17"></script>
+<script src="js/audio.js?v=18"></script>
+<script src="js/intro.js?v=18"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -83,7 +83,7 @@
         <p>« Ce que tu penses vraiment des pieds ? » Réponses anonymes, puis on devine qui a écrit quoi. 3 à 8 joueurs, en ligne.</p>
         <button class="btn yellow" id="playQuiaecritBtn"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
+      <div class="game-card available" style="display:none;"><!-- Crous ou Prison : en attente des photos -->
         <div class="game-card-icon">🛏️</div>
         <h3>CROUS OU PRISON ?</h3>
         <p>Une photo de chambre, 10 secondes : chambre étudiante ou cellule de prison ? 9 photos, 1 min 30. En solo ou de 2 à 8 en ligne.</p>
@@ -213,6 +213,8 @@
         <button class="btn ghost small format-opt active" id="formatBtn1v1" data-format="1v1"><span>👤 1 VS 1</span></button>
         <button class="btn ghost small format-opt" id="formatBtn2v2" data-format="2v2"><span>👥 2 VS 2</span></button>
       </div>
+      <label for="hostCodeInput">Code de la salle (choisis-le, tes amis tapent le même)</label>
+      <input type="text" id="hostCodeInput" data-room-code="createRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
       <div class="btn-row">
         <button class="btn yellow small" id="createRoomBtn"><span>Créer la salle</span></button>
       </div>
@@ -221,7 +223,7 @@
     <div class="panel">
       <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
       <label for="joinCodeInput">Code de la salle</label>
-      <input type="text" id="joinCodeInput" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+      <input type="text" id="joinCodeInput" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
       <div class="btn-row">
         <button class="btn yellow small" id="joinRoomBtn"><span>Rejoindre</span></button>
       </div>
@@ -430,6 +432,8 @@
         <div class="btn-row">
           <button class="btn ghost small" id="chamAddWordBtn"><span>＋ Ajouter à la banque</span></button>
         </div>
+        <label for="chamHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="chamHostCode" data-room-code="chamCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn yellow small" id="chamCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -438,7 +442,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="chamJoinCode">Code de la salle</label>
-        <input type="text" id="chamJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="chamJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="chamJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -473,10 +477,14 @@
 
         <div class="cham-turn-banner" id="chamTurnBanner">AU TOUR DE ... DE DESSINER</div>
         <div class="cham-progress" id="chamProgress"></div>
-        <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="chamTurnTimerFill"></div><span id="chamTurnTimerText"></span></div>
+        <div class="bots-timer" style="margin-bottom:10px;"><div class="bots-timer-fill" id="chamTurnTimerFill"></div><span id="chamTurnTimerText"></span></div>
+        <div class="cham-ink" id="chamInkWrap" style="visibility:hidden;"><div class="cham-ink-fill" id="chamInkFill"></div><span id="chamInkText"></span></div>
 
         <div class="cham-canvas-frame">
           <canvas class="cham-canvas" id="chamCanvas" width="800" height="500"></canvas>
+        </div>
+        <div class="btn-row center">
+          <button class="btn yellow" id="chamDoneBtn" style="display:none;"><span>✅ J'ai fini mon tour</span></button>
         </div>
 
         <div class="cham-palette" id="chamActivePalette" style="display:none;"></div>
@@ -579,6 +587,8 @@
           <button class="btn ghost small" id="impAddQBtn"><span>＋ Ajouter à la banque</span></button>
           <span class="theme-count" id="impBankCount" style="margin:0;align-self:center;"></span>
         </div>
+        <label for="impHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="impHostCode" data-room-code="impCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn yellow small" id="impCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -587,7 +597,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="impJoinCode">Code de la salle</label>
-        <input type="text" id="impJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="impJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="impJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -705,6 +715,8 @@
           <button class="btn ghost small" id="qaeAddQBtn"><span>＋ Ajouter à la banque</span></button>
           <span class="theme-count" id="qaeBankCount" style="margin:0;align-self:center;"></span>
         </div>
+        <label for="qaeHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="qaeHostCode" data-room-code="qaeCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn yellow small" id="qaeCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -713,7 +725,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="qaeJoinCode">Code de la salle</label>
-        <input type="text" id="qaeJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="qaeJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="qaeJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -852,6 +864,8 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
         <p class="subtitle" style="margin-bottom:6px;">2 à 8 joueurs, tout le monde voit la même photo en même temps.</p>
+        <label for="copHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="copHostCode" data-room-code="copCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="copCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -860,7 +874,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="copJoinCode">Code de la salle</label>
-        <input type="text" id="copJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="copJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="copJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -975,6 +989,8 @@
           <button class="btn ghost small" id="clsAddQBtn"><span>＋ Ajouter à la banque</span></button>
           <span class="theme-count" id="clsBankCount" style="margin:0;align-self:center;"></span>
         </div>
+        <label for="clsHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="clsHostCode" data-room-code="clsCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn yellow small" id="clsCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -983,7 +999,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="clsJoinCode">Code de la salle</label>
-        <input type="text" id="clsJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="clsJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="clsJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -1107,6 +1123,8 @@
           <button class="btn ghost small format-opt active" data-timer="30"><span>30 s</span></button>
           <button class="btn ghost small format-opt" data-timer="45"><span>45 s</span></button>
         </div>
+        <label for="botsHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="botsHostCode" data-room-code="botsCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn yellow small" id="botsCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -1115,7 +1133,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="botsJoinCode">Code de la salle</label>
-        <input type="text" id="botsJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="botsJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="botsJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -1231,6 +1249,8 @@
           <button class="btn ghost small format-opt active" data-timer="240"><span>4 min</span></button>
           <button class="btn ghost small format-opt" data-timer="300"><span>5 min</span></button>
         </div>
+        <label for="loupHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="loupHostCode" data-room-code="loupCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row" style="margin-top:14px;">
           <button class="btn yellow small" id="loupCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
@@ -1239,7 +1259,7 @@
       <div class="panel">
         <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
         <label for="loupJoinCode">Code de la salle</label>
-        <input type="text" id="loupJoinCode" placeholder="Ex : TAKE-8492" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <input type="text" id="loupJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="loupJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
@@ -1497,7 +1517,7 @@
     <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LE CAMÉLÉON</h2>
     <ol class="rules-list">
       <li>Tout le monde reçoit un <b>thème</b> et un <b>mot secret</b> (ex : Thème "Animaux", Mot "Éléphant") — sauf un joueur tiré au sort, le <b>Caméléon</b>, qui ne voit que le thème.</li>
-      <li>À tour de rôle, chacun trace <b>un seul trait continu</b> sur la toile partagée. Les initiés doivent prouver qu'ils connaissent le mot sans le rendre trop évident. Le Caméléon doit deviner et se fondre dans la masse. Deux passages par joueur.</li>
+      <li>À tour de rôle, chacun dessine sur la toile partagée : <b>autant de traits que tu veux, tant qu'il te reste de l'encre</b> (la jauge 🖋️ se vide à mesure que tu traces). Appuie sur « J'ai fini » quand tu veux passer la main ; le tour s'arrête aussi quand l'encre est vide ou au bout de 35 s. Les initiés doivent prouver qu'ils connaissent le mot sans le rendre trop évident. Le Caméléon doit deviner et se fondre dans la masse. Deux passages par joueur.</li>
       <li>Une fois les traits terminés, tout le monde vote pour désigner le Caméléon.</li>
       <li>Si le Caméléon est démasqué, il a une dernière chance : deviner le mot secret. S'il trouve, il gagne quand même !</li>
       <li>S'il n'est pas démasqué (ou si le groupe accuse la mauvaise personne), le Caméléon l'emporte.</li>
@@ -1575,18 +1595,18 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=17"></script>
-<script src="js/net.js?v=17"></script>
-<script src="js/demicercle.js?v=17"></script>
-<script src="js/cameleon.js?v=17"></script>
-<script src="js/imposteur.js?v=17"></script>
-<script src="js/loup.js?v=17"></script>
-<script src="js/classement.js?v=17"></script>
-<script src="js/quiaecrit.js?v=17"></script>
-<script src="js/crousprison-photos.js?v=17"></script>
-<script src="js/crousprison.js?v=17"></script>
-<script src="js/bots-maps.js?v=17"></script>
-<script src="js/bots.js?v=17"></script>
-<script src="js/hub.js?v=17"></script>
+<script src="js/common.js?v=18"></script>
+<script src="js/net.js?v=18"></script>
+<script src="js/demicercle.js?v=18"></script>
+<script src="js/cameleon.js?v=18"></script>
+<script src="js/imposteur.js?v=18"></script>
+<script src="js/loup.js?v=18"></script>
+<script src="js/classement.js?v=18"></script>
+<script src="js/quiaecrit.js?v=18"></script>
+<script src="js/crousprison-photos.js?v=18"></script>
+<script src="js/crousprison.js?v=18"></script>
+<script src="js/bots-maps.js?v=18"></script>
+<script src="js/bots.js?v=18"></script>
+<script src="js/hub.js?v=18"></script>
 </body>
 </html>

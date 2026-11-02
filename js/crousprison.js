@@ -141,6 +141,8 @@
     hostStartGame();
   });
   $('copCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('copHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     myName=$('copName').value.trim()||'Joueur';
     cleanupOnline();
     net.host(function(code){
@@ -151,13 +153,13 @@
       $('copCodeDisplay').textContent=code;
       renderLobby();
       gotoScreen('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
   $('copJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('copJoinRoomBtn').click(); } });
   $('copJoinRoomBtn').addEventListener('click',function(){
     myName=$('copName').value.trim()||'Joueur';
-    var code=$('copJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('copJoinCode').value);
     if(!code){ shake($('copJoinCode')); return; }
     cleanupOnline();
     netRole='guest';
@@ -637,7 +639,7 @@
     },
     enterJoinFlow:function(code){
       gotoScreen('menu');
-      $('copJoinCode').value=decodeURIComponent(code).toUpperCase();
+      $('copJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
   renderMenu();

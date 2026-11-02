@@ -342,6 +342,8 @@
 
   /* ----- room creation (host) ----- */
   $('impCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('impHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     impMyName=$('impName').value.trim()||'Joueur';
     impCleanupOnline();
     net.host(function(code){
@@ -357,7 +359,7 @@
       $('impCodeDisplay').textContent=code;
       impRenderLobby();
       impGoto_('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
 
@@ -447,7 +449,7 @@
   });
   $('impJoinRoomBtn').addEventListener('click',function(){
     impMyName=$('impName').value.trim()||'Joueur';
-    var code=$('impJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('impJoinCode').value);
     if(!code){ shake($('impJoinCode')); return; }
     impCleanupOnline();
     impNetRole='guest';
@@ -821,7 +823,7 @@
     },
     enterJoinFlow: function(code){
       impGoto_('online');
-      $('impJoinCode').value = decodeURIComponent(code).toUpperCase();
+      $('impJoinCode').value = CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
 

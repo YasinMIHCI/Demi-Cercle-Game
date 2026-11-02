@@ -145,6 +145,8 @@
     renderBankCount(); sfxToggle();
   });
   $('clsCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('clsHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     myName=$('clsName').value.trim()||'Joueur';
     cleanupOnline();
     net.host(function(code){
@@ -155,13 +157,13 @@
       $('clsCodeDisplay').textContent=code;
       renderLobby();
       gotoScreen('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
   $('clsJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('clsJoinRoomBtn').click(); } });
   $('clsJoinRoomBtn').addEventListener('click',function(){
     myName=$('clsName').value.trim()||'Joueur';
-    var code=$('clsJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('clsJoinCode').value);
     if(!code){ shake($('clsJoinCode')); return; }
     cleanupOnline();
     netRole='guest';
@@ -577,7 +579,7 @@
     },
     enterJoinFlow:function(code){
       gotoScreen('online');
-      $('clsJoinCode').value=decodeURIComponent(code).toUpperCase();
+      $('clsJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
   renderBankCount();

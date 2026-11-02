@@ -126,6 +126,8 @@
     }
   })();
   $('loupCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('loupHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     myName=$('loupName').value.trim()||'Joueur';
     cleanupOnline();
     net.host(function(code){
@@ -136,13 +138,13 @@
       $('loupCodeDisplay').textContent=code;
       renderLobby();
       gotoScreen('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
   $('loupJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('loupJoinRoomBtn').click(); } });
   $('loupJoinRoomBtn').addEventListener('click',function(){
     myName=$('loupName').value.trim()||'Joueur';
-    var code=$('loupJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('loupJoinCode').value);
     if(!code){ shake($('loupJoinCode')); return; }
     cleanupOnline();
     netRole='guest';
@@ -685,7 +687,7 @@
     },
     enterJoinFlow:function(code){
       gotoScreen('online');
-      $('loupJoinCode').value=decodeURIComponent(code).toUpperCase();
+      $('loupJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
 })();

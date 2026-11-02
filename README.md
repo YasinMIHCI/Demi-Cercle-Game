@@ -45,10 +45,13 @@ place l'aiguille. Plus c'est proche, plus ça rapporte (100 / 80 / 50 / 20 / 0).
 
 ### 🦎 Le Caméléon
 Dessin partagé et déduction sociale, de 3 à 8 joueurs en ligne.
-Tout le monde connaît le mot secret, sauf le Caméléon. Chacun trace un trait à tour de
-rôle (deux passages), puis on vote. Démasqué, le Caméléon peut encore gagner en
+Tout le monde connaît le mot secret, sauf le Caméléon. Chacun dessine à tour de rôle
+(deux passages) : autant de traits qu'il veut, tant qu'il reste de l'encre dans sa jauge,
+puis « J'ai fini ». On vote ensuite. Démasqué, le Caméléon peut encore gagner en
 devinant le mot (majuscules, accents et ponctuation ignorés).
-Limites de temps : 45 s par trait, 60 s pour voter, 45 s pour la dernière chance.
+Limites de temps : 35 s par tour de dessin, 60 s pour voter, 45 s pour la dernière chance.
+L'hôte valide chaque trait et renvoie le dessin complet à tout le monde : toutes les
+toiles sont identiques, quel que soit l'écran (téléphone ou ordinateur).
 
 ### 🕵️ L'Imposteur des chiffres
 Bluff et déduction, de 3 à 8 joueurs en ligne.
@@ -121,8 +124,11 @@ Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1
 
 ## Jouer en ligne
 
-1. Un joueur crée la salle et partage le **code** (ex. `JOKER-4821`) ou le **lien d'invitation**.
-2. Les autres choisissent « Rejoindre une salle ».
+1. Un joueur crée la salle en **choisissant son code** (ex. `SOIREE-YASIN` : lettres,
+   chiffres et tirets, 3 à 20 caractères ; les accents et espaces sont convertis
+   automatiquement) et le partage, ou envoie le **lien d'invitation**.
+2. Les autres choisissent « Rejoindre une salle » et tapent le même code. Si le code est
+   déjà utilisé par une autre salle du même jeu, l'hôte doit en choisir un autre.
 3. L'hôte lance la partie quand tout le monde est là.
 
 Si quelqu'un perd la connexion, il est reconnecté automatiquement et retrouve sa place.

@@ -391,6 +391,9 @@ input[type=range]{width:100%;accent-color:var(--red-bright);height:6px;}
   cursor:crosshair;
 }
 .cham-canvas.readonly{cursor:default;}
+.cham-ink{position:relative;height:22px;background:#1a1a1a;border:3px solid #000;box-shadow:0 0 0 2px #fff;margin-bottom:4px;}
+.cham-ink-fill{position:absolute;left:0;top:0;bottom:0;width:100%;background:#fff;transition:width .12s linear;}
+.cham-ink span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);letter-spacing:1px;color:#fff;text-shadow:0 0 3px #000,0 0 3px #000;}
 
 .cham-palette{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin:14px 0;}
 .cham-color-dot{
