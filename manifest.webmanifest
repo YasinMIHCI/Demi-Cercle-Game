@@ -1,0 +1,18 @@
+{
+  "name": "CRAZY GAMES — Phantom Wave",
+  "short_name": "Crazy Games",
+  "description": "Jeux entre potes, en ligne : Demi-Cercle, Caméléon, Imposteur, Loup des mots, Classement, Qui a écrit ça ?, Battle Bots.",
+  "lang": "fr",
+  "id": "./",
+  "start_url": "./?source=app",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

@@ -745,3 +745,11 @@ html.intro-playing, html.intro-playing body{overflow:hidden;}
 .cop-credits li{font-size:0.85rem;margin-bottom:6px;}
 .cop-credit-line{color:#aaa;font-size:0.78rem;}
 .cop-credits a{color:var(--yellow);}
+
+/* ================= APP INSTALLABLE ================= */
+.install-steps li{margin-bottom:8px;}
+.ios-share{display:inline-block;width:16px;height:19px;vertical-align:-3px;border:2px solid #fff;border-top:none;position:relative;margin:0 2px;}
+.ios-share::before{content:'';position:absolute;left:50%;top:-8px;width:2px;height:14px;background:#fff;transform:translateX(-50%);}
+.ios-share::after{content:'';position:absolute;left:50%;top:-9px;width:7px;height:7px;border-left:2px solid #fff;border-top:2px solid #fff;transform:translateX(-50%) rotate(45deg);}
+/* dans l'app installée : marges pour l'encoche et la barre d'accueil */
+html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
