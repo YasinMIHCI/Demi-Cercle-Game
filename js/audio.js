@@ -8,7 +8,7 @@
    « silencieux » : jouer en même temps une piste <audio> muette fait passer la
    page en mode « lecture », comme une vidéo.
 
-   Musiques (composées pour le site, dans l'esprit acid-jazz de Persona) :
+   Musiques (composées pour le site, dans un esprit acid-jazz) :
    - lounge : hub et menus (jazz feutré, piano électrique, vibraphone, balais) ;
    - heist  : jeux de soirée (funk, basse slap, clavinet, cuivres) ;
    - riot   : Battle Bots (rock-fusion nerveux, guitare saturée, arpèges).

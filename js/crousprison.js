@@ -11,7 +11,7 @@
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
 
   var PHOTOS=CG.COP_PHOTOS||[];
-  var ROOM_PREFIX='p5crousprison-';
+  var ROOM_PREFIX='cgcrousprison-';
   var MIN_PLAYERS=2, MAX_PLAYERS=8;
   var PER_GAME=9, PHOTO_MS=10000, REVEAL_MS=2600, COUNT_MS=3000;
   var BASE_PTS=100, SPEED_PTS=50, MIN_EACH=2;

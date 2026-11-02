@@ -11,7 +11,7 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
 
-  var ROOM_PREFIX='p5quiaecrit-';
+  var ROOM_PREFIX='cgquiaecrit-';
   var MIN_PLAYERS=3, MAX_PLAYERS=8;
   var WRITE_MS=90000, GUESS_MS=30000, MAX_LEN=140, FOOL_MAX=3;
   var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff'];

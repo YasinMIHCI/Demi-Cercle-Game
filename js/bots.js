@@ -22,7 +22,7 @@
   var WATER_START=516, WATER_RISE_FROM=15, WATER_MIN=30;
   var MAPS=CG.botsMaps.MAPS;
   var AIM_MAX_LEN=170;             /* longueur de flèche à 100 % (unités du canvas) */
-  var BOTS_ROOM_PREFIX='p5bots-';
+  var BOTS_ROOM_PREFIX='cgbots-';
   var MODE_LABEL={'1v1':'1 VS 1','2v2':'2 VS 2','ffa':'CHACUN POUR SOI'};
   var MODE_CAP={'1v1':2,'2v2':4,'ffa':6};
   var TEAM_COLORS=['#E60012','#2E6FF2'];

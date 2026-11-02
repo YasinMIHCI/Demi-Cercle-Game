@@ -212,7 +212,7 @@
         if(m===DIRT){
           if(rim) return [255,24+n*30,46];
           if(band) return [8,0,2];
-          /* hachures noires façon Persona 5 sur un rouge sombre */
+          /* hachures noires sur un rouge sombre */
           if(((px-py+2000)%22)<6) return [34+n*10,3,8];
           return [118+n*50, 14+n*14, 30+n*16];
         }

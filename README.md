@@ -1,20 +1,18 @@
-# CRAZY GAMES — Phantom Wave
+# CRAZY GAMES
 
-Un hub de mini-jeux multijoueurs dans le navigateur, façon *Persona 5 / Phantom Thieves*.
+Un hub de mini-jeux multijoueurs dans le navigateur, dans un style comics rouge, noir et blanc.
 Aucun serveur de jeu : tout tourne dans la page, et le mode en ligne relie
 directement les navigateurs entre eux (WebRTC via [PeerJS](https://peerjs.com/)).
 Hébergeable tel quel sur GitHub Pages.
 
 ## L'intro
 
-À l'ouverture de la page, une intro animée de 5 secondes façon Persona 5 (dessinée en code
-sur un canvas, sans image ni vidéo) : un voleur masqué court et saute de toit en toit dans
-une ville néon sous une lune rouge, arrêt sur image « SHOWTIME! », bond en salto vers le fond
-du décor (il disparaît devant la lune), grande bande rouge « TAKE YOUR HEART » en transition,
-titre en lettres découpées, puis des bandes diagonales dévoilent le hub. On peut la passer
-(bouton « Passer », Échap).
-- Le personnage est animé par images clés (cycle de sprint complet, appel, saut, réception
-  amortie) et les pans de son manteau sont simulés physiquement.
+À l'ouverture de la page, une intro animée d'environ 5 secondes (dessinée en code sur un
+canvas, sans image ni vidéo) : la caméra glisse au ras des toits d'une ville néon sous une
+lune rouge, de longs rubans ondulent dans le ciel, puis elle s'élève et plonge vers la lune ;
+une grande bande rouge « CRAZY GAMES » fait la transition vers le titre en lettres découpées,
+et des bandes diagonales dévoilent le hub. On peut la passer (bouton « Passer », Échap).
+- Mouvements de caméra continus et amortis (vitesse intégrée, aucune coupe pendant le vol).
 - Effets sonores et musique synthétisés en direct (Web Audio, aucun fichier).
 
 ## L'app (iPhone / Android)
@@ -33,7 +31,7 @@ Dans l'app, l'intro ne passe qu'à la première ouverture de la journée. Fichie
 ## Son et musiques
 
 Tout le son passe par `js/audio.js` (un seul contexte audio pour le site) :
-- **OST originales**, composées pour le site dans l'esprit acid-jazz de Persona et jouées
+- **OST originales**, composées pour le site dans un esprit acid-jazz et jouées
   par un petit séquenceur : *lounge* (hub et menus), *heist* (jeux de soirée), *riot*
   (Battle Bots). La musique change toute seule selon l'écran, avec un fondu.
 - Boutons du hub : 🔊 Son (tout) et 🎵 Musique (seulement la musique), mémorisés.
@@ -155,7 +153,7 @@ quelqu'un d'autre. L'hôte doit rester connecté : c'est lui qui fait tourner la
 index.html        le balisage des écrans (hub + jeux + modales)
 css/style.css     tout le style
 js/audio.js       son commun : déblocage, instruments synthétisés, musiques
-js/intro.js       l'intro animée façon Persona 5 (canvas)
+js/intro.js       l'intro animée (canvas)
 js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
 js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur
 js/demicercle.js  le Demi-Cercle

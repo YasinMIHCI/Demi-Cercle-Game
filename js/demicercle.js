@@ -97,7 +97,7 @@
   var currentRoomCode = '';
   var myOnlineName = '';
   var lastCursorSend = 0;
-  var ROOM_PREFIX = 'p5demicercle-';
+  var ROOM_PREFIX = 'cgdemicercle-';
   /* host only: clientId de chaque place (pour récupérer sa place après une
      coupure), et journal de la manche en cours pour resynchroniser un
      joueur qui se reconnecte. */
@@ -928,7 +928,7 @@
     for(var i=0;i<totalSeats;i++){ if(state.players[i]) filled++; }
     var statusEl=$('lobbyStatusMsg');
     if(filled<totalSeats){
-      statusEl.textContent = filled+' / '+totalSeats+' joueurs — en attente de '+(totalSeats-filled)+' Phantom Thief(s)...';
+      statusEl.textContent = filled+' / '+totalSeats+' joueurs — en attente de '+(totalSeats-filled)+' joueur(s)...';
     } else {
       statusEl.textContent = netRole==='host' ? 'Équipe au complet ! Tu peux lancer la partie.' : "Équipe au complet ! En attente que l'hôte lance la partie...";
     }

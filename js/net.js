@@ -21,7 +21,7 @@
   'use strict';
   var CG = window.CG = window.CG || {};
 
-  var ROOM_WORDS = ['TAKE','JOKER','PHANTOM','MASQUE','ARSENE','RIOT','REBEL','CHAOS','ROYAL','WILDCARD'];
+  var ROOM_WORDS = ['CRAZY','PARTY','ARCADE','COMBO','RIOT','REBEL','CHAOS','ROYAL','WILDCARD','BONUS'];
 
   /* Plusieurs serveurs STUN + le relais TURN public de PeerJS : sans relais,
      deux joueurs derrière des box/4G restrictives ne peuvent pas se joindre. */

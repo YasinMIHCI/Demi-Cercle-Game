@@ -9,7 +9,7 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
 
-  var ROOM_PREFIX='p5loup-';
+  var ROOM_PREFIX='cgloup-';
   var MIN_PLAYERS=4, MAX_PLAYERS=10;
   var CHOOSE_MS=30000, LOUPVOTE_MS=30000, VILLAGEVOTE_MS=60000, MAYOR_GRACE=30000;
   var MAX_PENDING=2;                /* questions sans réponse par joueur */
