@@ -1,4 +1,4 @@
-/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit),
+/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison),
    modale d'infos et bouton son. Chargé en dernier. */
 (function(){
   'use strict';
@@ -29,7 +29,7 @@
   }
 
   /* musique de fond selon l'écran (js/audio.js) */
-  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', classement:'heist', quiaecrit:'heist'};
+  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot'};
   function router(isInitial){
     var r = parseHash();
     if(window.CGAudio) CGAudio.play(MUSIC[r.route]||'lounge');
@@ -39,6 +39,9 @@
     } else if(r.route==='cameleon'){
       showView('cameleon');
       if(isInitial && r.query.room) CG.cameleon.enterJoinFlow(r.query.room);
+    } else if(r.route==='crousprison'){
+      showView('crousprison');
+      if(isInitial && r.query.room) CG.crousprison.enterJoinFlow(r.query.room);
     } else if(r.route==='quiaecrit'){
       showView('quiaecrit');
       if(isInitial && r.query.room) CG.quiaecrit.enterJoinFlow(r.query.room);
@@ -57,7 +60,7 @@
     } else {
       /* retour au hub : on quitte proprement les salles en cours */
       /* un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
-      ['demicercle','cameleon','imposteur','bots','loup','classement','quiaecrit'].forEach(function(k){
+      ['demicercle','cameleon','imposteur','bots','loup','classement','quiaecrit','crousprison'].forEach(function(k){
         try{ if(CG[k]) CG[k].reset(); }catch(e){}
       });
       showView('hub');
@@ -68,6 +71,7 @@
   function goHome(){ location.hash='hub'; }
   $('hubReturnBtn').addEventListener('click',function(){ CG.sfxToggle(); goHome(); });
   $('playDemicercleBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='demicercle'; });
+  $('playCrousprisonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='crousprison'; });
   $('playQuiaecritBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='quiaecrit'; });
   $('playClassementBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='classement'; });
   $('playLoupBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='loup'; });

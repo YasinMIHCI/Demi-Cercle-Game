@@ -5,7 +5,8 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
   var CHAM_ROOM_PREFIX = 'p5cameleon-';
-  var CHAM_PALETTE = ['#E60012','#ffffff','#FFE600','#cccccc','#00e5ff','#ff6ec7','#ff9d2f','#7cff6e'];
+  /* couleurs bien lisibles sur la toile crème (le blanc et le jaune ne se voyaient presque pas) */
+  var CHAM_PALETTE = ['#E60012','#111111','#2E6FF2','#1f9e3a','#8e44ec','#ff7a00','#e0389b','#0aa3b5'];
   var CHAM_WORDBANK_KEY = 'cham_wordbank_v1';
   var CHAM_DEFAULT_WORDBANK = [
     {theme:"Animaux", words:["Éléphant","Girafe","Pingouin","Lion","Dauphin"]},
@@ -59,13 +60,19 @@
   var chamCanvasEl=null, chamCtx=null;
   var chamLiveStrokes={};
   var chamDrawing=false, chamCurrentPoints=[], chamLastSentIdx=0, chamLastSendTime=0;
-  var chamHasDrawnThisTurn=false;
+  var chamTurnDone=false;       /* j'ai terminé mon tour (bouton, encre vide ou chrono) */
+  var chamPointerId=null;       /* un seul doigt dessine : les autres contacts sont ignorés */
+  /* Plusieurs traits par tour, limités par une jauge d'encre (longueur totale
+     dans le repère 800x500). chamInk = encre du tour en cours, telle que la voit
+     tout le monde ; chamMyInk = compteur local du joueur qui dessine. */
+  var CHAM_INK=1100, CHAM_DOT_INK=10, CHAM_INK_EPS=8;
+  var chamInk={seat:-1, used:0}, chamMyInk=0;
   var chamInRound=false;        /* ce joueur participe à la manche en cours */
   var chamMyVoteTarget=null;
   var chamGuessTimer=null;
   var CHAM_GUESS_GRACE=30000;   /* délai laissé au Caméléon démasqué pour revenir */
   /* limites de temps : sans elles, un joueur inactif bloquait toute la manche */
-  var CHAM_TURN_MS=45000, CHAM_VOTE_MS=60000, CHAM_GUESS_MS=45000;
+  var CHAM_TURN_MS=35000, CHAM_VOTE_MS=60000, CHAM_GUESS_MS=45000;
   var chamPhaseTimer=null, chamDeadline=0;
   /* repli si un ancien common.js est encore en cache : le jeu doit se charger quand même */
   var timerBar=CG.timerBar||function(){ return {start:function(){}, stop:function(){}}; };
@@ -216,6 +223,8 @@
 
   /* ----- room creation (host) ----- */
   $('chamCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('chamHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     chamMyName=$('chamName').value.trim()||'Joueur';
     chamMyColor=chamSelectedColor;
     chamCleanupOnline();
@@ -232,7 +241,7 @@
       $('chamCodeDisplay').textContent=code;
       chamRenderLobby();
       chamGoto_('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
 
@@ -286,14 +295,8 @@
       case 'stroke_start':
       case 'stroke_points':
       case 'stroke_end':
-        /* seul le joueur dont c'est le tour peut dessiner, et l'hôte
-           réécrit la place/couleur plutôt que de faire confiance au message */
-        if(chamState.phase!=='drawing' || seat!==chamState.currentTurnSeat) return;
-        if(msg.type!=='stroke_start' && !chamLiveStrokes[seat]) return;
-        msg.seat=seat;
-        if(msg.type==='stroke_start') msg.color=chamState.players[seat].color;
-        chamHandleNetMessage(msg);
-        net.sendToAllExcept(msg, seat);
+      case 'turn_done':
+        chamHostOnStrokeMsg(seat, msg);
         return;
       case 'vote_cast':
         msg.voter=seat;
@@ -325,8 +328,7 @@
     }
     if(chamState.phase==='drawing' && chamState.currentTurnSeat===seat){
       /* on garde la partie du trait déjà reçue, puis on passe au suivant */
-      if(chamLiveStrokes[seat]){ chamBroadcast({type:'stroke_end', seat:seat}); }
-      else { chamHostAdvanceTurn(seat); }
+      chamHostEndTurn(seat);
     } else if(chamState.phase==='voting'){
       chamHostCheckVotes();
     } else if(chamState.phase==='guess' && seat===chamState.chameleonSeat){
@@ -344,7 +346,7 @@
     net.sendTo(seat, {type:'sync_strokes', strokes:chamState.strokes});
     if(chamState.phase==='drawing'){
       net.sendTo(seat, {type:'turn_start', seat:chamState.currentTurnSeat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length,
-        ms:chamLeft(), total:CHAM_TURN_MS});
+        ms:chamLeft(), total:CHAM_TURN_MS, ink:CHAM_INK, used:chamInk.used});
     } else if(chamState.lastPhaseMsg){
       var m=chamState.lastPhaseMsg, copy={};
       for(var k in m) copy[k]=m[k];
@@ -364,7 +366,7 @@
   $('chamJoinRoomBtn').addEventListener('click',function(){
     chamMyName=$('chamName').value.trim()||'Joueur';
     chamMyColor=chamSelectedColor;
-    var code=$('chamJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('chamJoinCode').value);
     if(!code){ shake($('chamJoinCode')); return; }
     chamCleanupOnline();
     chamNetRole='guest';
@@ -457,19 +459,57 @@
     var seat=chamState.turnQueue[chamState.turnPointer], ptr=chamState.turnPointer;
     chamSetPhaseTimer(CHAM_TURN_MS, function(){ chamHostTurnTimeout(seat, ptr); });
     chamBroadcast({type:'turn_start', seat:seat, turnIndex:chamState.turnPointer, totalTurns:chamState.turnQueue.length,
-      ms:CHAM_TURN_MS, total:CHAM_TURN_MS});
+      ms:CHAM_TURN_MS, total:CHAM_TURN_MS, ink:CHAM_INK, used:0});
   }
   /* temps écoulé : on garde ce qui a déjà été tracé et on passe au suivant */
   function chamHostTurnTimeout(seat, ptr){
     if(chamState.phase!=='drawing' || chamState.turnPointer!==ptr) return;
-    if(seat===chamMySeat && chamDrawing) chamFinishMyStroke();
-    else if(chamLiveStrokes[seat]) chamBroadcast({type:'stroke_end', seat:seat});
-    else chamHostAdvanceTurn(seat);
+    if(seat===chamMySeat && chamDrawing) chamEndMyStroke();
+    chamHostEndTurn(seat);
   }
-  function chamHostAdvanceTurn(finishedSeat){
-    if(chamState.phase!=='drawing' || chamState.turnQueue[chamState.turnPointer]!==finishedSeat) return;
+  /* fin du tour de « seat » : on valide le trait en cours puis on passe au suivant */
+  function chamHostEndTurn(seat){
+    if(chamState.phase!=='drawing' || chamState.turnQueue[chamState.turnPointer]!==seat) return;
+    if(chamLiveStrokes[seat]) chamHostCommitStroke(seat);
     chamState.turnPointer++;
     chamHostSendTurn();
+  }
+  /* Tous les messages de dessin (ceux des invités ET ceux de l'hôte) passent
+     par ici. L'hôte fait foi : il réécrit place et couleur, compte l'encre,
+     puis renvoie à tout le monde la liste complète des traits validés. */
+  function chamHostOnStrokeMsg(seat, msg){
+    if(chamState.phase!=='drawing' || seat!==chamState.currentTurnSeat) return;
+    if(msg.type==='turn_done'){ chamHostEndTurn(seat); return; }
+    if(msg.type==='stroke_start'){
+      if(chamLiveStrokes[seat]) chamHostCommitStroke(seat);    /* fin de trait perdue */
+      if(chamInk.used>=CHAM_INK-CHAM_INK_EPS) return;
+      msg={type:'stroke_start', seat:seat, color:chamState.players[seat].color};
+    } else if(msg.type==='stroke_points'){
+      if(!chamLiveStrokes[seat] || !Array.isArray(msg.points)) return;
+      var pts=[];
+      for(var i=0;i<msg.points.length && i<400;i++){
+        var q=msg.points[i];
+        if(!q) continue;
+        pts.push({x:Math.max(0,Math.min(CHAM_W,Math.round(+q.x||0))), y:Math.max(0,Math.min(CHAM_H,Math.round(+q.y||0)))});
+      }
+      msg={type:'stroke_points', seat:seat, points:pts};
+    } else if(msg.type==='stroke_end'){
+      if(!chamLiveStrokes[seat]) return;
+      chamHostCommitStroke(seat);
+      if(chamInk.used>=CHAM_INK-CHAM_INK_EPS) chamHostEndTurn(seat);
+      return;
+    } else return;
+    chamHandleNetMessage(msg);          /* l'hôte suit le trait (et l'affiche si ce n'est pas le sien) */
+    net.sendToAllExcept(msg, seat);
+  }
+  function chamHostCommitStroke(seat){
+    var live=chamLiveStrokes[seat];
+    delete chamLiveStrokes[seat];
+    if(live && live.allPoints.length){
+      if(live.allPoints.length===1) chamInk.used=Math.min(CHAM_INK, chamInk.used+CHAM_DOT_INK);
+      chamState.strokes.push({seat:seat, color:live.color, points:live.allPoints});
+    }
+    chamBroadcast({type:'sync_strokes', strokes:chamState.strokes, inkSeat:seat, inkUsed:chamInk.used, committed:true});
   }
   function chamHostStartVoting(){
     chamState.phase='voting';
@@ -520,8 +560,9 @@
            gardaient les traits des manches précédentes) */
         if(chamNetRole!=='host'){ chamState.strokes=[]; chamState.votes={}; }
         chamLiveStrokes={};
-        chamDrawing=false;
-        chamHasDrawnThisTurn=false;
+        chamDrawing=false; chamPointerId=null;
+        chamTurnDone=false;
+        chamInk={seat:-1, used:0}; chamMyInk=0;
         chamState.currentTurnSeat=-1;
         chamRenderRoleCard();
         chamPrepareCanvas();
@@ -530,21 +571,29 @@
         break;
       case 'sync_strokes':
         if(!chamInRound) break;
-        chamState.strokes=msg.strokes.slice();
-        if(chamCtx) chamRedrawAll(chamCtx);
+        if(chamNetRole!=='host') chamState.strokes=msg.strokes.slice();
+        if(msg.committed && msg.inkSeat!==chamMySeat) delete chamLiveStrokes[msg.inkSeat];
+        if(msg.inkSeat===chamInk.seat && typeof msg.inkUsed==='number'){
+          chamInk.used=msg.inkUsed;
+          if(msg.inkSeat===chamMySeat && !chamDrawing) chamMyInk=Math.max(chamMyInk, msg.inkUsed);
+        }
+        chamRedrawCanvas();
+        chamRenderInk();
         break;
       case 'turn_start':
         if(!chamInRound) break;
         /* tour coupé par le chrono pendant qu'on dessinait : l'hôte a déjà clos le trait */
-        if(chamDrawing && msg.seat!==chamMySeat){ chamDrawing=false; chamCurrentPoints=[]; }
+        if(chamDrawing && msg.seat!==chamMySeat){ chamDrawing=false; chamPointerId=null; chamCurrentPoints=[]; chamRedrawCanvas(); }
         chamState.currentTurnSeat=msg.seat;
-        chamHasDrawnThisTurn=false;
+        chamTurnDone=false;
+        if(msg.ink) CHAM_INK=msg.ink;
+        chamInk={seat:msg.seat, used:msg.used||0};
+        chamMyInk = msg.seat===chamMySeat ? (msg.used||0) : 0;
         chamUpdateTurnUI(msg.turnIndex, msg.totalTurns);
         chamTurnBar.start(msg.ms||CHAM_TURN_MS, msg.total||CHAM_TURN_MS);
         break;
       case 'stroke_start': if(chamInRound) chamHandleStrokeStart(msg); break;
       case 'stroke_points': if(chamInRound) chamHandleStrokePoints(msg); break;
-      case 'stroke_end': if(chamInRound) chamHandleStrokeEnd(msg); break;
       case 'vote_phase_start':
         if(!chamInRound) break;
         if(msg.strokes) chamState.strokes=msg.strokes.slice();
@@ -606,8 +655,10 @@
     $('chamTurnBanner').textContent='PRÉPARATION...';
     $('chamTurnBanner').className='cham-turn-banner';
     $('chamProgress').textContent='';
+    $('chamDoneBtn').style.display='none';
+    $('chamInkWrap').style.visibility='hidden';
   }
-  function chamIsMyTurn(){ return chamGameStarted && chamState.currentTurnSeat===chamMySeat && !chamHasDrawnThisTurn; }
+  function chamIsMyTurn(){ return chamGameStarted && chamState.currentTurnSeat===chamMySeat && !chamTurnDone; }
   function chamMyDrawColor(){
     var me=chamState.players[chamMySeat];
     return me?me.color:chamMyColor;
@@ -618,9 +669,9 @@
     var banner=$('chamTurnBanner');
     var mine=seat===chamMySeat;
     banner.className='cham-turn-banner'+(mine?' mine':'');
-    banner.textContent = mine ? '✏️ À TOI DE DESSINER !' : ('AU TOUR DE '+(p?p.name:'?')+' DE DESSINER');
-    $('chamProgress').textContent='Trait '+(turnIndex+1)+' / '+totalTurns;
-    if(chamCanvasEl) chamCanvasEl.classList.toggle('readonly', !mine);
+    banner.textContent = mine ? '✏️ À TOI ! AUTANT DE TRAITS QUE TU VEUX… TANT QU’IL RESTE DE L’ENCRE' : ('AU TOUR DE '+(p?p.name:'?')+' DE DESSINER');
+    $('chamProgress').textContent='Tour '+(turnIndex+1)+' / '+totalTurns;
+    chamRenderMyTurnControls();
     $('chamActivePalette').style.display = mine ? 'flex' : 'none';
     if(mine){
       var wrap=$('chamActivePalette');
@@ -631,6 +682,37 @@
       dot.title='Ta couleur';
       wrap.appendChild(dot);
     }
+    chamRenderInk();
+  }
+  function chamRenderMyTurnControls(){
+    var active=chamIsMyTurn();
+    if(chamCanvasEl) chamCanvasEl.classList.toggle('readonly', !active);
+    $('chamDoneBtn').style.display = active ? 'inline-block' : 'none';
+  }
+  /* jauge d'encre du joueur qui dessine (visible par tous) */
+  function chamRenderInk(){
+    var seat=chamInk.seat, wrap=$('chamInkWrap');
+    if(seat<0 || chamState.currentTurnSeat!==seat){ wrap.style.visibility='hidden'; return; }
+    wrap.style.visibility='visible';
+    var used = seat===chamMySeat ? Math.max(chamMyInk, chamInk.used) : chamInk.used;
+    var left=Math.max(0, 1-used/CHAM_INK);
+    $('chamInkFill').style.width=(left*100)+'%';
+    $('chamInkFill').style.background=chamState.players[seat] ? chamState.players[seat].color : '#fff';
+    $('chamInkText').textContent='🖋️ ENCRE '+Math.round(left*100)+' %';
+  }
+  function chamMyInkLeft(){ return CHAM_INK-Math.max(chamMyInk, chamInk.used); }
+  function chamDist(a,b){ var dx=a.x-b.x, dy=a.y-b.y; return Math.sqrt(dx*dx+dy*dy); }
+  /* Redessine la toile en direct : traits validés par l'hôte + traits en cours
+     (le mien et celui reçu en direct), pour que rien ne clignote. */
+  function chamRedrawCanvas(){
+    if(!chamCtx) return;
+    chamRedrawAll(chamCtx);
+    for(var k in chamLiveStrokes){
+      if(+k===chamMySeat) continue;
+      var l=chamLiveStrokes[k];
+      chamDrawStroke(chamCtx, {color:l.color, points:l.allPoints});
+    }
+    if(chamDrawing) chamDrawStroke(chamCtx, {color:chamMyDrawColor(), points:chamCurrentPoints});
   }
 
   /* ----- drawing (pointer events) ----- */
@@ -639,96 +721,129 @@
     chamCanvasEl.addEventListener('pointermove', chamPointerMove);
     chamCanvasEl.addEventListener('pointerup', chamPointerUp);
     chamCanvasEl.addEventListener('pointercancel', chamPointerUp);
-    chamCanvasEl.addEventListener('lostpointercapture', function(evt){ if(chamDrawing) chamPointerUp(evt); });
+    chamCanvasEl.addEventListener('lostpointercapture', function(evt){ if(chamDrawing && evt.pointerId===chamPointerId) chamPointerUp(evt); });
+  }
+  /* messages de dessin : l'hôte se les traite lui-même, les invités les envoient */
+  function chamSendStroke(msg){
+    if(chamNetRole==='host') chamHostOnStrokeMsg(chamMySeat, msg);
+    else net.send(msg);
   }
   function chamPointerDown(evt){
-    if(!chamIsMyTurn() || chamDrawing) return;
+    if(!chamIsMyTurn() || chamDrawing || chamMyInkLeft()<=CHAM_INK_EPS) return;
     if(evt.button!==undefined && evt.button>0) return;
+    if(evt.isPrimary===false) return;
     chamDrawing=true;
+    chamPointerId=evt.pointerId;
     var p=chamGetCanvasPoint(evt, chamCanvasEl);
     chamCurrentPoints=[p];
     chamLastSentIdx=0;
     chamLastSendTime=0;
     try{ chamCanvasEl.setPointerCapture(evt.pointerId); }catch(e){}
-    chamSend({type:'stroke_start', seat:chamMySeat, color:chamMyDrawColor()});
+    chamSendStroke({type:'stroke_start'});
     chamDrawSegment(chamCtx, p, p, chamMyDrawColor());
     chamFlushStrokePoints();
     evt.preventDefault();
   }
   function chamPointerMove(evt){
-    if(!chamDrawing) return;
-    /* les événements fusionnés par le navigateur donnent un trait plus fidèle */
-    var evts=(evt.getCoalescedEvents && evt.getCoalescedEvents().length) ? evt.getCoalescedEvents() : [evt];
-    for(var i=0;i<evts.length;i++){
-      var p=chamGetCanvasPoint(evts[i], chamCanvasEl);
+    if(!chamDrawing || evt.pointerId!==chamPointerId) return;
+    /* Les événements fusionnés donnent un trait plus fidèle, mais certains
+       navigateurs mobiles les renvoient avec de mauvaises coordonnées : on ne
+       les garde que s'ils restent à côté de l'événement principal. */
+    var main=chamGetCanvasPoint(evt, chamCanvasEl), pts=[main];
+    var co=(evt.getCoalescedEvents && evt.getCoalescedEvents()) || [];
+    if(co.length>1){
+      var ok=[], prev0=chamCurrentPoints[chamCurrentPoints.length-1];
+      for(var i=0;i<co.length;i++){
+        var c=chamGetCanvasPoint(co[i], chamCanvasEl);
+        if(chamDist(c, main)>chamDist(prev0, main)+40){ ok=null; break; }
+        ok.push(c);
+      }
+      if(ok && ok.length) pts=ok;
+    }
+    for(var j=0;j<pts.length && chamDrawing;j++){
+      var p=pts[j];
       var prev=chamCurrentPoints[chamCurrentPoints.length-1];
-      if(prev && prev.x===p.x && prev.y===p.y) continue;
+      if(prev.x===p.x && prev.y===p.y) continue;
+      var d=chamDist(prev,p), left=chamMyInkLeft();
+      if(d>=left){
+        /* plus d'encre : le trait s'arrête pile au bout de la jauge */
+        var t=left/d;
+        p={x:Math.round(prev.x+(p.x-prev.x)*t), y:Math.round(prev.y+(p.y-prev.y)*t)};
+        chamMyInk=CHAM_INK;
+        if(p.x!==prev.x || p.y!==prev.y){ chamCurrentPoints.push(p); chamDrawSegment(chamCtx, prev, p, chamMyDrawColor()); }
+        chamEndMyStroke();
+        chamFinishMyTurn();
+        break;
+      }
+      chamMyInk+=d;
       chamCurrentPoints.push(p);
       chamDrawSegment(chamCtx, prev, p, chamMyDrawColor());
     }
-    if(Date.now()-chamLastSendTime>50){ chamFlushStrokePoints(); }
+    if(chamDrawing && Date.now()-chamLastSendTime>50){ chamFlushStrokePoints(); }
+    chamRenderInk();
     evt.preventDefault();
   }
   function chamPointerUp(evt){
-    if(!chamDrawing) return;
+    if(!chamDrawing || (evt && evt.pointerId!==undefined && evt.pointerId!==chamPointerId)) return;
     try{ chamCanvasEl.releasePointerCapture(evt.pointerId); }catch(e){}
-    chamFinishMyStroke();
+    chamEndMyStroke();
+    if(chamMyInkLeft()<=CHAM_INK_EPS) chamFinishMyTurn();
   }
-  function chamFinishMyStroke(){
-    chamDrawing=false;
-    chamHasDrawnThisTurn=true;
+  /* fin d'un trait (le tour continue tant qu'il reste de l'encre) */
+  function chamEndMyStroke(){
+    if(!chamDrawing) return;
+    chamDrawing=false; chamPointerId=null;
+    if(chamCurrentPoints.length===1) chamMyInk=Math.min(CHAM_INK, chamMyInk+CHAM_DOT_INK);
     chamFlushStrokePoints();
-    chamSend({type:'stroke_end', seat:chamMySeat});
-    if(chamNetRole==='host'){
-      chamState.strokes.push({seat:chamMySeat, color:chamMyDrawColor(), points:chamCurrentPoints.slice()});
-      chamRedrawAll(chamCtx);
-      chamHostAdvanceTurn(chamMySeat);
-    }
+    chamSendStroke({type:'stroke_end'});
     chamCurrentPoints=[];
+    chamRenderInk();
   }
+  /* « J'ai fini », ou encre épuisée */
+  function chamFinishMyTurn(){
+    if(chamTurnDone || chamState.currentTurnSeat!==chamMySeat) return;
+    chamEndMyStroke();
+    chamTurnDone=true;
+    chamRenderMyTurnControls();
+    chamSendStroke({type:'turn_done'});
+  }
+  $('chamDoneBtn').addEventListener('click',function(){ sfxValidate(); chamFinishMyTurn(); });
   function chamFlushStrokePoints(){
     if(chamLastSentIdx<chamCurrentPoints.length){
       var pts=chamCurrentPoints.slice(chamLastSentIdx);
-      chamSend({type:'stroke_points', seat:chamMySeat, points:pts});
+      chamSendStroke({type:'stroke_points', points:pts});
       chamLastSentIdx=chamCurrentPoints.length;
       chamLastSendTime=Date.now();
     }
   }
-  /* Traits des autres joueurs, reçus en direct. Le trait de l'invité qui
-     dessine lui revient aussi via l'hôte (stroke_end) pour que chacun ait
-     exactement la même liste. */
+  /* Traits en cours, reçus en direct (l'hôte suit aussi les siens pour compter
+     l'encre, sans les redessiner). La version qui fait foi arrive ensuite avec
+     sync_strokes, identique pour tout le monde. */
   function chamHandleStrokeStart(msg){
     chamLiveStrokes[msg.seat]={color:msg.color, lastPoint:null, allPoints:[]};
   }
   function chamHandleStrokePoints(msg){
     var live=chamLiveStrokes[msg.seat];
     if(!live) return;
+    var mine=msg.seat===chamMySeat, host=chamNetRole==='host';
     for(var i=0;i<msg.points.length;i++){
       var p=msg.points[i];
-      chamDrawSegment(chamCtx, live.lastPoint||p, p, live.color);
+      if(live.lastPoint){
+        var d=chamDist(live.lastPoint,p);
+        /* l'hôte coupe ce qui dépasse la jauge (petite marge pour les arrondis) */
+        if(host && chamInk.used+d>CHAM_INK+CHAM_INK_EPS) break;
+        if(msg.seat===chamInk.seat) chamInk.used=Math.min(CHAM_INK, chamInk.used+d);
+      }
+      if(!mine) chamDrawSegment(chamCtx, live.lastPoint||p, p, live.color);
       live.lastPoint=p;
       live.allPoints.push(p);
     }
-  }
-  function chamHandleStrokeEnd(msg){
-    var live=chamLiveStrokes[msg.seat];
-    if(live && live.allPoints.length){
-      chamState.strokes.push({seat:msg.seat, color:live.color, points:live.allPoints});
-    }
-    delete chamLiveStrokes[msg.seat];
-    /* on redessine depuis la liste : toutes les toiles restent identiques */
-    if(chamCtx) chamRedrawAll(chamCtx);
-    if(chamNetRole==='host'){
-      /* l'invité qui a dessiné ne reçoit pas son propre stroke_end :
-         on lui renvoie la version reçue par l'hôte */
-      if(live && msg.seat!==0) net.sendTo(msg.seat, {type:'sync_strokes', strokes:chamState.strokes});
-      chamHostAdvanceTurn(msg.seat);
-    }
+    if(!mine) chamRenderInk();
   }
 
   /* ----- voting ----- */
   function chamShowVoting(alreadyVoted){
-    if(chamDrawing){ chamDrawing=false; chamCurrentPoints=[]; }
+    if(chamDrawing){ chamDrawing=false; chamPointerId=null; chamCurrentPoints=[]; }
     var canvas=$('chamVoteCanvas');
     chamRedrawAll(canvas.getContext('2d'));
     chamRenderVoteList();
@@ -933,7 +1048,7 @@
     },
     enterJoinFlow: function(code){
       chamGoto_('online');
-      $('chamJoinCode').value = decodeURIComponent(code).toUpperCase();
+      $('chamJoinCode').value = CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
 

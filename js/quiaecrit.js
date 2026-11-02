@@ -145,6 +145,8 @@
     renderBankCount(); sfxToggle();
   });
   $('qaeCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('qaeHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     myName=$('qaeName').value.trim()||'Joueur';
     cleanupOnline();
     net.host(function(code){
@@ -155,13 +157,13 @@
       $('qaeCodeDisplay').textContent=code;
       renderLobby();
       gotoScreen('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
   $('qaeJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('qaeJoinRoomBtn').click(); } });
   $('qaeJoinRoomBtn').addEventListener('click',function(){
     myName=$('qaeName').value.trim()||'Joueur';
-    var code=$('qaeJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('qaeJoinCode').value);
     if(!code){ shake($('qaeJoinCode')); return; }
     cleanupOnline();
     netRole='guest';
@@ -622,7 +624,7 @@
     },
     enterJoinFlow:function(code){
       gotoScreen('online');
-      $('qaeJoinCode').value=decodeURIComponent(code).toUpperCase();
+      $('qaeJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
   renderBankCount();

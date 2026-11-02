@@ -52,9 +52,51 @@
     var n = Math.floor(1000+Math.random()*9000);
     return w+'-'+n;
   }
+  /* Code de salle choisi par les joueurs : majuscules sans accents, espaces
+     changés en tirets, seulement A-Z 0-9 et « - » (contrainte des identifiants
+     PeerJS), 3 à 20 caractères. Le même nettoyage sert pour créer et rejoindre. */
+  var CODE_MIN=3, CODE_MAX=20, LAST_CODE_KEY='cg_last_room_code';
+  function cleanRoomCode(s){
+    s=String(s||'').toUpperCase().replace(/Œ/g,'OE').replace(/Æ/g,'AE');
+    if(s.normalize) s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    s=s.replace(/[\s_]+/g,'-').replace(/[^A-Z0-9-]/g,'').replace(/-+/g,'-').replace(/^-+/,'');
+    return s.slice(0,CODE_MAX).replace(/-+$/,'');
+  }
+  /* lit le champ « code de la salle » d'un écran de création ; '' si invalide */
+  function readRoomCode(inputId){
+    var el=document.getElementById(inputId);
+    var code=cleanRoomCode(el && el.value);
+    if(el) el.value=code;
+    if(code.length<CODE_MIN){
+      if(el){ if(CG.shake) CG.shake(el); try{ el.focus(); }catch(e){} }
+      return '';
+    }
+    try{ localStorage.setItem(LAST_CODE_KEY, code); }catch(e){}
+    return code;
+  }
+  /* pré-remplit les champs de création avec le dernier code utilisé */
+  function prefillRoomCodes(){
+    var last=''; try{ last=localStorage.getItem(LAST_CODE_KEY)||''; }catch(e){}
+    var els=document.querySelectorAll('input[data-room-code]');
+    for(var i=0;i<els.length;i++){
+      if(last && !els[i].value) els[i].value=last;
+      (function(el){
+        el.addEventListener('blur', function(){ el.value=cleanRoomCode(el.value); });
+        el.addEventListener('keydown', function(e){
+          var btn=document.getElementById(el.getAttribute('data-room-code'));
+          if(e.key==='Enter' && btn){ e.preventDefault(); btn.click(); }
+        });
+      })(els[i]);
+    }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', prefillRoomCodes);
+  else prefillRoomCodes();
+  CG.cleanRoomCode=cleanRoomCode;
+  CG.readRoomCode=readRoomCode;
+
   function peerErrorMessage(err){
     var t = err && err.type;
-    if(t==='unavailable-id') return 'CE CODE EST DÉJÀ PRIS, RÉESSAIE';
+    if(t==='unavailable-id') return 'CE CODE EST DÉJÀ PRIS — CHOISIS-EN UN AUTRE';
     if(t==='peer-unavailable') return 'SALLE INTROUVABLE (vérifie le code)';
     if(t==='network'||t==='server-error'||t==='socket-error'||t==='socket-closed') return 'RÉSEAU INDISPONIBLE, VÉRIFIE TA CONNEXION';
     if(t==='browser-incompatible') return 'NAVIGATEUR NON COMPATIBLE (essaie Chrome ou Firefox à jour)';
@@ -133,16 +175,19 @@
     }
 
     /* ===================== HÔTE ===================== */
-    net.host = function(onReady){
+    /* code : celui choisi par l'hôte (sinon un code au hasard) */
+    var wantedCode='';
+    net.host = function(onReady, code){
       net.close();
       intentional=false;
       if(typeof Peer==='undefined'){ status('error','PEERJS INDISPONIBLE (vérifie ta connexion internet)'); return; }
       hostIdRetries=0;
+      wantedCode=cleanRoomCode(code);
       openHostPeer(onReady);
     };
     function openHostPeer(onReady){
       status('connecting','CRÉATION DE LA SALLE...');
-      var code=randomRoomCode();
+      var code=wantedCode||randomRoomCode();
       var p=peer=new Peer(cfg.prefix+code.toLowerCase(), PEER_OPTS);
       serverTimer=setTimeout(function(){
         if(p===peer && !p.open) status('error','IMPOSSIBLE DE JOINDRE LE SERVEUR — RÉESSAIE');
@@ -161,7 +206,14 @@
       p.on('error',function(err){
         if(p!==peer) return;
         if(err && err.type==='unavailable-id' && !net.role && hostIdRetries<3){
-          hostIdRetries++; serverTimer=clearTimer(serverTimer); destroyPeer(); openHostPeer(onReady); return;
+          /* code choisi : la salle qu'on vient de fermer peut occuper encore
+             l'identifiant quelques secondes, on réessaie un peu avant d'abandonner */
+          hostIdRetries++; serverTimer=clearTimer(serverTimer); destroyPeer();
+          if(wantedCode){
+            status('connecting','CODE OCCUPÉ, NOUVEL ESSAI...');
+            signalTimer=setTimeout(function(){ signalTimer=null; if(!intentional && !peer) openHostPeer(onReady); }, 1500);
+          } else openHostPeer(onReady);
+          return;
         }
         if(err && err.type==='peer-unavailable') return;
         serverTimer=clearTimer(serverTimer);

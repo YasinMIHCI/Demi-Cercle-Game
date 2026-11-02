@@ -423,6 +423,8 @@
   setupToggle('botsTimerToggle','data-timer',function(v){ botsSelectedTimer=parseInt(v,10); });
 
   $('botsCreateRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('botsHostCode');
+    if(!wantedCode){ sfxToggle(); return; }
     botsMyName=$('botsName').value.trim()||'Joueur';
     cleanupOnline();
     net.host(function(code){
@@ -434,13 +436,13 @@
       $('botsCodeDisplay').textContent=code;
       renderLobby();
       gotoScreen('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
   $('botsJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('botsJoinRoomBtn').click(); } });
   $('botsJoinRoomBtn').addEventListener('click',function(){
     botsMyName=$('botsName').value.trim()||'Joueur';
-    var code=$('botsJoinCode').value.trim().toUpperCase();
+    var code=CG.cleanRoomCode($('botsJoinCode').value);
     if(!code){ shake($('botsJoinCode')); return; }
     cleanupOnline();
     botsNetRole='guest';
@@ -1512,7 +1514,7 @@
     },
     enterJoinFlow: function(code){
       gotoScreen('online');
-      $('botsJoinCode').value=decodeURIComponent(code).toUpperCase();
+      $('botsJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     },
     /* exposé pour les tests */
     _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank, _view: function(){ return view; }

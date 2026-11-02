@@ -771,6 +771,8 @@
 
   /* ----- room creation (host) ----- */
   $('createRoomBtn').addEventListener('click',function(){
+    var wantedCode=CG.readRoomCode('hostCodeInput');
+    if(!wantedCode){ sfxToggle(); return; }
     myOnlineName = $('onlineName').value.trim() || 'Joueur 1';
     cleanupOnline();
     applyFormat(selectedCreateFormat);
@@ -793,7 +795,7 @@
       $('lobbyTitle').textContent = 'LOBBY — '+(onlineFormat==='2v2'?'2 VS 2':'1 VS 1');
       renderLobbyScreen();
       goto_('lobby');
-    });
+    }, wantedCode);
     sfxToggle();
   });
 
@@ -878,7 +880,7 @@
   });
   $('joinRoomBtn').addEventListener('click',function(){
     myOnlineName = $('onlineName').value.trim() || 'Joueur';
-    var code = $('joinCodeInput').value.trim().toUpperCase();
+    var code = CG.cleanRoomCode($('joinCodeInput').value);
     if(!code){ shake($('joinCodeInput')); return; }
     cleanupOnline();
     netRole='guest';
@@ -1255,7 +1257,7 @@
       $('netStatus').style.display='inline-flex';
       setNetStatus('offline','HORS LIGNE');
       goto_('online');
-      $('joinCodeInput').value = decodeURIComponent(code).toUpperCase();
+      $('joinCodeInput').value = CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
 
