@@ -202,6 +202,90 @@
     return {grid:g, spawns:spreadPick(cands,n)};
   }
 
+  /* ===================== CARTE 4 : LA BANQUISE ===================== */
+  /* Icebergs de neige séparés par l'eau glacée, piliers et arches de glace
+     dure (pierre), et un pont de glace fragile au milieu. */
+  function genIce(n, R){
+    var g=newGrid(), k, cx, cy;
+    var count=3+Math.floor(R()*2), bergs=[];
+    for(k=0;k<count;k++){
+      var c=(k+0.5)/count*W+(R()-0.5)*40, w=(W/count)*(0.7+R()*0.15), top=300+R()*90;
+      bergs.push({c:c, w:w, top:top});
+      for(cx=Math.floor((c-w/2)/CELL);cx<=Math.floor((c+w/2)/CELL);cx++){
+        if(cx<0||cx>=GW) continue;
+        var u=Math.abs((cx*CELL-c)/(w/2));
+        /* bords à pic, sommet plat un peu bosselé */
+        var h=top+Math.pow(u,6)*120+(R()-0.5)*6;
+        for(cy=Math.floor(h/CELL);cy<GH;cy++) g[cy*GW+cx]=DIRT;
+      }
+      /* pilier de glace sur le dessus */
+      if(R()<0.7){
+        var px=Math.floor((c+(R()-0.5)*w*0.4)/CELL), ph=8+Math.floor(R()*12);
+        fillRect(g, px, Math.floor(top/CELL)-ph, 3, ph+2, STONE);
+        bergs[k].pillar=[px*CELL-20, px*CELL+32];
+      }
+    }
+    /* arche de glace entre deux icebergs */
+    var a=Math.floor(R()*(count-1)), b1=bergs[a], b2=bergs[a+1];
+    var x0=Math.floor((b1.c+b1.w*0.25)/CELL), x1=Math.floor((b2.c-b2.w*0.25)/CELL);
+    var ay=Math.floor(Math.min(b1.top,b2.top)/CELL)-14;
+    for(cx=x0;cx<=x1;cx++){
+      var t=(cx-x0)/Math.max(1,x1-x0), yy=ay-Math.round(Math.sin(t*Math.PI)*8);
+      fillRect(g, cx, yy, 1, 3, (cx%5===0)?STONE:DIRT);
+    }
+    /* banc de glace sous l'eau qui tient les icebergs */
+    for(cx=0;cx<GW;cx++) for(cy=GH-4;cy<GH;cy++) g[cy*GW+cx]=STONE;
+    var cands=[];
+    bergs.forEach(function(bg){
+      for(var x=bg.c-bg.w*0.3;x<=bg.c+bg.w*0.3;x+=16){
+        if(bg.pillar && x>bg.pillar[0] && x<bg.pillar[1]) continue;
+        cands.push({x:Math.round(x), y:150});
+      }
+    });
+    return {grid:g, spawns:spreadPick(cands,n)};
+  }
+
+  /* ===================== CARTE 5 : LE VOLCAN ===================== */
+  /* Un grand volcan au centre (cratère creux, roche dure au sommet), des
+     plateaux de part et d'autre, et la lave qui monte au lieu de l'eau. */
+  function genVolcano(n, R){
+    var g=newGrid(), cx, cy, k;
+    var peak=W/2+(R()-0.5)*80, peakH=150+R()*40, base=430;
+    var heights=[];
+    for(cx=0;cx<GW;cx++){
+      var x=cx*CELL, d=Math.abs(x-peak)/(W*0.42);
+      var cone=base-(base-peakH)*Math.max(0,1-d*d*1.1);
+      /* plateaux sur les côtés */
+      var side=Math.min(Math.abs(x-W*0.12), Math.abs(x-W*0.88));
+      var plat=side<70 ? base-40-Math.cos(side/70*Math.PI/2)*30 : base;
+      var h=Math.min(cone, plat)+Math.sin(x/37+R()*0.2)*6;
+      heights.push(h);
+    }
+    for(cx=0;cx<GW;cx++) for(cy=Math.floor(heights[cx]/CELL);cy<GH;cy++) g[cy*GW+cx]=DIRT;
+    /* cratère : on creuse le sommet, bord en roche dure */
+    var cr=46+R()*14, cyT=peakH+18;
+    for(cy=0;cy<GH;cy++) for(cx=0;cx<GW;cx++){
+      var dx=(cx*CELL+2-peak)/cr, dy=(cy*CELL+2-cyT)/(cr*0.8);
+      var dd=dx*dx+dy*dy;
+      if(dd<=1) g[cy*GW+cx]=EMPTY;
+      else if(dd<=1.5 && g[cy*GW+cx]===DIRT) g[cy*GW+cx]=STONE;
+    }
+    /* coulées de roche dure sur les flancs */
+    for(k=0;k<4;k++){
+      var fx=peak+(k<2?-1:1)*(60+R()*120);
+      var fcx=Math.floor(fx/CELL);
+      for(cy=0;cy<GH && get(g,fcx,cy)===EMPTY;cy++);
+      fillRect(g, fcx-2, cy, 5, 4, STONE);
+    }
+    for(cx=0;cx<GW;cx++) for(cy=GH-5;cy<GH;cy++) g[cy*GW+cx]=STONE;
+    var cands=[];
+    for(var x=40;x<W-40;x+=20){
+      if(Math.abs(x-peak)<cr+30) continue;
+      cands.push({x:x, y:120});
+    }
+    return {grid:g, spawns:spreadPick(cands,n)};
+  }
+
   /* ===================== THÈMES (couleurs + décors) ===================== */
   function clamp8(v){ return v<0?0:(v>255?255:v|0); }
   var THEMES={
@@ -265,6 +349,40 @@
     }
   };
 
+  THEMES.ice={
+    outline:[10,30,52],
+    water:'rgba(20,70,120,0.9)', wave:'rgba(220,245,255,0.9)',
+    paint:function(m, px, py, rim, band, n){
+      if(m===DIRT){
+        if(rim) return [250,253,255];
+        if(band) return [214,236,250];
+        var crack=vnoise(px/11,py/11)>0.74 ? -30 : 0;
+        return [176+n*40+crack, 214+n*26+crack, 240+n*12+crack];
+      }
+      var v=n*30;
+      if(rim) v+=30;
+      if(((px+py)%26)<2) v+=50;                     /* reflets */
+      return [90+v, 170+v, 225+v];
+    }
+  };
+  THEMES.volcano={
+    outline:[10,4,2],
+    water:'rgba(230,70,10,0.95)', wave:'rgba(255,220,60,0.95)',
+    paint:function(m, px, py, rim, band, n){
+      if(m===DIRT){
+        if(rim) return [92+n*20,58,44];
+        if(band) return [50,30,24];
+        var ember=hash(px,py)>0.985 ? 120 : 0;
+        return [46+n*26+ember, 34+n*18+ember*0.4, 30+n*14];
+      }
+      /* roche dure veinée de lave */
+      var vein=Math.abs(vnoise(px/16,py/16)-0.5)<0.05;
+      if(vein) return [255,120+n*60,20];
+      var v=24+n*24+(rim?20:0);
+      return [v+10, v, v];
+    }
+  };
+
   /* Décors de fond (peints une fois, mêmes pour tous grâce à la graine). */
   function paintBackground(c, key, seed){
     var R=rng(seed*7+3), i, x, y, w, h, gr;
@@ -321,6 +439,43 @@
       });
       /* lampes rouges d'alarme */
       for(i=0;i<5;i++){ c.fillStyle='rgba(255,0,40,0.5)'; c.beginPath(); c.arc(100+i*190,26,5,0,Math.PI*2); c.fill(); }
+    } else if(key==='ice'){
+      gr=c.createLinearGradient(0,0,0,H);
+      gr.addColorStop(0,'#081a33'); gr.addColorStop(0.6,'#1d4f7a'); gr.addColorStop(1,'#8fc4e6');
+      c.fillStyle=gr; c.fillRect(0,0,W,H);
+      /* aurore boréale */
+      for(i=0;i<3;i++){
+        c.strokeStyle='rgba('+(80+i*40)+',255,'+(170+i*20)+',0.18)'; c.lineWidth=26-i*6;
+        c.beginPath();
+        for(x=0;x<=W;x+=20){ y=80+i*26+Math.sin(x/120+i+R()*0.3)*30; if(x===0) c.moveTo(x,y); else c.lineTo(x,y); }
+        c.stroke();
+      }
+      /* étoiles */
+      for(i=0;i<70;i++){ c.fillStyle='rgba(255,255,255,'+(0.3+R()*0.6)+')'; c.fillRect(R()*W, R()*220, 2, 2); }
+      /* montagnes de glace au loin */
+      c.fillStyle='rgba(200,230,250,0.25)';
+      c.beginPath(); c.moveTo(0,H);
+      for(x=0;x<=W;x+=60){ c.lineTo(x, 300+R()*80); }
+      c.lineTo(W,H); c.closePath(); c.fill();
+      /* flocons */
+      for(i=0;i<60;i++){ c.fillStyle='rgba(255,255,255,0.7)'; c.beginPath(); c.arc(R()*W, R()*H, 1+R()*1.5, 0, Math.PI*2); c.fill(); }
+    } else if(key==='volcano'){
+      gr=c.createLinearGradient(0,0,0,H);
+      gr.addColorStop(0,'#120404'); gr.addColorStop(0.5,'#3a0b06'); gr.addColorStop(1,'#a32a0a');
+      c.fillStyle=gr; c.fillRect(0,0,W,H);
+      /* panache de fumée */
+      for(i=0;i<9;i++){
+        c.fillStyle='rgba(40,30,30,'+(0.25+R()*0.2)+')';
+        c.beginPath(); c.arc(W/2+(R()-0.5)*200+i*14, 120-i*12, 50+R()*40, 0, Math.PI*2); c.fill();
+      }
+      /* volcans lointains */
+      c.fillStyle='rgba(20,6,4,0.8)';
+      [[150,330],[820,350]].forEach(function(v){
+        c.beginPath(); c.moveTo(v[0]-200,H); c.lineTo(v[0]-30,v[1]); c.lineTo(v[0]+30,v[1]); c.lineTo(v[0]+200,H); c.closePath(); c.fill();
+        c.fillStyle='rgba(255,90,20,0.6)'; c.fillRect(v[0]-20, v[1]-4, 40, 5); c.fillStyle='rgba(20,6,4,0.8)';
+      });
+      /* braises */
+      for(i=0;i<80;i++){ c.fillStyle='rgba(255,'+(120+R()*100|0)+',30,'+(0.4+R()*0.5)+')'; c.fillRect(R()*W, R()*H, 2, 2); }
     } else {
       gr=c.createLinearGradient(0,0,0,H);
       gr.addColorStop(0,'#2b0b3a'); gr.addColorStop(0.45,'#b02a3a'); gr.addColorStop(0.75,'#ff9a3c'); gr.addColorStop(1,'#ffd27a');
@@ -391,11 +546,13 @@
   var MAPS={
     shibuya:{name:'SHIBUYA', ico:'🌃', desc:'Collines, îlots flottants et piliers sous la lune rouge.', gen:genShibuya, waterStart:516},
     prison:{name:'LA PRISON', ico:'⛓️', desc:'Bâtiment fermé sur 3 étages : trappes, cellules et murs à faire sauter.', gen:genPrison, waterStart:516},
-    docks:{name:'LES DOCKS', ico:'⚓', desc:'Îles, quais et conteneurs au coucher du soleil. Gare au plongeon !', gen:genDocks, waterStart:468}
+    docks:{name:'LES DOCKS', ico:'⚓', desc:'Îles, quais et conteneurs au coucher du soleil. Gare au plongeon !', gen:genDocks, waterStart:468},
+    ice:{name:'LA BANQUISE', ico:'🧊', desc:'Icebergs à pic, piliers et arche de glace sous l’aurore boréale.', gen:genIce, waterStart:480},
+    volcano:{name:'LE VOLCAN', ico:'🌋', desc:'Un cratère au centre, des plateaux… et c’est la lave qui monte.', gen:genVolcano, waterStart:500}
   };
 
   CG.botsMaps={
-    MAPS:MAPS, ORDER:['shibuya','prison','docks'],
+    MAPS:MAPS, ORDER:['shibuya','prison','docks','ice','volcano'],
     EMPTY:EMPTY, DIRT:DIRT, STONE:STONE,
     generate:function(key, n, seed){ return MAPS[key].gen(n, rng(seed)); },
     paintBackground:paintBackground,

@@ -891,3 +891,15 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .est-body{display:flex;flex-direction:column;gap:2px;min-width:0;}
 .est-body b{color:#fff;word-break:break-word;}
 .est-body small{color:#999;font-size:0.78rem;}
+
+/* Battle Bots : personnalisation et armes */
+.bots-swatches{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 10px;}
+.bots-swatch{width:34px;height:34px;border-radius:50%;border:3px solid #333;cursor:pointer;padding:0;}
+.bots-swatch.active{border-color:#fff;box-shadow:0 0 0 3px var(--red);}
+.bots-acc{flex-wrap:wrap;}
+.bots-weapon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:6px 0 12px;}
+.bots-weapon-card{display:flex;flex-direction:column;gap:3px;align-items:flex-start;text-align:left;background:#151515;border:2px solid #333;
+  color:#fff;padding:10px;cursor:pointer;font-family:inherit;}
+.bots-weapon-card .ico{font-size:1.5rem;}
+.bots-weapon-card small{color:#aaa;font-size:0.78rem;}
+.bots-weapon-card.selected{border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow);}

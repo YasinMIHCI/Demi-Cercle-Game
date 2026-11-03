@@ -23,8 +23,38 @@
   var MAPS=CG.botsMaps.MAPS;
   var AIM_MAX_LEN=170;             /* longueur de flèche à 100 % (unités du canvas) */
   var BOTS_ROOM_PREFIX='cgbots-';
-  var MODE_LABEL={'1v1':'1 VS 1','2v2':'2 VS 2','ffa':'CHACUN POUR SOI'};
-  var MODE_CAP={'1v1':2,'2v2':4,'ffa':6};
+  var MODE_LABEL={'1v1':'1 VS 1','2v2':'2 VS 2','ffa':'CHACUN POUR SOI','surv':'SURVIE CONTRE LES BOTS'};
+  var MODE_CAP={'1v1':2,'2v2':4,'ffa':6,'surv':4};
+  var AI_SEAT=100;                 /* tanks pilotés par l'ordinateur : places 100, 101... */
+  var AI_COLOR='#8d939c';
+  var SURV_WATER_FROM=30;          /* en survie, l'eau ne monte qu'à partir du tour 30 */
+
+  /* Personnalisation : couleur de carrosserie (hors 2 VS 2, où c'est la couleur
+     d'équipe) et accessoire sur le tank. Gardée dans le navigateur. */
+  var PAINTS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#f4f4f4','#3b3b3b'];
+  var ACCS={none:'Aucun', crown:'👑 Couronne', horns:'😈 Cornes', cap:'🧢 Casquette', flag:'🏴‍☠️ Drapeau', halo:'😇 Auréole'};
+  var ACC_ORDER=['none','crown','horns','cap','flag','halo'];
+  var SKIN_KEY='bots_skin_v1';
+
+  /* Armes spéciales : une par joueur, choisie dans le lobby (5e action). */
+  var WEAPONS={
+    drill:{name:'Foreuse', ico:'🌀', cd:2, desc:'Traverse la terre et la pierre un instant, puis explose (30 dégâts).'},
+    bounce:{name:'Rebondisseuse', ico:'🏀', cd:2, desc:'Rebondit 3 fois sur le terrain avant d’exploser (28 dégâts) — ou au contact d’un tank.'},
+    sniper:{name:'Fusil de précision', ico:'🎯', cd:1, desc:'Balle en ligne droite, sans gravité (24 dégâts). La puissance ne compte pas.'},
+    airstrike:{name:'Frappe aérienne', ico:'✈️', cd:4, desc:'3 obus tombent du ciel autour du point visé (18 dégâts chacun).'}
+  };
+  var WEAPON_ORDER=['drill','bounce','sniper','airstrike'];
+  function loadSkin(){
+    var d={paint:PAINTS[0], acc:'none', weapon:'drill'};
+    try{ var o=JSON.parse(localStorage.getItem(SKIN_KEY)||'{}'); if(o && typeof o==='object') return cleanSkin(o, d); }catch(e){}
+    return d;
+  }
+  function cleanSkin(o, d){
+    d=d||{paint:PAINTS[0], acc:'none', weapon:'drill'};
+    return {paint:PAINTS.indexOf(o.paint)!==-1?o.paint:d.paint, acc:ACCS[o.acc]?o.acc:d.acc, weapon:WEAPONS[o.weapon]?o.weapon:d.weapon};
+  }
+  var mySkin=loadSkin();
+  function saveSkin(){ try{ localStorage.setItem(SKIN_KEY, JSON.stringify(mySkin)); }catch(e){} }
   var TEAM_COLORS=['#E60012','#2E6FF2'];
   var FFA_COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f'];
 
@@ -137,7 +167,8 @@
     function ev(e){ e.t=tick; events.push(e); }
     function addProj(owner, x, y, vx, vy, spec){
       projs.push({id:nextId++, owner:owner, x:x, y:y, vx:vx, vy:vy, age:0,
-        dmg:spec.dmg, r:spec.r, wr:spec.wr, grav:spec.grav||1, frag:!!spec.frag, kind:spec.kind||'shot'});
+        dmg:spec.dmg, r:spec.r, wr:spec.wr, grav:spec.grav===undefined?1:spec.grav, frag:!!spec.frag, kind:spec.kind||'shot',
+        drill:spec.drill||0, bounces:spec.bounces||0, life:spec.life||0});
     }
     function muzzle(t, a){
       var s=tankSpec(t), v=aimVec(a);
@@ -222,6 +253,17 @@
             spawns.push({tick:i*7, owner:t.seat, tank:t, a:act.a+da, p:p});
           });
         }
+      } else if(act.kind==='spec'){
+        var wk=WEAPONS[t.weapon] ? t.weapon : 'drill';
+        m=muzzle(t,act.a);
+        if(wk==='drill') addProj(t.seat, m.x, m.y, v.x*p*560, v.y*p*560, {dmg:30, r:26, wr:12, kind:'drill', drill:0.22});
+        else if(wk==='bounce') addProj(t.seat, m.x, m.y, v.x*p*600, v.y*p*600, {dmg:28, r:30, wr:10, kind:'bounce', bounces:3, life:5});
+        else if(wk==='sniper') addProj(t.seat, m.x, m.y, v.x*1100, v.y*1100, {dmg:24, r:14, wr:5, grav:0, kind:'sniper'});
+        else if(wk==='airstrike'){
+          /* point visé : devant le tank, d'autant plus loin que la flèche est longue */
+          var tx=clamp(t.x+v.x*(60+p*420), 20, W-20);
+          [-42,0,42].forEach(function(dx,i){ spawns.push({tick:i*9, owner:t.seat, air:true, x:clamp(tx+dx,8,W-8)}); });
+        }
       } else if(act.kind==='surv' && s.surv.key==='boost'){
         var bp=Math.max(JUMP_MIN,p)*720;
         t.vx=v.x*bp; t.vy=v.y*bp; t.grounded=false; t.shielded=true;
@@ -294,8 +336,29 @@
         pr.vy+=GRAVITY*pr.grav*d;
         pr.x+=pr.vx*d; pr.y+=pr.vy*d;
         pr.age+=d;
-        if(pr.x<-40||pr.x>W+40||pr.y>waterY){ pr.dead=true; if(pr.y>waterY && pr.x>=0 && pr.x<W) ev({type:'splash', x:Math.round(pr.x), y:Math.round(waterY)}); return; }
-        if((pr.y>=0 && solidPx(g,pr.x,pr.y) && pr.x>=0 && pr.x<W) || projHitsTank(pr)){
+        /* une foreuse qui descend sous le niveau de l'eau en creusant explose là */
+        if(pr.kind==='drill' && pr.dtick!==undefined && pr.y>waterY){ pr.dead=true; explode(pr.x, pr.y, pr.r, pr.wr, pr.dmg, pr.owner); return; }
+        if(pr.x<-40||pr.x>W+40||pr.y>waterY||(pr.grav===0 && pr.age>2)){ pr.dead=true; if(pr.y>waterY && pr.x>=0 && pr.x<W) ev({type:'splash', x:Math.round(pr.x), y:Math.round(waterY)}); return; }
+        if(pr.life && pr.age>pr.life){ pr.dead=true; explode(pr.x, pr.y, pr.r, pr.wr, pr.dmg, pr.owner); return; }
+        var inGround=pr.y>=0 && solidPx(g,pr.x,pr.y) && pr.x>=0 && pr.x<W, onTank=projHitsTank(pr);
+        /* foreuse : creuse un tunnel tant qu'il lui reste du temps de forage */
+        if(inGround && !onTank && pr.drill>0){
+          pr.drill-=d; carve(g, pr.x, pr.y, 9, 9);
+          pr.vx*=0.975; pr.vy*=0.975;
+          if(pr.dtick!==tick){ pr.dtick=tick; ev({type:'drill', x:Math.round(pr.x), y:Math.round(pr.y)}); }
+          continue;
+        }
+        /* rebondisseuse : repart dans l'autre sens, en perdant de la vitesse */
+        if(inGround && !onTank && pr.bounces>0){
+          pr.bounces--;
+          pr.x-=pr.vx*d; pr.y-=pr.vy*d;
+          var hx=solidPx(g, pr.x+pr.vx*d, pr.y), hy=solidPx(g, pr.x, pr.y+pr.vy*d);
+          if(hy || !hx) pr.vy=-pr.vy*0.62;
+          if(hx) pr.vx=-pr.vx*0.62; else pr.vx*=0.8;
+          ev({type:'bounce', x:Math.round(pr.x), y:Math.round(pr.y)});
+          continue;
+        }
+        if(inGround || onTank){
           pr.dead=true;
           explode(pr.x, pr.y, pr.r, pr.wr, pr.dmg, pr.owner);
           if(pr.frag){
@@ -319,7 +382,9 @@
       for(var si=spawns.length-1;si>=0;si--){
         var sp=spawns[si];
         if(sp.tick===tick){
-          if(sp.tank.alive){
+          if(sp.air){
+            addProj(sp.owner, sp.x, -10, 0, 120, {dmg:18, r:24, wr:8, kind:'air'});
+          } else if(sp.tank.alive){
             var v2=aimVec(sp.a), m2=muzzle(sp.tank, sp.a);
             addProj(sp.owner, m2.x, m2.y, v2.x*sp.p*660, v2.y*sp.p*660, {dmg:13, r:18, wr:4, kind:'burst'});
           }
@@ -412,7 +477,7 @@
     net.host(function(code){
       botsNetRole='host'; botsMySeat=0; botsRoomCode=code;
       bs.mode=botsSelectedMode; bs.timer=botsSelectedTimer; bs.phase='lobby';
-      bs.players=[{name:botsMyName, tank:'ranger', team:0}];
+      bs.players=[{name:botsMyName, tank:'ranger', team:0, paint:mySkin.paint, acc:mySkin.acc, weapon:mySkin.weapon}];
       bs.connected=[true]; bs.clientIds=[net.clientId];
       try{ history.replaceState(null,'','#bots?room='+code); }catch(e){}
       $('botsCodeDisplay').textContent=code;
@@ -428,7 +493,7 @@
     if(!code){ shake($('botsJoinCode')); return; }
     cleanupOnline();
     botsNetRole='guest';
-    net.join(code, {name:botsMyName});
+    net.join(code, {name:botsMyName, skin:mySkin});
     sfxToggle();
   });
   $('botsBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
@@ -455,7 +520,8 @@
     else {
       var counts=[0,0];
       bs.players.forEach(function(q){ if(q) counts[q.team]++; });
-      bs.players[seat]={name:msg.name||'Joueur', tank:'ranger', team:counts[0]<=counts[1]?0:1};
+      var sk=cleanSkin(msg.skin||{});
+      bs.players[seat]={name:msg.name||'Joueur', tank:'ranger', team:counts[0]<=counts[1]?0:1, paint:sk.paint, acc:sk.acc, weapon:sk.weapon};
     }
     bs.clientIds[seat]=msg.clientId||null;
     bs.connected[seat]=true;
@@ -481,6 +547,7 @@
     if(!p) return;
     if(msg.type==='pick_tank' && bs.phase==='lobby' && TANKS[msg.tank]){ p.tank=msg.tank; hostBroadcastLobby(); }
     else if(msg.type==='pick_team' && bs.phase==='lobby' && (msg.team===0||msg.team===1)){ p.team=msg.team; hostBroadcastLobby(); }
+    else if(msg.type==='pick_skin' && bs.phase==='lobby'){ var sk=cleanSkin(msg.skin||{}, p); p.paint=sk.paint; p.acc=sk.acc; p.weapon=sk.weapon; hostBroadcastLobby(); }
     else if(msg.type==='action') hostReceiveAction(seat, msg);
   }
   function hostBroadcastLobby(){
@@ -489,7 +556,7 @@
   }
   function hostSyncMsg(seat){
     var m=bs.match;
-    return {type:'sync', grid:gridEncode(m.grid), tanks:m.tanks, waterY:m.waterY, turn:m.turn,
+    return {type:'sync', grid:gridEncode(m.grid), tanks:m.tanks, waterY:m.waterY, turn:m.turn, wave:m.wave,
       map:m.map, seed:m.seed, waterStart:MAPS[m.map].waterStart,
       mode:bs.mode, phase:bs.phase, msLeft:Math.max(0,bs.turnDeadline-Date.now()),
       locked:Object.keys(bs.actions).map(Number), myLocked:bs.actions.hasOwnProperty(seat)};
@@ -505,6 +572,7 @@
       if(c[0]!==2) return 'Il faut 2 joueurs dans chaque équipe.';
     }
     if(bs.mode==='ffa' && (seats.length<2 || seats.length>cap)) return 'Il faut entre 2 et '+cap+' joueurs.';
+    if(bs.mode==='surv' && (seats.length<1 || seats.length>cap)) return 'De 1 à '+cap+' joueurs, tous dans le même camp.';
     return null;
   }
   $('botsStartBtn').addEventListener('click',function(){ sfxValidate(); hostStartMatch(); });
@@ -513,13 +581,22 @@
     var seats=activeSeats();
     var mapKey = bs.map==='random' ? CG.botsMaps.ORDER[Math.floor(Math.random()*CG.botsMaps.ORDER.length)] : bs.map;
     var seed=Math.floor(Math.random()*1e9)+1;
-    var gen=CG.botsMaps.generate(mapKey, seats.length, seed);
+    var surv=bs.mode==='surv';
+    /* en survie, on garde aussi des points d'apparition pour les vagues de bots */
+    var gen=CG.botsMaps.generate(mapKey, surv ? seats.length+6 : seats.length, seed);
     var grid=gen.grid, waterStart=MAPS[mapKey].waterStart;
     var tanks=seats.map(function(s,i){
       var p=bs.players[s];
-      var team = bs.mode==='2v2' ? p.team : (bs.mode==='1v1' ? i : i);
+      var team = bs.mode==='2v2' ? p.team : surv ? 0 : i;
       return {seat:s, type:p.tank, team:team, name:p.name, hp:TANKS[p.tank].hp, alive:true,
-        x:0, y:0, vx:0, vy:0, grounded:true, aim:Math.PI/4, cds:{atk:0, surv:0}};
+        x:0, y:0, vx:0, vy:0, grounded:true, aim:Math.PI/4, cds:{atk:0, surv:0, spec:0},
+        paint:p.paint||PAINTS[0], acc:p.acc||'none', weapon:WEAPONS[p.weapon]?p.weapon:'drill'};
+    });
+    /* deux tanks de la même couleur (hors 2 VS 2) : le second en prend une libre */
+    var usedPaint={};
+    tanks.forEach(function(t){
+      if(usedPaint[t.paint]){ t.paint=PAINTS.filter(function(c){ return !usedPaint[c]; })[0]||t.paint; }
+      usedPaint[t.paint]=true;
     });
     /* positions de départ réparties, équipes alternées */
     var order;
@@ -528,16 +605,23 @@
       if(Math.random()<0.5){ var tmp=a; a=b; b=tmp; }
       order=[a[0],b[0],a[1],b[1]];
     } else order=shuffle(tanks.slice());
+    var spawnPts=gen.spawns.slice();
+    if(surv){
+      /* les joueurs ensemble d'un côté, les bots arriveront de l'autre */
+      var mid=Math.floor(spawnPts.length/2)-Math.floor(order.length/2);
+      spawnPts=spawnPts.slice(mid, mid+order.length).concat(spawnPts.slice(0,mid), spawnPts.slice(mid+order.length));
+    }
     order.forEach(function(t,i){
-      var sp=gen.spawns[i];
+      var sp=spawnPts[i];
       dropTank(grid, t, sp.x, sp.y);
       t.aim = t.x<W/2 ? Math.PI/4 : Math.PI*3/4;
     });
-    bs.match={grid:grid, tanks:tanks, waterY:waterStart, turn:0, map:mapKey, seed:seed};
+    bs.match={grid:grid, tanks:tanks, waterY:waterStart, turn:0, map:mapKey, seed:seed, wave:0, aiCount:0, spawns:gen.spawns.slice(), aiKills:0};
     bs.stats={};
     seats.forEach(function(s){ bs.stats[s]={dmg:0, kills:0}; });
+    if(surv) hostSpawnWave();
     bs.phase='aiming';
-    broadcast({type:'match_start', grid:gridEncode(grid), tanks:tanks, waterY:waterStart, waterStart:waterStart,
+    broadcast({type:'match_start', grid:gridEncode(grid), tanks:bs.match.tanks, waterY:waterStart, waterStart:waterStart,
       mode:bs.mode, map:mapKey, seed:seed});
     hostBroadcastLobby();
     hostStartTurn();
@@ -546,25 +630,31 @@
     var m=bs.match;
     m.turn++;
     /* mort subite : l'eau monte de plus en plus vite (8, 12, 16... px par tour) */
-    if(m.turn>WATER_RISE_FROM) m.waterY=Math.max(WATER_MIN, m.waterY-(4+4*(m.turn-WATER_RISE_FROM)));
+    var riseFrom = bs.mode==='surv' ? SURV_WATER_FROM : WATER_RISE_FROM;
+    if(m.turn>riseFrom) m.waterY=Math.max(WATER_MIN, m.waterY-(4+4*(m.turn-riseFrom)));
     m.tanks.forEach(function(t){
       if(t.cds.atk>0) t.cds.atk--;
       if(t.cds.surv>0) t.cds.surv--;
+      if(t.cds.spec>0) t.cds.spec--;
     });
     bs.actions={};
+    /* les bots choisissent leur action tout de suite */
+    m.tanks.forEach(function(t){ if(t.ai && t.alive) bs.actions[t.seat]=aiChooseAction(m, t); });
     bs.phase='aiming';
     bs.turnDeadline=Date.now()+bs.timer*1000;
     clearTimeout(bs.turnTimer);
     bs.turnTimer=setTimeout(hostResolveTurn, bs.timer*1000+300);
-    broadcast({type:'turn_start', turn:m.turn, ms:bs.timer*1000, waterY:m.waterY, tanks:m.tanks});
+    broadcast({type:'turn_start', turn:m.turn, ms:bs.timer*1000, waterY:m.waterY, tanks:m.tanks, wave:m.wave,
+      locked:Object.keys(bs.actions).map(Number)});
+    hostCheckAllLocked();
   }
   function hostReceiveAction(seat, msg){
     if(bs.phase!=='aiming' || bs.actions.hasOwnProperty(seat)) return;
     var t=bs.match.tanks.filter(function(x){ return x.seat===seat; })[0];
     if(!t || !t.alive) return;
     var kind=msg.kind;
-    if(['move','shot','atk','surv','pass'].indexOf(kind)===-1) return;
-    if((kind==='atk'||kind==='surv') && t.cds[kind]>0) return;
+    if(['move','shot','atk','surv','spec','pass'].indexOf(kind)===-1) return;
+    if((kind==='atk'||kind==='surv'||kind==='spec') && t.cds[kind]>0) return;
     var a=+msg.a, p=+msg.p;
     if(!isFinite(a)||!isFinite(p)) return;
     bs.actions[seat]={kind:kind, a:a, p:clamp(p,0,1)};
@@ -591,9 +681,11 @@
       if(!act) return;
       if(act.kind==='atk') t.cds.atk=s.atk.cd+1;
       if(act.kind==='surv') t.cds.surv=s.surv.cd+1;
+      if(act.kind==='spec') t.cds.spec=WEAPONS[t.weapon].cd+1;
     });
     Object.keys(res.dmg).forEach(function(s){ if(bs.stats[s]) bs.stats[s].dmg+=res.dmg[s]; });
     Object.keys(res.kills).forEach(function(s){ if(bs.stats[s]) bs.stats[s].kills+=res.kills[s]; });
+    res.events.forEach(function(e){ if(e.type==='kill' && e.seat>=AI_SEAT) m.aiKills++; });
     var actionsShown={};
     Object.keys(bs.actions).forEach(function(s){ actionsShown[s]=bs.actions[s].kind; });
     broadcast({type:'turn_result', start:start, frames:res.frames, events:res.events, actions:actionsShown,
@@ -604,6 +696,18 @@
       var teams={};
       m.tanks.forEach(function(t){ if(t.alive) teams[t.team]=true; });
       var alive=Object.keys(teams);
+      if(bs.mode==='surv'){
+        if(!teams[0]){
+          bs.phase='ended';
+          bs.lastEnd={type:'match_end', winners:[], draw:false, surv:{wave:m.wave, kills:m.aiKills}, stats:bs.stats, tanks:m.tanks.filter(function(t){ return !t.ai; }), mode:bs.mode};
+          broadcast(bs.lastEnd);
+          hostBroadcastLobby();
+          return;
+        }
+        if(!teams[1]) hostSpawnWave();
+        hostStartTurn();
+        return;
+      }
       if(alive.length<=1){
         bs.phase='ended';
         var winners=m.tanks.filter(function(t){ return alive.length && String(t.team)===alive[0]; }).map(function(t){ return t.seat; });
@@ -617,6 +721,73 @@
       }
     }, animMs);
   }
+  /* ===================== SURVIE : VAGUES DE BOTS ===================== */
+  var AI_TYPES=['viper','ranger','titan'];
+  function hostSpawnWave(){
+    var m=bs.match;
+    m.wave++;
+    /* on retire les épaves de la vague précédente, et les joueurs récupèrent un peu */
+    m.tanks=m.tanks.filter(function(t){ return !t.ai; });
+    if(m.wave>1) m.tanks.forEach(function(t){ if(t.alive) t.hp=Math.min(TANKS[t.type].hp, t.hp+30); });
+    var humans=m.tanks.filter(function(t){ return t.alive; });
+    var count=Math.min(6, m.wave+Math.ceil(humans.length/2));
+    /* les points d'apparition les plus loin des joueurs */
+    var pts=m.spawns.slice().sort(function(a,b){
+      function far(p){ var d=Infinity; humans.forEach(function(h){ d=Math.min(d, Math.abs(h.x-p.x)); }); return d; }
+      return far(b)-far(a);
+    });
+    for(var i=0;i<count;i++){
+      var type=AI_TYPES[(m.wave+i)%3], seat=AI_SEAT+(m.aiCount++);
+      var t={seat:seat, type:type, team:1, name:'BOT-'+(m.aiCount), hp:TANKS[type].hp, alive:true, ai:true,
+        x:0, y:0, vx:0, vy:0, grounded:true, aim:Math.PI/4, cds:{atk:1, surv:1, spec:0}, paint:AI_COLOR, acc:'none', weapon:'drill'};
+      var p=pts[i%pts.length];
+      dropTank(m.grid, t, p.x+(i>=pts.length?14:0), p.y);
+      t.aim = t.x<W/2 ? Math.PI/4 : Math.PI*3/4;
+      m.tanks.push(t);
+      bs.stats[seat]={dmg:0, kills:0};
+    }
+  }
+  /* Visée de l'ordinateur : on essaie des angles et des puissances, on suit
+     la trajectoire (gravité + terrain) et on garde celle qui passe le plus
+     près de la cible ; puis un peu d'imprécision, de moins en moins à
+     chaque vague. */
+  var AI_SPEC={shot:{speed:SHOT.speed, grav:1}, heavy:{speed:560, grav:1.15}, cluster:{speed:600, grav:1}, burst:{speed:660, grav:1}};
+  function aiAim(m, t, target, spec){
+    var s=TANKS[t.type], best={d:Infinity, a:Math.PI/4, p:0.6};
+    var dir=target.x>=t.x ? 1 : -1;
+    for(var deg=8;deg<=82;deg+=3){
+      var a = dir>0 ? deg*Math.PI/180 : Math.PI-deg*Math.PI/180, v=aimVec(a);
+      for(var p=0.25;p<=1.001;p+=0.05){
+        var x=t.x+v.x*(s.w/2+4), y=t.y-s.h/2+v.y*(s.w/2+4), vx=v.x*p*spec.speed, vy=v.y*p*spec.speed, dmin=Infinity;
+        for(var k=0;k<360;k++){
+          vy+=GRAVITY*spec.grav*DT/2; x+=vx*DT/2; y+=vy*DT/2;
+          var dx=x-target.x, dy=y-target.y, d=dx*dx+dy*dy;
+          if(d<dmin) dmin=d;
+          if(x<0||x>W||y>m.waterY) break;
+          if(y>=0 && solidPx(m.grid,x,y)) break;
+        }
+        if(dmin<best.d){ best={d:dmin, a:a, p:p}; }
+      }
+    }
+    var noise=Math.max(0.04, 0.24-0.035*m.wave);
+    return {a:best.a+(Math.random()-0.5)*2*noise, p:clamp(best.p+(Math.random()-0.5)*noise, 0.2, 1)};
+  }
+  function aiChooseAction(m, t){
+    var s=TANKS[t.type];
+    var foes=m.tanks.filter(function(o){ return o.alive && !o.ai; });
+    if(!foes.length) return {kind:'pass', a:t.aim, p:0};
+    var target=foes.slice().sort(function(a,b){ return Math.abs(a.x-t.x)-Math.abs(b.x-t.x); })[0];
+    /* en danger : réparation (Ranger) ou fuite (Viper) */
+    if(s.surv.key==='repair' && t.cds.surv===0 && t.hp<s.hp*0.5) return {kind:'surv', a:t.aim, p:0};
+    if(s.surv.key==='boost' && t.cds.surv===0 && t.hp<s.hp*0.4 && Math.random()<0.6){
+      return {kind:'surv', a:target.x>t.x ? Math.PI*0.72 : Math.PI*0.28, p:0.7};
+    }
+    var useAtk=t.cds.atk===0 && Math.random()<0.55;
+    var spec=AI_SPEC[useAtk ? s.atk.key : 'shot'] || AI_SPEC.shot;
+    var aimed=aiAim(m, t, {x:target.x, y:target.y-TANKS[target.type].h/4}, spec);
+    return {kind:useAtk?'atk':'shot', a:aimed.a, p:aimed.p};
+  }
+
   $('botsRematchBtn').addEventListener('click',function(){
     sfxToggle();
     bs.phase='lobby'; bs.match=null; bs.lastEnd=null;
@@ -647,6 +818,7 @@
         if(msg.phase==='lobby' && wasPhase!=='lobby') gotoScreen('lobby');
         break;
       case 'match_start':
+        view.wave=0;
         view.grid=gridDecode(msg.grid); view.tanks=msg.tanks; view.waterY=msg.waterY; view.mode=msg.mode;
         view.projs=[]; view.particles=[]; view.texts=[]; view.replay=null; view.turn=0;
         setupMapVisuals(msg);
@@ -664,7 +836,12 @@
       case 'turn_start':
         flushReplay();
         view.tanks=keepVisual(msg.tanks); view.waterY=msg.waterY; view.turn=msg.turn;
-        lockedSeats=[];
+        lockedSeats=msg.locked||[];
+        if(msg.wave && msg.wave!==view.wave){
+          view.wave=msg.wave;
+          addText(W/2, H/3, '⚠ VAGUE '+msg.wave+' ⚠', '#FFE600');
+          view.texts[view.texts.length-1].big=true;
+        }
         beginAiming(msg.ms, false);
         CG.yourTurn();
         break;
@@ -717,8 +894,16 @@
           else net.send({type:'pick_tank', tank:key});
         });
         grid.appendChild(card);
-        var c=card.querySelector('canvas').getContext('2d');
-        drawTank(c, {type:key, x:76, y:50, aim:Math.PI/6, alive:true}, '#E60012', 2.1);
+      });
+    }
+    var paint=(me && bs.mode==='2v2') ? TEAM_COLORS[me.team||0] : mySkin.paint;
+    var sig=paint+'|'+mySkin.acc;
+    if(grid.getAttribute('data-sig')!==sig){
+      grid.setAttribute('data-sig', sig);
+      Array.prototype.forEach.call(grid.querySelectorAll('.bots-tank-card'), function(card){
+        var cv=card.querySelector('canvas'), c=cv.getContext('2d');
+        c.clearRect(0,0,cv.width,cv.height);
+        drawTank(c, {type:card.getAttribute('data-tank'), x:76, y:54, aim:Math.PI/6, alive:true, acc:mySkin.acc}, paint, 2.1);
       });
     }
     var cards=grid.querySelectorAll('.bots-tank-card');
@@ -739,6 +924,41 @@
       });
     }
   })();
+  /* Personnalisation (couleur, accessoire) et arme spéciale : gardées dans le
+     navigateur, envoyées à l'hôte. */
+  function sendSkin(){
+    saveSkin();
+    if(botsNetRole==='host'){ var p=bs.players[0]; if(p){ p.paint=mySkin.paint; p.acc=mySkin.acc; p.weapon=mySkin.weapon; } hostBroadcastLobby(); }
+    else if(botsNetRole) net.send({type:'pick_skin', skin:mySkin});
+    renderLobby();
+  }
+  function renderSkinPicker(){
+    var pp=$('botsPaintPicker');
+    if(!pp.childElementCount){
+      PAINTS.forEach(function(c){
+        var b=document.createElement('button'); b.type='button'; b.className='bots-swatch'; b.style.background=c;
+        b.setAttribute('data-c', c); b.setAttribute('aria-label','Couleur '+c);
+        b.addEventListener('click', function(){ mySkin.paint=c; sfxToggle(); sendSkin(); });
+        pp.appendChild(b);
+      });
+      ACC_ORDER.forEach(function(k){
+        var b=document.createElement('button'); b.type='button'; b.className='btn ghost small format-opt'; b.setAttribute('data-acc', k);
+        b.innerHTML='<span>'+ACCS[k]+'</span>';
+        b.addEventListener('click', function(){ mySkin.acc=k; sfxToggle(); sendSkin(); });
+        $('botsAccPicker').appendChild(b);
+      });
+      WEAPON_ORDER.forEach(function(k){
+        var w=WEAPONS[k], b=document.createElement('button'); b.type='button'; b.className='bots-weapon-card'; b.setAttribute('data-w', k);
+        b.innerHTML='<span class="ico">'+w.ico+'</span><b>'+w.name+'</b><small>recharge '+w.cd+' tour'+(w.cd>1?'s':'')+'</small><small>'+w.desc+'</small>';
+        b.addEventListener('click', function(){ mySkin.weapon=k; sfxToggle(); sendSkin(); });
+        $('botsWeaponGrid').appendChild(b);
+      });
+    }
+    Array.prototype.forEach.call(pp.querySelectorAll('.bots-swatch'), function(b){ b.classList.toggle('active', b.getAttribute('data-c')===mySkin.paint); });
+    Array.prototype.forEach.call($('botsAccPicker').querySelectorAll('button'), function(b){ b.classList.toggle('active', b.getAttribute('data-acc')===mySkin.acc); });
+    Array.prototype.forEach.call($('botsWeaponGrid').querySelectorAll('button'), function(b){ b.classList.toggle('selected', b.getAttribute('data-w')===mySkin.weapon); });
+    $('botsPaintNote').hidden = bs.mode!=='2v2';
+  }
   /* Cartes : aperçu généré localement (graine fixe), choix par l'hôte. */
   function renderMapGrid(){
     var grid=$('botsMapGrid'), keys=CG.botsMaps.ORDER.concat(['random']);
@@ -749,7 +969,7 @@
         card.className='bots-map-card';
         card.setAttribute('data-map',key);
         if(key==='random'){
-          card.innerHTML='<div class="bots-map-random">🎲</div><b>ALÉATOIRE</b><small>Une des trois cartes, au hasard.</small>';
+          card.innerHTML='<div class="bots-map-random">🎲</div><b>ALÉATOIRE</b><small>Une des cartes, au hasard.</small>';
         } else {
           var m=MAPS[key];
           card.innerHTML='<canvas width="240" height="135"></canvas><b>'+m.ico+' '+m.name+'</b><small>'+m.desc+'</small>';
@@ -785,6 +1005,7 @@
   function renderLobby(){
     $('botsLobbyTitle').textContent='LOBBY — '+MODE_LABEL[bs.mode];
     renderTankCards();
+    renderSkinPicker();
     renderMapGrid();
     var me=bs.players[botsMySeat];
     $('botsTeamPicker').style.display = bs.mode==='2v2' ? 'block' : 'none';
@@ -794,8 +1015,9 @@
     for(var s=0;s<bs.players.length;s++){
       var p=bs.players[s];
       if(!p) continue;
-      html+=CG.playerRow({name:p.name, color:bs.mode==='2v2' ? TEAM_COLORS[p.team] : playerColor(s, s===0?0:1), me:s===botsMySeat, off:!isConnected(s),
-        extra:'<span class="imp-tag">'+TANKS[p.tank].name+(bs.mode==='2v2'?(p.team?' · BLEU':' · ROUGE'):'')+'</span>'});
+      var w=WEAPONS[p.weapon]||WEAPONS.drill;
+      html+=CG.playerRow({name:p.name, color:bs.mode==='2v2' ? TEAM_COLORS[p.team] : (p.paint||playerColor(s, s===0?0:1)), me:s===botsMySeat, off:!isConnected(s),
+        extra:'<span class="imp-tag">'+TANKS[p.tank].name+' · '+w.ico+(bs.mode==='2v2'?(p.team?' · BLEU':' · ROUGE'):'')+'</span>'});
     }
     $('botsPlayerList').innerHTML=html;
     var problem= botsNetRole==='host' ? lobbyProblem() : null;
@@ -818,7 +1040,8 @@
       {kind:'move', ico:'🦘', name:'Saut', sub:'Puissance = hauteur', aim:true, cd:0},
       {kind:'shot', ico:SHOT.ico, name:SHOT.name, sub:SHOT.dmg+' dégâts', aim:true, cd:0},
       {kind:'atk', ico:s.atk.ico, name:s.atk.name, sub:'Attaque', aim:s.atk.aim, cd:t.cds.atk},
-      {kind:'surv', ico:s.surv.ico, name:s.surv.name, sub:'Survie', aim:s.surv.aim, cd:t.cds.surv}
+      {kind:'surv', ico:s.surv.ico, name:s.surv.name, sub:'Survie', aim:s.surv.aim, cd:t.cds.surv},
+      {kind:'spec', ico:(WEAPONS[t.weapon]||WEAPONS.drill).ico, name:(WEAPONS[t.weapon]||WEAPONS.drill).name, sub:'Arme spéciale', aim:true, cd:t.cds.spec||0}
     ];
   }
   function beginAiming(ms, alreadyLocked){
@@ -906,6 +1129,9 @@
     $('botsRoster').innerHTML=html;
   }
   function tankColor(t){
+    if(t.ai) return AI_COLOR;
+    if(view.mode==='2v2') return TEAM_COLORS[t.team%2];
+    if(t.paint) return t.paint;
     if(view.mode==='ffa') return FFA_COLORS[t.team%FFA_COLORS.length];
     return TEAM_COLORS[t.team%2];
   }
@@ -1002,6 +1228,7 @@
     var s=TANKS[t.type];
     if(k==='move') return 'saut'; if(k==='shot') return 'tir';
     if(k==='atk') return s.atk.name.toLowerCase(); if(k==='surv') return s.surv.name.toLowerCase();
+    if(k==='spec') return (WEAPONS[t.weapon]||WEAPONS.drill).name.toLowerCase();
     return 'rien';
   }
   function stepReplay(now){
@@ -1067,6 +1294,12 @@
       t=findViewTank(e.seat);
       if(t){ t.alive=false; addExplosion(t.x, t.y, 34); addText(t.x, t.y-46, 'K.O. !', '#FFE600'); }
       renderRoster();
+    } else if(e.type==='drill'){
+      carve(view.grid, e.x, e.y, 9, 9);
+      markDirty(e.x-18, e.y-18, e.x+18, e.y+26);
+      if(!quiet) addSparks(e.x, e.y, '#c89b6d', 3);
+    } else if(e.type==='bounce'){
+      if(!quiet){ addSparks(e.x, e.y, '#ffffff', 5); CG.sfxToggle(); }
     } else if(e.type==='splash'){
       for(var i=0;i<8;i++) view.particles.push({x:e.x, y:e.y, vx:(Math.random()-0.5)*120, vy:-80-Math.random()*120, life:0.7, max:0.7, c:'#9ad7ff', s:3});
     }
@@ -1100,6 +1333,10 @@
     }
   }
   function addText(x,y,txt,c){ view.texts.push({x:x, y:y, txt:txt, c:c, life:1.3}); }
+  /* petites étincelles : forage et rebonds */
+  function addSparks(x,y,c,n){
+    for(var i=0;i<n;i++) view.particles.push({x:x, y:y, vx:(Math.random()-0.5)*140, vy:-40-Math.random()*90, life:0.35, max:0.35, c:c, s:2});
+  }
 
   /* ===================== FIN DE COMBAT ===================== */
   function showEnd(msg){
@@ -1107,9 +1344,13 @@
     var mine=msg.winners.indexOf(botsMySeat)!==-1;
     var names=msg.tanks.filter(function(t){ return msg.winners.indexOf(t.seat)!==-1; }).map(function(t){ return t.name; });
     var banner=$('botsEndBanner');
-    if(msg.draw){ banner.textContent='💥 DESTRUCTION MUTUELLE !'; banner.className='cham-result-banner b-meh'; }
+    if(msg.surv){
+      var w=msg.surv.wave;
+      banner.textContent='🤖 LES BOTS ONT GAGNÉ… À LA VAGUE '+w; banner.className='cham-result-banner '+(w>=5?'b-great':w>=3?'b-ok':'b-fail');
+      $('botsEndText').innerHTML='Vous avez tenu jusqu’à la <b>vague '+w+'</b> et détruit <b>'+msg.surv.kills+' bot'+(msg.surv.kills>1?'s':'')+'</b>.';
+    } else if(msg.draw){ banner.textContent='💥 DESTRUCTION MUTUELLE !'; banner.className='cham-result-banner b-meh'; }
     else { banner.textContent= mine ? '🏆 VICTOIRE !' : '💀 DÉFAITE...'; banner.className='cham-result-banner '+(mine?'b-perfect':'b-fail'); }
-    $('botsEndText').innerHTML = msg.draw ? 'Aucun survivant.' : ('Vainqueur'+(names.length>1?'s':'')+' : <b>'+names.map(escapeHtml).join(' & ')+'</b>');
+    if(!msg.surv) $('botsEndText').innerHTML = msg.draw ? 'Aucun survivant.' : ('Vainqueur'+(names.length>1?'s':'')+' : <b>'+names.map(escapeHtml).join(' & ')+'</b>');
     var rows=msg.tanks.slice().sort(function(a,b){ return (msg.stats[b.seat]||{}).dmg-(msg.stats[a.seat]||{}).dmg; });
     var html='';
     rows.forEach(function(t){
@@ -1223,6 +1464,37 @@
     if(t.type==='titan') drawTitan(c, w, h, color);
     else if(t.type==='ranger') drawRanger(c, w, h, color);
     else drawViper(c, w, h, color);
+    if(t.acc && t.acc!=='none') drawAccessory(c, t.type, w, h, t.acc, color);
+    c.restore();
+  }
+  /* accessoire posé sur le haut du tank (repère déjà tourné vers la visée) */
+  var ACC_ANCHOR={titan:{x:-0.05, y:-0.74}, ranger:{x:0.05, y:-0.86}, viper:{x:0.36, y:-0.5}};
+  function drawAccessory(c, type, w, h, acc, col){
+    var an=ACC_ANCHOR[type], x=an.x*w, y=an.y*h;
+    c.save();
+    c.lineJoin='round'; c.lineCap='round';
+    if(acc==='crown'){
+      c.fillStyle='#FFD400'; c.strokeStyle='#000'; c.lineWidth=1;
+      c.beginPath(); c.moveTo(x-6,y); c.lineTo(x-6,y-5); c.lineTo(x-3,y-2.5); c.lineTo(x,y-6.5); c.lineTo(x+3,y-2.5); c.lineTo(x+6,y-5); c.lineTo(x+6,y); c.closePath(); c.fill(); c.stroke();
+      c.fillStyle='#ff0033'; c.beginPath(); c.arc(x,y-1.5,1,0,Math.PI*2); c.fill();
+    } else if(acc==='horns'){
+      c.fillStyle='#b0001a'; c.strokeStyle='#000'; c.lineWidth=1;
+      [-1,1].forEach(function(sd){
+        c.beginPath(); c.moveTo(x+sd*2,y); c.quadraticCurveTo(x+sd*7,y-2,x+sd*6,y-8); c.quadraticCurveTo(x+sd*5,y-3,x+sd*4.5,y+0.5); c.closePath(); c.fill(); c.stroke();
+      });
+    } else if(acc==='cap'){
+      c.fillStyle=shade(col,-0.5); c.strokeStyle='#000'; c.lineWidth=1;
+      c.beginPath(); c.arc(x,y,4.5,Math.PI,0); c.closePath(); c.fill(); c.stroke();
+      c.fillRect(x+3,y-1,5,1.8); c.strokeRect(x+3,y-1,5,1.8);
+    } else if(acc==='flag'){
+      c.strokeStyle='#111'; c.lineWidth=1.2;
+      c.beginPath(); c.moveTo(x-3,y); c.lineTo(x-3,y-14); c.stroke();
+      c.fillStyle='#111'; c.fillRect(x-3,y-14,9,6);
+      c.fillStyle='#fff'; c.beginPath(); c.arc(x+1.5,y-11,1.4,0,Math.PI*2); c.fill();
+    } else if(acc==='halo'){
+      c.strokeStyle='#FFE600'; c.lineWidth=1.6;
+      c.beginPath(); c.ellipse(x,y-6,5.5,1.8,0,0,Math.PI*2); c.stroke();
+    }
     c.restore();
   }
   function wheels(c, x0, x1, y, r, n){
@@ -1432,7 +1704,7 @@
     /* obus */
     view.projs.forEach(function(p){
       ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(p.x,p.y,5,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#FFE600'; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=p.c||'#FFE600'; ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
     });
     drawWater(now);
     /* particules */
@@ -1457,7 +1729,7 @@
       tx.life-=dt; tx.y-=28*dt;
       if(tx.life<=0) return false;
       ctx.globalAlpha=Math.min(1,tx.life);
-      ctx.font='bold 20px "Bebas Neue", Oswald, sans-serif'; ctx.textAlign='center';
+      ctx.font='bold '+(tx.big?44:20)+'px "Bebas Neue", Oswald, sans-serif'; ctx.textAlign='center';
       ctx.fillStyle='#000'; ctx.fillText(tx.txt, tx.x+2, tx.y+2);
       ctx.fillStyle=tx.c; ctx.fillText(tx.txt, tx.x, tx.y);
       ctx.globalAlpha=1;
@@ -1477,7 +1749,7 @@
     }
     if(view.waterY<view.waterStart && view.phase==='aiming'){
       ctx.font='bold 14px Oswald, sans-serif'; ctx.textAlign='right';
-      ctx.fillStyle='#9ad7ff'; ctx.fillText('🌊 L’eau monte !', W-10, 20);
+      ctx.fillStyle='#9ad7ff'; ctx.fillText(view.map==='volcano' ? '🌋 La lave monte !' : '🌊 L’eau monte !', W-10, 20);
     }
   }
   requestAnimationFrame(render);
@@ -1494,6 +1766,6 @@
       $('botsJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     },
     /* exposé pour les tests */
-    _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank, _view: function(){ return view; }
+    _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank, _view: function(){ return view; }, _host: function(){ return bs; }
   };
 })();

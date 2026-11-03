@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=32">
+<link rel="stylesheet" href="css/style.css?v=33">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=32"></script>
-<script src="js/intro.js?v=32"></script>
+<script src="js/audio.js?v=33"></script>
+<script src="js/intro.js?v=33"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1370,6 +1370,7 @@
           <button class="btn ghost small format-opt active" data-mode="1v1"><span>👤 1 VS 1</span></button>
           <button class="btn ghost small format-opt" data-mode="2v2"><span>👥 2 VS 2</span></button>
           <button class="btn ghost small format-opt" data-mode="ffa"><span>💥 CHACUN POUR SOI</span></button>
+          <button class="btn ghost small format-opt" data-mode="surv"><span>🤖 SURVIE (1-4 vs bots)</span></button>
         </div>
         <label>Temps pour choisir son action</label>
         <div class="format-toggle" id="botsTimerToggle">
@@ -1407,6 +1408,14 @@
 
         <h3 class="rules-subhead">CHOISIS TON TANK</h3>
         <div class="bots-tank-grid" id="botsTankGrid"></div>
+
+        <h3 class="rules-subhead">PERSONNALISE TON TANK</h3>
+        <div class="bots-swatches" id="botsPaintPicker"></div>
+        <p class="theme-count" id="botsPaintNote" hidden>En 2 VS 2, la carrosserie prend la couleur de ton équipe.</p>
+        <div class="format-toggle bots-acc" id="botsAccPicker"></div>
+
+        <h3 class="rules-subhead">ARME SPÉCIALE</h3>
+        <div class="bots-weapon-grid" id="botsWeaponGrid"></div>
 
         <div id="botsTeamPicker" style="display:none;">
           <h3 class="rules-subhead">CHOISIS TON ÉQUIPE</h3>
@@ -1635,11 +1644,14 @@
     <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — BATTLE BOTS</h2>
     <ol class="rules-list">
       <li><b>Choisis ton tank</b> dans le lobby : <b>Titan</b> (lourd, lent, beaucoup de PV, attaques puissantes mais longues à recharger), <b>Viper</b> (petit, rapide, peu de PV, recharges courtes) ou <b>Ranger</b> (équilibré).</li>
-      <li><b>À chaque tour</b>, tout le monde choisit <b>une action</b> en secret avant la fin du chrono : <b>Saut</b>, <b>Tir</b> (le même pour tous), <b>compétence d'attaque</b> ou <b>compétence de survie</b>.</li>
+      <li><b>À chaque tour</b>, tout le monde choisit <b>une action</b> en secret avant la fin du chrono : <b>Saut</b>, <b>Tir</b> (le même pour tous), <b>compétence d'attaque</b> ou <b>compétence de survie</b>, ou ton <b>arme spéciale</b>.</li>
+      <li><b>Arme spéciale</b> (au choix dans le lobby) : 🌀 <b>Foreuse</b> (traverse le terrain puis explose), 🏀 <b>Rebondisseuse</b> (3 rebonds), 🎯 <b>Fusil de précision</b> (tout droit, sans gravité) ou ✈️ <b>Frappe aérienne</b> (3 obus tombent du ciel).</li>
+      <li><b>Personnalise ton tank</b> : couleur de carrosserie et accessoire (couronne, cornes, casquette, drapeau, auréole). En 2 VS 2, la carrosserie garde la couleur de l'équipe.</li>
       <li><b>Viser, comme un lance-pierre :</b> tire vers l'arrière depuis ton tank, la flèche part dans l'autre sens. Plus tu tires loin, plus c'est puissant : grande flèche = grand saut ou tir puissant.</li>
       <li>Quand le chrono est fini (ou que tout le monde a validé), <b>toutes les actions partent en même temps</b>. Anticipe les déplacements adverses !</li>
       <li>Le terrain est <b>destructible</b> : les explosions creusent la terre, et les murs de pierre finissent par céder. Tomber à l'eau, c'est la fin.</li>
-      <li><b>3 cartes :</b> <b>Shibuya</b> (collines et îlots), <b>La Prison</b> (fermée, sur 3 étages, avec trappes et cellules) et <b>Les Docks</b> (îles et conteneurs au milieu de la mer).</li>
+      <li><b>5 cartes :</b> <b>Shibuya</b> (collines et îlots), <b>La Prison</b> (fermée, sur 3 étages, avec trappes et cellules), <b>Les Docks</b> (îles et conteneurs au milieu de la mer), <b>La Banquise</b> (icebergs à pic et arche de glace) et <b>Le Volcan</b> (un cratère au centre, et la lave qui monte).</li>
+      <li><b>🤖 Mode Survie</b> (1 à 4 joueurs, dans le même camp) : des vagues de bots pilotés par l'ordinateur arrivent, de plus en plus nombreux et précis. Entre deux vagues, chaque survivant récupère 30 PV. Tenez le plus de vagues possible !</li>
       <li>Les compétences ont un <b>temps de recharge</b> en tours. Le tir allié est actif : attention à ton coéquipier.</li>
       <li>Le dernier tank (ou la dernière équipe) en vie gagne. À partir du tour 15, l'eau monte à chaque tour !</li>
     </ol>
@@ -1971,21 +1983,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=32"></script>
-<script src="js/net.js?v=32"></script>
-<script src="js/demicercle.js?v=32"></script>
-<script src="js/cameleon.js?v=32"></script>
-<script src="js/imposteur.js?v=32"></script>
-<script src="js/loup.js?v=32"></script>
-<script src="js/classement.js?v=32"></script>
-<script src="js/quiaecrit.js?v=32"></script>
-<script src="js/crousprison-photos.js?v=32"></script>
-<script src="js/crousprison.js?v=32"></script>
-<script src="js/bots-maps.js?v=32"></script>
-<script src="js/bots.js?v=32"></script>
-<script src="js/pwa.js?v=32"></script>
-<script src="js/party.js?v=32"></script>
-<script src="js/account.js?v=32"></script>
-<script src="js/hub.js?v=32"></script>
+<script src="js/common.js?v=33"></script>
+<script src="js/net.js?v=33"></script>
+<script src="js/demicercle.js?v=33"></script>
+<script src="js/cameleon.js?v=33"></script>
+<script src="js/imposteur.js?v=33"></script>
+<script src="js/loup.js?v=33"></script>
+<script src="js/classement.js?v=33"></script>
+<script src="js/quiaecrit.js?v=33"></script>
+<script src="js/crousprison-photos.js?v=33"></script>
+<script src="js/crousprison.js?v=33"></script>
+<script src="js/bots-maps.js?v=33"></script>
+<script src="js/bots.js?v=33"></script>
+<script src="js/pwa.js?v=33"></script>
+<script src="js/party.js?v=33"></script>
+<script src="js/account.js?v=33"></script>
+<script src="js/hub.js?v=33"></script>
 </body>
 </html>
