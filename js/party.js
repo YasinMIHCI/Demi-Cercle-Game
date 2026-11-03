@@ -401,6 +401,7 @@
     $('partyOverWait').style.display=netRole==='host'?'none':'inline-block';
     ui.goto('over');
     sfxReveal(winners.indexOf(mySeat)!==-1 ? 100 : 50);
+    if(CG.account) CG.account.recordRanked('soiree', msg.totals, st.order, mySeat);
   }
   /* bandeau de la soirée pendant les jeux (manche en cours, bouton « passer » pour l'hôte) */
   function renderBar(){

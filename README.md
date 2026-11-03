@@ -145,6 +145,26 @@ Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1
 - L'hôte simule chaque tour et envoie le résultat à tous : tout le monde voit exactement
   la même chose. Sur téléphone, la caméra zoome sur ton tank pendant la visée.
 
+## Comptes joueurs (facultatif)
+
+Bouton **👤 Se connecter** dans le hub : un pseudo de connexion et un mot de passe, aucun
+e-mail. Avec un compte, chaque fin de partie est enregistrée (parties, victoires, meilleur
+score par jeu), le nom est pré-rempli dans tous les jeux, et le menu de chaque jeu affiche
+le **top record** : meilleur score d'une partie (Soirée, Crous ou Prison, Classement, Qui a
+écrit ça, Demi-Cercle) ou plus grand nombre de victoires (Battle Bots, Caméléon, Imposteur,
+Loup). Sans compte, tout fonctionne comme avant.
+
+Les comptes sont stockés sur [Supabase](https://supabase.com) (offre gratuite) :
+- `supabase/schema.sql` crée les tables, les droits et les fonctions : à coller une fois dans
+  le **SQL Editor** du projet puis **Run** (le relancer ne casse rien) ;
+- dans *Authentication → Providers → Email*, « Confirm email » doit rester **désactivé** :
+  le pseudo devient une adresse interne `pseudo@joueurs.crazygames.app` qui ne reçoit rien ;
+- l'URL du projet et la clé *publishable* sont en haut de `js/account.js` (cette clé est
+  publique par nature ; les droits sont gérés par la sécurité des tables).
+
+Pas d'e-mail, donc pas de « mot de passe oublié » : le joueur peut le changer une fois
+connecté, et supprimer son compte depuis la même fenêtre.
+
 ## Jouer en ligne
 
 1. Un joueur crée la salle en **choisissant son code** (ex. `SOIREE-YASIN` : lettres,
@@ -184,6 +204,8 @@ js/pwa.js         app installable : service worker, bouton « Installer l'app »
 sw.js             service worker (cache hors ligne)
 manifest.webmanifest  nom, icônes et couleurs de l'app
 js/party.js       Soirée All in : salle de la soirée, enchaînement des jeux, classement général
+js/account.js     comptes (Supabase) : connexion, statistiques, top records, pseudo pré-rempli
+supabase/schema.sql  tables et droits des comptes, à exécuter dans le SQL Editor de Supabase
 js/vendor/qrcode.js  générateur de QR codes (licence MIT)
 js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison), infos, bouton son
 ```

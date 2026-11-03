@@ -1124,6 +1124,7 @@
     $('botsEndWaitLabel').style.display=host?'none':'inline-block';
     $('botsEndWaitLabel').textContent="⏳ En attente que l'hôte relance...";
     sfxReveal(mine?100:0);
+    if(CG.account && msg.tanks.some(function(t){ return t.seat===botsMySeat; })) CG.account.record('bots', (msg.stats[botsMySeat]||{}).dmg||0, mine && !msg.draw);
     gotoScreen('end');
   }
 

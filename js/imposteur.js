@@ -772,6 +772,7 @@
     }
     var iWon=msg.winners.indexOf(impMySeat)!==-1;
     sfxReveal(iWon?100:0);
+    if(CG.account && msg.roundSeats.indexOf(impMySeat)!==-1) CG.account.record('imposteur', 0, iWon);
     impHideBanner();
     impGoto_('result');
   }

@@ -572,6 +572,7 @@
       if(my>best){ try{ localStorage.setItem(BEST_KEY, String(my)); }catch(e){} }
       $('copWinnerText').textContent = my>best && best ? '🏆 NOUVEAU RECORD !' : (best ? 'Record : '+Math.max(best,my)+' pts' : '');
       $('copFinalList').innerHTML='';
+      if(inGame && CG.account) CG.account.record('crousprison', my, false);
     } else {
       var order=msg.seats.filter(function(s){ return msg.players[s]; });
       order.sort(function(a,b){ return (msg.scores[b]||0)-(msg.scores[a]||0); });
@@ -585,6 +586,7 @@
           '<span class="cham-vote-count">'+((msg.good&&msg.good[s])||0)+'/'+n+' · '+(msg.scores[s]||0)+' pts</span></div>';
       });
       $('copFinalList').innerHTML=html;
+      if(CG.account) CG.account.recordRanked('crousprison', msg.scores, order, mySeat);
     }
     var picks=(msg.picks && msg.picks[mySeat]) || [], rec='';
     msg.ids.forEach(function(id,i){

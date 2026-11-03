@@ -108,7 +108,7 @@ body{
 .subtitle{color:#ccc;font-size:0.92rem;margin:0 0 18px;}
 
 label{display:block;font-size:0.78rem;letter-spacing:1px;text-transform:uppercase;color:var(--red-bright);margin-bottom:6px;font-weight:600;}
-input[type=text],input[type=number]{
+input[type=text],input[type=number],input[type=password]{
   width:100%;
   background:#0d0d0d;
   border:2px solid #333;
@@ -118,7 +118,7 @@ input[type=text],input[type=number]{
   font-size:1rem;
   margin-bottom:16px;
 }
-input[type=text]:focus,input[type=number]:focus{outline:none;border-color:var(--red-bright);}
+input[type=text]:focus,input[type=number]:focus,input[type=password]:focus{outline:none;border-color:var(--red-bright);}
 
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .form-row3{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px;}
@@ -800,3 +800,26 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .qae-answer-recap em{font-style:normal;color:var(--yellow);font-weight:700;margin-left:auto;}
 .qae-answer-recap.funniest{border-color:var(--yellow);}
 .host-opts[hidden]{display:none;}
+
+/* ----- comptes ----- */
+.top-record{background:rgba(255,230,0,0.08);border-left:4px solid var(--yellow);padding:8px 12px;margin:14px 0 14px;font-size:0.9rem;color:#eee;}
+.top-record b{color:var(--yellow);}
+.top-record[hidden]{display:none;}
+.acc-tabs{display:flex;gap:0;margin:4px 0 16px;border:2px solid #333;}
+.acc-tab{flex:1;background:transparent;border:0;color:#aaa;font-family:var(--font-display);font-size:1.05rem;letter-spacing:1px;padding:10px;cursor:pointer;}
+.acc-tab.active{background:var(--red);color:#fff;}
+#accountForm label small{text-transform:none;color:#888;font-weight:400;letter-spacing:0;}
+.acc-error{color:#ff6b6b;font-size:0.88rem;margin:4px 0 0;}
+.acc-error.ok{color:#7CFC9A;}
+.acc-error[hidden],#accountIn[hidden],#accountOut[hidden],#accountDisplayRow[hidden],#accountPass2Row[hidden]{display:none;}
+.acc-stats{display:flex;flex-direction:column;gap:6px;}
+.acc-row{display:grid;grid-template-columns:1.4fr repeat(3,0.8fr);gap:6px 10px;align-items:center;background:#0d0d0d;border:1px solid #2a2a2a;padding:8px 10px;}
+.acc-game{font-family:var(--font-display);letter-spacing:1px;font-size:1.05rem;}
+.acc-num{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+.acc-num b{font-size:0.95rem;}
+.acc-num small{color:#888;font-size:0.66rem;text-transform:uppercase;letter-spacing:0.5px;}
+.acc-top{grid-column:1/-1;font-size:0.8rem;color:#aaa;}
+.acc-top::before{content:'🏆 Record : ';}
+.acc-top b{color:var(--yellow);}
+.btn.acc-danger{border-color:#ff6b6b;color:#ff6b6b;}
+@media(max-width:480px){.acc-row{grid-template-columns:repeat(3,1fr);}.acc-game{grid-column:1/-1;}}

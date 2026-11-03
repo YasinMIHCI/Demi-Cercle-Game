@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=26">
+<link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=26"></script>
-<script src="js/intro.js?v=26"></script>
+<script src="js/audio.js?v=27"></script>
+<script src="js/intro.js?v=27"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -48,6 +48,7 @@
         <button class="btn ghost small" id="muteBtn"><span>🔊 Son activé</span></button>
         <button class="btn ghost small" id="musicBtn"><span>🎵 Musique activée</span></button>
         <button class="btn ghost small" id="settingsBtn"><span>⚙️ Réglages</span></button>
+        <button class="btn red small" id="accountBtn"><span>👤 Se connecter</span></button>
       </div>
     </header>
 
@@ -1734,6 +1735,54 @@
 </div>
 
 <!-- HUB INFO MODAL -->
+<!-- COMPTE -->
+<div class="modal-overlay" id="accountModal">
+  <div class="modal-box">
+    <button class="modal-close" id="accountModalClose" aria-label="Fermer">✕</button>
+    <div id="accountOut">
+      <h2 class="screen-title" style="font-size:1.6rem;">👤 MON COMPTE</h2>
+      <p class="subtitle">Facultatif : un compte garde tes statistiques et te fait apparaître dans les records. Juste un pseudo et un mot de passe, aucun e-mail.</p>
+      <div class="acc-tabs">
+        <button type="button" class="acc-tab active" id="accountLoginTab">Connexion</button>
+        <button type="button" class="acc-tab" id="accountSignupTab">Créer un compte</button>
+      </div>
+      <form id="accountForm" autocomplete="on" novalidate>
+        <label for="accountUserInput">Pseudo de connexion</label>
+        <input type="text" id="accountUserInput" name="username" placeholder="ex : yasin_93" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false">
+        <div id="accountDisplayRow" hidden>
+          <label for="accountDisplay">Nom affiché dans les jeux <small>(accents, espaces OK)</small></label>
+          <input type="text" id="accountDisplay" placeholder="ex : Yasin" maxlength="18">
+        </div>
+        <label for="accountPass">Mot de passe</label>
+        <input type="password" id="accountPass" name="password" placeholder="6 caractères minimum" autocomplete="current-password">
+        <div id="accountPass2Row" hidden>
+          <label for="accountPass2">Confirme le mot de passe</label>
+          <input type="password" id="accountPass2" placeholder="Encore une fois" autocomplete="new-password">
+          <p class="theme-count" style="margin:6px 0 0;">⚠️ Pas d'e-mail = pas de récupération : note bien ton mot de passe.</p>
+        </div>
+        <p class="acc-error" id="accountError" role="alert" hidden></p>
+        <div class="btn-row center" style="margin-top:14px;">
+          <button type="submit" class="btn yellow" id="accountSubmitBtn"><span>▶ Se connecter</span></button>
+        </div>
+      </form>
+    </div>
+    <div id="accountIn" hidden>
+      <h2 class="screen-title" style="font-size:1.6rem;">👤 <span id="accountHello"></span></h2>
+      <p class="subtitle" style="margin-bottom:4px;"><span id="accountUser"></span> · <span id="accountTotals"></span></p>
+      <h3 class="rules-subhead">MES STATS ET LES RECORDS</h3>
+      <div class="acc-stats" id="accountStats"></div>
+      <div class="btn-row center" style="margin-top:16px;">
+        <button class="btn ghost small" id="accountRenameBtn"><span>✏️ Changer de nom</span></button>
+        <button class="btn ghost small" id="accountPassBtn"><span>🔑 Mot de passe</span></button>
+        <button class="btn ghost small" id="accountLogoutBtn"><span>🚪 Déconnexion</span></button>
+      </div>
+      <div class="btn-row center" style="margin-top:8px;">
+        <button class="btn ghost small acc-danger" id="accountDeleteBtn"><span>🗑️ Supprimer mon compte</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- RÉGLAGES -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-box">
@@ -1767,7 +1816,7 @@
   <div class="modal-box">
     <button class="modal-close" id="hubInfoModalClose" aria-label="Fermer">✕</button>
     <h2 class="screen-title" style="font-size:1.6rem;">CRAZY GAMES</h2>
-    <p class="subtitle">Un hub de mini-jeux gratuits, sans backend — hébergé sur GitHub Pages.</p>
+    <p class="subtitle">Un hub de mini-jeux gratuits hébergé sur GitHub Pages. Les parties passent en direct entre navigateurs ; seuls les comptes (facultatifs) sont stockés en ligne.</p>
     <ol class="rules-list">
       <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne en 1 vs 1 / 2 vs 2 via une connexion directe entre navigateurs (WebRTC).</li>
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
@@ -1820,20 +1869,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=26"></script>
-<script src="js/net.js?v=26"></script>
-<script src="js/demicercle.js?v=26"></script>
-<script src="js/cameleon.js?v=26"></script>
-<script src="js/imposteur.js?v=26"></script>
-<script src="js/loup.js?v=26"></script>
-<script src="js/classement.js?v=26"></script>
-<script src="js/quiaecrit.js?v=26"></script>
-<script src="js/crousprison-photos.js?v=26"></script>
-<script src="js/crousprison.js?v=26"></script>
-<script src="js/bots-maps.js?v=26"></script>
-<script src="js/bots.js?v=26"></script>
-<script src="js/pwa.js?v=26"></script>
-<script src="js/party.js?v=26"></script>
-<script src="js/hub.js?v=26"></script>
+<script src="js/common.js?v=27"></script>
+<script src="js/net.js?v=27"></script>
+<script src="js/demicercle.js?v=27"></script>
+<script src="js/cameleon.js?v=27"></script>
+<script src="js/imposteur.js?v=27"></script>
+<script src="js/loup.js?v=27"></script>
+<script src="js/classement.js?v=27"></script>
+<script src="js/quiaecrit.js?v=27"></script>
+<script src="js/crousprison-photos.js?v=27"></script>
+<script src="js/crousprison.js?v=27"></script>
+<script src="js/bots-maps.js?v=27"></script>
+<script src="js/bots.js?v=27"></script>
+<script src="js/pwa.js?v=27"></script>
+<script src="js/party.js?v=27"></script>
+<script src="js/account.js?v=27"></script>
+<script src="js/hub.js?v=27"></script>
 </body>
 </html>

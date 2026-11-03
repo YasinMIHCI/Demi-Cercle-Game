@@ -1018,6 +1018,7 @@
     }
 
     sfxReveal(chamWon?0:100);
+    if(CG.account && chamState.roundSeats.indexOf(chamMySeat)!==-1) CG.account.record('cameleon', 0, (chamMySeat===msg.chameleonSeat)===chamWon);
     chamHideBanner();
     chamGoto_('result');
   }
