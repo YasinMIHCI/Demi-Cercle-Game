@@ -24,14 +24,17 @@
   var AU=window.CGAudio||null;
   var isApp=(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone===true;
   var today=new Date(), dayKey=today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate(), seenToday=false;
-  if(isApp){ try{ seenToday=localStorage.getItem('cg_intro_day')===dayKey; }catch(e){} }
+  /* ?intro=1 (bouton « Revoir l'intro » des réglages) : on la rejoue quoi qu'il arrive */
+  var forced=/[?&]intro=1/.test(location.search);
+  if(forced){ try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){} }
+  if(isApp && !forced){ try{ seenToday=localStorage.getItem('cg_intro_day')===dayKey; }catch(e){} }
   function abort(){
     if(overlay.parentNode) overlay.parentNode.removeChild(overlay);
     document.documentElement.classList.remove('intro-playing');
     if(AU) AU.allowMusic(true);
     try{ window.dispatchEvent(new Event('cg-intro-done')); }catch(e){}
   }
-  if(!debugT && (window.CG_NO_INTRO || /room=/.test(location.hash) || reduce || seenToday)){ abort(); return; }
+  if(!debugT && !forced && (window.CG_NO_INTRO || /room=/.test(location.hash) || reduce || seenToday)){ abort(); return; }
   function hasWebGL(){
     try{ var c=document.createElement('canvas'); return !!(window.WebGLRenderingContext && (c.getContext('webgl')||c.getContext('experimental-webgl'))); }catch(e){ return false; }
   }

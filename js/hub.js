@@ -99,6 +99,20 @@
     refreshMusicBtn(); CG.sfxToggle();
   });
 
+  /* ----- réglages : volumes, vibrations, revoir l'intro ----- */
+  CG.wireModal('settingsModal', 'settingsBtn');
+  var AU=window.CGAudio;
+  ['music','sfx'].forEach(function(k){
+    var el=$(k==='music'?'setMusicVol':'setSfxVol');
+    el.value=Math.round((AU && AU.getVolume ? AU.getVolume(k) : 1)*100);
+    el.addEventListener('input',function(){ if(AU && AU.setVolume) AU.setVolume(k, el.value/100); });
+    if(k==='sfx') el.addEventListener('change', CG.sfxValidate);
+  });
+  $('setVibrate').checked=CG.vibrateOn();
+  if(!navigator.vibrate){ $('setVibrate').disabled=true; $('setVibrateNote').hidden=false; }
+  $('setVibrate').addEventListener('change',function(){ CG.setVibrate(this.checked); CG.buzz(60); });
+  $('replayIntroBtn').addEventListener('click',function(){ location.href=location.pathname+'?intro=1'; });
+
   refreshMuteBtn();
   refreshMusicBtn();
   router(true);

@@ -544,6 +544,7 @@
         if(!chamInRound) break;
         /* tour coupé par le chrono pendant qu'on dessinait : l'hôte a déjà clos le trait */
         if(chamDrawing && msg.seat!==chamMySeat){ chamDrawing=false; chamPointerId=null; chamCurrentPoints=[]; chamRedrawCanvas(); }
+        if(msg.seat===chamMySeat && chamState.currentTurnSeat!==msg.seat) CG.yourTurn();
         chamState.currentTurnSeat=msg.seat;
         chamTurnDone=false;
         if(msg.ink) CHAM_INK=msg.ink;

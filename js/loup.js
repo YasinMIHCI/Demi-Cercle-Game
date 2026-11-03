@@ -424,6 +424,7 @@
   var roleTick=null;
   function onRoundStart(msg){
     var newRound = !inRound || ls.round!==msg.round;
+    if(newRound) CG.yourTurn();
     inRound=true;
     ls.round=msg.round; ls.roundSeats=msg.roundSeats; ls.mayorSeat=msg.mayorSeat;
     me.role=msg.role; me.word=msg.word; me.loups=msg.loups||[]; me.choices=msg.choices;

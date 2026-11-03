@@ -664,6 +664,7 @@
         view.tanks=keepVisual(msg.tanks); view.waterY=msg.waterY; view.turn=msg.turn;
         lockedSeats=[];
         beginAiming(msg.ms, false);
+        CG.yourTurn();
         break;
       case 'locked':
         lockedSeats=msg.seats; renderRoster(); renderTurnStatus();

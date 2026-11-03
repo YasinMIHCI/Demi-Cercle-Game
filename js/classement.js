@@ -392,6 +392,7 @@
 
   /* ----- classement : on touche les joueurs dans l'ordre, du 1er au dernier ----- */
   function onRoundStart(msg){
+    if(!inRound) CG.yourTurn();
     stopReveal();
     inRound=true;
     view.roundSeats=msg.roundSeats.slice(); view.question=msg.question;

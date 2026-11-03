@@ -68,6 +68,7 @@
   function sfxValidate(){ tone(440,0.07,'square',0.14,0); tone(660,0.09,'square',0.12,0.06); }
   function sfxWhoosh(){ tone(180,0.15,'sawtooth',0.08,0); }
   function sfxReveal(points){
+    buzz(points>=80 ? [40,40,90] : 70);
     if(points>=100){ tone(523,0.1,'square',0.2,0); tone(659,0.1,'square',0.2,0.09); tone(784,0.1,'square',0.2,0.18); tone(1047,0.3,'square',0.22,0.27); }
     else if(points>=80){ tone(523,0.1,'square',0.18,0); tone(784,0.2,'square',0.18,0.11); }
     else if(points>=50){ tone(392,0.14,'triangle',0.16,0); tone(523,0.16,'triangle',0.14,0.09); }
@@ -170,7 +171,71 @@
       '<span class="cham-player-name">'+escapeHtml(o.name)+(o.me?' (toi)':'')+(o.off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+(o.extra||'')+'</div>';
   }
 
+  /* ---------- VIBRATIONS (téléphones Android ; l'iPhone n'en a pas pour les sites) ---------- */
+  var VIB_KEY='crazygames_vibrate';
+  function vibrateOn(){ try{ return localStorage.getItem(VIB_KEY)!=='0'; }catch(e){ return true; } }
+  function setVibrate(v){ try{ localStorage.setItem(VIB_KEY, v?'1':'0'); }catch(e){} }
+  function buzz(pattern){
+    if(!vibrateOn() || !navigator.vibrate) return;
+    try{ navigator.vibrate(pattern); }catch(e){}
+  }
+  /* « c'est à toi » : petit son + double vibration */
+  function yourTurn(){ tone(587,0.08,'triangle',0.13,0); tone(880,0.12,'triangle',0.12,0.08); buzz([60,50,60]); }
+
+  /* ---------- PARTAGE D'UNE SALLE : bouton « Partager » + QR code ----------
+     Tous les salons affichent leur code dans un .room-code-display : on y
+     ajoute automatiquement le QR code du lien d'invitation (à scanner par les
+     potes) et, si le téléphone sait le faire, un bouton de partage natif. */
+  function roomLink(el){
+    var view=el.closest('.view'), route=view ? view.id.replace(/^view-/,'') : '';
+    var code=(el.textContent||'').trim();
+    return /[A-Z0-9]/.test(code) ? location.origin+location.pathname+'#'+route+'?room='+code : '';
+  }
+  function drawQR(canvas, text){
+    if(typeof window.qrcode!=='function') return false;
+    var qr=window.qrcode(0,'M'); qr.addData(text); qr.make();
+    var n=qr.getModuleCount(), quiet=2, cell=Math.max(3, Math.floor(168/(n+quiet*2))), size=(n+quiet*2)*cell;
+    canvas.width=size; canvas.height=size;
+    var x=canvas.getContext('2d');
+    x.fillStyle='#fff'; x.fillRect(0,0,size,size); x.fillStyle='#000';
+    for(var r=0;r<n;r++) for(var c=0;c<n;c++) if(qr.isDark(r,c)) x.fillRect((c+quiet)*cell,(r+quiet)*cell,cell,cell);
+    return true;
+  }
+  function enhanceRoomShare(){
+    var els=document.querySelectorAll('.room-code-display');
+    for(var i=0;i<els.length;i++) (function(el){
+      var row=el.nextElementSibling;
+      var box=document.createElement('div'); box.className='room-qr'; box.hidden=true;
+      var cv=document.createElement('canvas'); cv.setAttribute('aria-label',"QR code du lien d'invitation");
+      var cap=document.createElement('small'); cap.textContent='Scanne pour rejoindre';
+      box.appendChild(cv); box.appendChild(cap);
+      (row && row.classList.contains('btn-row') ? row : el).insertAdjacentElement('afterend', box);
+      var shareBtn=null;
+      if(navigator.share && row && row.classList.contains('btn-row')){
+        shareBtn=document.createElement('button');
+        shareBtn.type='button'; shareBtn.className='btn yellow small'; shareBtn.innerHTML='<span>📤 Partager</span>';
+        shareBtn.addEventListener('click',function(){
+          var link=roomLink(el); if(!link) return;
+          sfxToggle();
+          navigator.share({title:'CRAZY GAMES', text:'Rejoins ma salle : '+el.textContent.trim(), url:link})['catch'](function(){});
+        });
+        row.insertBefore(shareBtn, row.firstChild);
+      }
+      function refresh(){
+        var link=roomLink(el);
+        box.hidden=!(link && drawQR(cv, link));
+      }
+      new MutationObserver(refresh).observe(el, {childList:true, characterData:true, subtree:true});
+      refresh();
+    })(els[i]);
+  }
+  enhanceRoomShare();
+
   CG.$=$;
+  CG.buzz=buzz;
+  CG.yourTurn=yourTurn;
+  CG.vibrateOn=vibrateOn;
+  CG.setVibrate=setVibrate;
   CG.wireModal=wireModal;
   CG.roomUI=roomUI;
   CG.seatTools=seatTools;

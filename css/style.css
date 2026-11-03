@@ -752,3 +752,15 @@ html.intro-playing, html.intro-playing body{overflow:hidden;}
 .ios-share::after{content:'';position:absolute;left:50%;top:-9px;width:7px;height:7px;border-left:2px solid #fff;border-top:2px solid #fff;transform:translateX(-50%) rotate(45deg);}
 /* dans l'app installée : marges pour l'encoche et la barre d'accueil */
 html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
+
+/* QR code d'invitation sous le code du salon */
+.room-qr{display:flex;flex-direction:column;align-items:center;gap:4px;margin:12px auto 4px;}
+.room-qr canvas{width:150px;height:150px;image-rendering:pixelated;border:4px solid #000;box-shadow:0 0 0 3px #fff,5px 5px 0 3px var(--red);background:#fff;}
+.room-qr small{color:#bbb;font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;}
+.room-qr[hidden]{display:none;}
+
+/* fenêtre Réglages */
+.settings-grid{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.settings-grid input[type=range]{width:100%;accent-color:var(--red);}
+.settings-check{display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:6px;}
+.settings-check input{width:22px;height:22px;accent-color:var(--red);}

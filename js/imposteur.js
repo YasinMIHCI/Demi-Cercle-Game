@@ -589,6 +589,7 @@
         impRefreshBanner();
         break;
       case 'round_start':
+        if(!impInRound || impState.round!==msg.round) CG.yourTurn();
         impInRound=true;
         impState.round=msg.round;
         impState.roundSeats=msg.roundSeats.slice();
