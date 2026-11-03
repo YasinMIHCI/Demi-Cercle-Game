@@ -415,6 +415,7 @@
 
   /* ----- écriture ----- */
   function onWriteStart(msg){
+    if(!inRound) CG.yourTurn();
     inRound=true; stopBars();
     view.roundSeats=msg.roundSeats.slice(); view.written=msg.written||[]; view.sent=msg.mine!==null && msg.mine!==undefined;
     setRound(msg.round);

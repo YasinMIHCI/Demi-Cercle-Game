@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=23">
+<link rel="stylesheet" href="css/style.css?v=24">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=23"></script>
-<script src="js/intro.js?v=23"></script>
+<script src="js/audio.js?v=24"></script>
+<script src="js/intro.js?v=24"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -47,6 +47,7 @@
         <button class="btn ghost small" id="hubInfoBtn"><span>📖 Règles / Infos</span></button>
         <button class="btn ghost small" id="muteBtn"><span>🔊 Son activé</span></button>
         <button class="btn ghost small" id="musicBtn"><span>🎵 Musique activée</span></button>
+        <button class="btn ghost small" id="settingsBtn"><span>⚙️ Réglages</span></button>
       </div>
     </header>
 
@@ -1549,6 +1550,25 @@
 </div>
 
 <!-- HUB INFO MODAL -->
+<!-- RÉGLAGES -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <button class="modal-close" id="settingsModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">⚙️ RÉGLAGES</h2>
+    <div class="settings-grid">
+      <label for="setMusicVol">🎵 Volume de la musique</label>
+      <input type="range" id="setMusicVol" min="0" max="100" step="5">
+      <label for="setSfxVol">🔊 Volume des bruitages</label>
+      <input type="range" id="setSfxVol" min="0" max="100" step="5">
+      <label class="settings-check" for="setVibrate"><input type="checkbox" id="setVibrate"> 📳 Vibrations (ton tour, résultats)</label>
+      <p class="theme-count" id="setVibrateNote" style="margin:0;" hidden>Ton téléphone ou ton navigateur ne gère pas les vibrations.</p>
+    </div>
+    <div class="btn-row center" style="margin-top:16px;">
+      <button class="btn yellow small" id="replayIntroBtn"><span>▶ Revoir l'intro</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- INSTALL APP MODAL -->
 <div class="modal-overlay" id="installModal">
   <div class="modal-box">
@@ -1615,19 +1635,20 @@
 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/common.js?v=23"></script>
-<script src="js/net.js?v=23"></script>
-<script src="js/demicercle.js?v=23"></script>
-<script src="js/cameleon.js?v=23"></script>
-<script src="js/imposteur.js?v=23"></script>
-<script src="js/loup.js?v=23"></script>
-<script src="js/classement.js?v=23"></script>
-<script src="js/quiaecrit.js?v=23"></script>
-<script src="js/crousprison-photos.js?v=23"></script>
-<script src="js/crousprison.js?v=23"></script>
-<script src="js/bots-maps.js?v=23"></script>
-<script src="js/bots.js?v=23"></script>
-<script src="js/pwa.js?v=23"></script>
-<script src="js/hub.js?v=23"></script>
+<script src="js/vendor/qrcode.js?v=1"></script>
+<script src="js/common.js?v=24"></script>
+<script src="js/net.js?v=24"></script>
+<script src="js/demicercle.js?v=24"></script>
+<script src="js/cameleon.js?v=24"></script>
+<script src="js/imposteur.js?v=24"></script>
+<script src="js/loup.js?v=24"></script>
+<script src="js/classement.js?v=24"></script>
+<script src="js/quiaecrit.js?v=24"></script>
+<script src="js/crousprison-photos.js?v=24"></script>
+<script src="js/crousprison.js?v=24"></script>
+<script src="js/bots-maps.js?v=24"></script>
+<script src="js/bots.js?v=24"></script>
+<script src="js/pwa.js?v=24"></script>
+<script src="js/hub.js?v=24"></script>
 </body>
 </html>

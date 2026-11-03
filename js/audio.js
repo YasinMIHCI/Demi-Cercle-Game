@@ -17,11 +17,17 @@
   'use strict';
   var AC=window.AudioContext||window.webkitAudioContext;
   var A=window.CGAudio={ctx:null, unlocked:false};
-  var muted=false, musicOn=true;
+  var muted=false, musicOn=true, vol={music:1, sfx:1};
   try{ muted=localStorage.getItem('crazygames_muted')==='1'; musicOn=localStorage.getItem('crazygames_music')!=='0'; }catch(e){}
+  /* volumes réglables (Réglages du hub) : musique et bruitages, de 0 à 1 */
+  ['music','sfx'].forEach(function(k){
+    try{ var v=parseFloat(localStorage.getItem('crazygames_vol_'+k)); if(v>=0 && v<=1) vol[k]=v; }catch(e){}
+  });
+  A.getVolume=function(k){ return vol[k]; };
   if(!AC){
     A.onUnlock=function(){}; A.isMuted=function(){ return muted; }; A.setMuted=function(v){ muted=!!v; };
     A.isMusicOn=function(){ return musicOn; }; A.setMusicOn=function(v){ musicOn=!!v; }; A.play=function(){}; A.allowMusic=function(){};
+    A.setVolume=function(k,v){ vol[k]=v; };
     return;
   }
   var ctx=A.ctx=new AC();
@@ -30,8 +36,9 @@
   comp.threshold.value=-14; comp.knee.value=10; comp.ratio.value=4; comp.attack.value=0.004; comp.release.value=0.2;
   comp.connect(ctx.destination);
   var master=A.master=ctx.createGain(); master.gain.value=muted?0:1; master.connect(comp);
-  var sfx=A.sfx=ctx.createGain(); sfx.gain.value=0.9; sfx.connect(master);
-  var musicBus=A.musicBus=ctx.createGain(); musicBus.gain.value=musicOn?0.42:0; musicBus.connect(master);
+  var SFX_LEVEL=0.9, MUSIC_LEVEL=0.42;
+  var sfx=A.sfx=ctx.createGain(); sfx.gain.value=SFX_LEVEL*vol.sfx; sfx.connect(master);
+  var musicBus=A.musicBus=ctx.createGain(); musicBus.gain.value=musicOn?MUSIC_LEVEL*vol.music:0; musicBus.connect(master);
   /* réverbération : réponse impulsionnelle générée (bruit qui décroît) */
   var reverb=ctx.createConvolver();
   (function(){
@@ -100,7 +107,14 @@
   A.setMusicOn=function(v){
     musicOn=!!v;
     try{ localStorage.setItem('crazygames_music', musicOn?'1':'0'); }catch(e){}
-    var t=ctx.currentTime; musicBus.gain.cancelScheduledValues(t); musicBus.gain.setTargetAtTime(musicOn?0.42:0, t, 0.15);
+    var t=ctx.currentTime; musicBus.gain.cancelScheduledValues(t); musicBus.gain.setTargetAtTime(musicOn?MUSIC_LEVEL*vol.music:0, t, 0.15);
+  };
+  A.setVolume=function(k, v){
+    vol[k]=Math.max(0, Math.min(1, v));
+    try{ localStorage.setItem('crazygames_vol_'+k, String(vol[k])); }catch(e){}
+    var t=ctx.currentTime;
+    if(k==='sfx'){ sfx.gain.cancelScheduledValues(t); sfx.gain.setTargetAtTime(SFX_LEVEL*vol.sfx, t, 0.05); }
+    else { musicBus.gain.cancelScheduledValues(t); musicBus.gain.setTargetAtTime(musicOn?MUSIC_LEVEL*vol.music:0, t, 0.1); }
   };
 
   /* ===================== INSTRUMENTS ===================== */
