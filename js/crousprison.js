@@ -15,6 +15,8 @@
   var MIN_PLAYERS=2, MAX_PLAYERS=8;
   var PER_GAME=9, PHOTO_MS=10000, REVEAL_MS=2600, COUNT_MS=3000;
   var BASE_PTS=100, SPEED_PTS=50, MIN_EACH=2;
+  /* série : à partir de la 3e bonne réponse d'affilée, +20 par réponse de plus (100 au maximum) */
+  function streakBonus(n){ return n>=3 ? Math.min(100, (n-2)*20) : 0; }
   var BEST_KEY='cop_best_v1', SEEN_KEY='cop_seen_v1', SEEN_KEEP=60;
   var LABEL={c:'CROUS', p:'PRISON'};
   var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff'];
@@ -57,7 +59,7 @@
   var gs={
     players:[], scores:[], connected:[], clientIds:[],
     phase:'lobby',            /* 'lobby' | 'countdown' | 'photo' | 'reveal' | 'over' */
-    seats:[], ids:[], idx:0, answers:{}, picks:{}, good:{}, deadline:0, timer:null, lastMsg:null
+    seats:[], ids:[], idx:0, answers:{}, picks:{}, good:{}, streak:{}, deadline:0, timer:null, lastMsg:null
   };
   var netRole=null, mySeat=0, myName='', roomCode='';
   var gameLiveForLobby=false;
@@ -92,7 +94,7 @@
     stopLocalTimers();
     netRole=null; mySeat=0; roomCode=''; gameLiveForLobby=false;
     gs.players=[]; gs.scores=[]; gs.connected=[]; gs.clientIds=[];
-    gs.phase='lobby'; gs.seats=[]; gs.ids=[]; gs.idx=0; gs.answers={}; gs.picks={}; gs.good={}; gs.lastMsg=null;
+    gs.phase='lobby'; gs.seats=[]; gs.ids=[]; gs.idx=0; gs.answers={}; gs.picks={}; gs.good={}; gs.streak={}; gs.lastMsg=null;
     hideBanner();
     setNetStatus('offline', 'HORS LIGNE');
   }
@@ -254,8 +256,8 @@
     gs.seats=seats;
     gs.scores=gs.players.map(function(){ return 0; });
     gs.ids=pickPhotos();
-    gs.idx=0; gs.answers={}; gs.picks={}; gs.good={}; gs.lastMsg=null;
-    seats.forEach(function(s){ gs.picks[s]=[]; gs.good[s]=0; });
+    gs.idx=0; gs.answers={}; gs.picks={}; gs.good={}; gs.streak={}; gs.lastMsg=null;
+    seats.forEach(function(s){ gs.picks[s]=[]; gs.good[s]=0; gs.streak[s]=0; });
     gs.phase='countdown';
     setPhaseTimer(COUNT_MS, hostShowPhoto);
     broadcast(startMsg());
@@ -286,21 +288,23 @@
   function hostReveal(){
     if(gs.phase!=='photo') return;
     clearTimeout(gs.timer); gs.timer=null;
-    var id=gs.ids[gs.idx], truth=PHOTOS[id].a, pts={}, picks={};
+    var id=gs.ids[gs.idx], truth=PHOTOS[id].a, pts={}, picks={}, bonus={};
     gs.seats.forEach(function(s){
       var a=gs.answers[s];
       picks[s]=a ? a.c : null;
       gs.picks[s][gs.idx]=picks[s];
       if(a && a.c===truth){
-        pts[s]=BASE_PTS+Math.round(SPEED_PTS*(1-a.ms/PHOTO_MS));
+        gs.streak[s]=(gs.streak[s]||0)+1;
+        bonus[s]=streakBonus(gs.streak[s]);
+        pts[s]=BASE_PTS+Math.round(SPEED_PTS*(1-a.ms/PHOTO_MS))+bonus[s];
         gs.scores[s]=(gs.scores[s]||0)+pts[s];
         gs.good[s]++;
-      }
+      } else gs.streak[s]=0;
     });
     gs.phase='reveal';
     var last=gs.idx>=gs.ids.length-1;
     gs.lastMsg={type:'reveal', idx:gs.idx, count:gs.ids.length, id:id, ids:gs.ids.slice(), seats:gs.seats.slice(), truth:truth,
-      picks:picks, pts:pts, scores:gs.scores.slice(), last:last};
+      picks:picks, pts:pts, bonus:bonus, scores:gs.scores.slice(), last:last};
     broadcast(gs.lastMsg);
     setPhaseTimer(REVEAL_MS, function(){
       if(gs.phase!=='reveal') return;
@@ -514,7 +518,10 @@
     var res=$('copResult');
     if(!inGame) res.textContent='👀 Tu regardes cette partie';
     else if(mine===null || mine===undefined){ res.textContent='⌛ Trop tard ! C’était '+(msg.truth==='c'?'une chambre du CROUS.':'une prison.'); res.className='cop-result bad'; }
-    else if(ok){ res.textContent='✔ BIEN VU ! +'+(msg.pts[mySeat]||0); res.className='cop-result good'; }
+    else if(ok){
+      var bn=(msg.bonus||{})[mySeat]||0;
+      res.textContent='✔ BIEN VU ! +'+(msg.pts[mySeat]||0)+(bn?'  🔥 SÉRIE +'+bn:''); res.className='cop-result good';
+    }
     else { res.textContent='✘ RATÉ ! C’était '+(msg.truth==='c'?'une chambre du CROUS.':'une prison.'); res.className='cop-result bad'; }
     if(!view.solo){
       var html='';

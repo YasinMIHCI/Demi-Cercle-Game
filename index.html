@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=25"></script>
-<script src="js/intro.js?v=25"></script>
+<script src="js/audio.js?v=26"></script>
+<script src="js/intro.js?v=26"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -477,6 +477,20 @@
           <button class="btn ghost small" id="chamCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
         </div>
         <div class="cham-player-list" id="chamPlayerList"></div>
+        <div class="host-opts" id="chamHostOpts" hidden>
+          <label for="chamInkSel">🖋️ Encre par tour</label>
+          <select id="chamInkSel">
+            <option value="700">Peu (un ou deux traits)</option>
+            <option value="1100" selected>Normal</option>
+            <option value="1600">Beaucoup</option>
+          </select>
+          <label for="chamPassSel">🔁 Passages par joueur</label>
+          <select id="chamPassSel">
+            <option value="1">1 passage</option>
+            <option value="2" selected>2 passages</option>
+            <option value="3">3 passages</option>
+          </select>
+        </div>
         <p class="lobby-status" id="chamLobbyStatus">En attente de joueurs... (3 minimum)</p>
         <div class="btn-row center">
           <button class="btn yellow" id="chamStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
@@ -549,6 +563,9 @@
         <div class="cham-word-reveal" id="chamWordReveal"></div>
         <div class="cham-canvas-frame">
           <canvas class="cham-canvas readonly" id="chamResultCanvas" width="800" height="500"></canvas>
+        </div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="chamSaveDrawingBtn"><span>💾 Enregistrer le dessin</span></button>
         </div>
         <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">SCORES</h3>
         <div class="cham-player-list" id="chamScoreList"></div>
@@ -796,6 +813,10 @@
         <div id="qaeRevealBox" style="display:none;">
           <div class="qae-verdict" id="qaeRevealVerdict"></div>
           <div class="qae-votes" id="qaeRevealVotes"></div>
+          <div class="btn-row center">
+            <button class="btn ghost small qae-laugh" id="qaeLaughBtn"><span>😂 Trop drôle</span></button>
+            <span class="qae-laugh-count" id="qaeLaughCount"></span>
+          </div>
         </div>
         <div class="btn-row center" id="qaeHostBtns" style="display:none;margin-top:14px;">
           <button class="btn yellow" id="qaeNextAnswerBtn"><span>▶ Réponse suivante</span></button>
@@ -1551,6 +1572,7 @@
       <li>Les réponses s'affichent une par une, <b>sans nom</b>, dans le désordre. Tout le monde vote : <b>qui a écrit ça ?</b> (30 s)</li>
       <li>Si c'est ta réponse, vote quand même pour quelqu'un d'autre : personne ne doit deviner que c'est toi !</li>
       <li><b>Points :</b> +1 par bonne devinette. L'auteur gagne +1 par joueur qu'il a berné (3 au maximum).</li>
+      <li><b>😂 Trop drôle :</b> pendant la révélation, appuie si la réponse t'a fait rire. La réponse la plus drôle de la manche rapporte +1 à son auteur.</li>
       <li>Après chaque réponse, on voit qui a voté pour qui. L'hôte passe à la suite, enchaîne les questions et termine la partie quand il veut.</li>
     </ol>
   </div>
@@ -1591,6 +1613,7 @@
       <li>Une photo de chambre s'affiche. Tu as <b>10 secondes</b> pour décider : <b>CROUS</b> (chambre étudiante) ou <b>PRISON</b> (cellule) ?</li>
       <li>Une partie = <b>9 photos</b>, soit 1 min 30 au maximum.</li>
       <li><b>Points :</b> bonne réponse = 100 points, + jusqu'à 50 points selon ta rapidité. Mauvaise réponse ou trop tard = 0.</li>
+      <li><b>Série 🔥 :</b> à partir de 3 bonnes réponses d'affilée, +20 points de plus à chaque nouvelle bonne réponse (jusqu'à +100).</li>
       <li>En ligne (2 à 8 joueurs), tout le monde voit la même photo en même temps ; on passe à la suivante dès que tout le monde a répondu.</li>
       <li>Au clavier : <b>←</b> ou <b>C</b> pour CROUS, <b>→</b> ou <b>P</b> pour PRISON.</li>
     </ol>
@@ -1689,7 +1712,7 @@
     <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LE CAMÉLÉON</h2>
     <ol class="rules-list">
       <li>Tout le monde reçoit un <b>thème</b> et un <b>mot secret</b> (ex : Thème "Animaux", Mot "Éléphant") — sauf un joueur tiré au sort, le <b>Caméléon</b>, qui ne voit que le thème.</li>
-      <li>À tour de rôle, chacun dessine sur la toile partagée : <b>autant de traits que tu veux, tant qu'il te reste de l'encre</b> (la jauge 🖋️ se vide à mesure que tu traces). Appuie sur « J'ai fini » quand tu veux passer la main ; le tour s'arrête aussi quand l'encre est vide ou au bout de 35 s. Les initiés doivent prouver qu'ils connaissent le mot sans le rendre trop évident. Le Caméléon doit deviner et se fondre dans la masse. Deux passages par joueur.</li>
+      <li>À tour de rôle, chacun dessine sur la toile partagée : <b>autant de traits que tu veux, tant qu'il te reste de l'encre</b> (la jauge 🖋️ se vide à mesure que tu traces). Appuie sur « J'ai fini » quand tu veux passer la main ; le tour s'arrête aussi quand l'encre est vide ou au bout de 35 s. Les initiés doivent prouver qu'ils connaissent le mot sans le rendre trop évident. Le Caméléon doit deviner et se fondre dans la masse. Deux passages par joueur (l'hôte peut choisir de 1 à 3 passages et la quantité d'encre). À la fin, « Enregistrer le dessin » le garde en image.</li>
       <li>Une fois les traits terminés, tout le monde vote pour désigner le Caméléon.</li>
       <li>Si le Caméléon est démasqué, il a une dernière chance : deviner le mot secret. S'il trouve, il gagne quand même !</li>
       <li>S'il n'est pas démasqué (ou si le groupe accuse la mauvaise personne), le Caméléon l'emporte.</li>
@@ -1797,20 +1820,20 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=25"></script>
-<script src="js/net.js?v=25"></script>
-<script src="js/demicercle.js?v=25"></script>
-<script src="js/cameleon.js?v=25"></script>
-<script src="js/imposteur.js?v=25"></script>
-<script src="js/loup.js?v=25"></script>
-<script src="js/classement.js?v=25"></script>
-<script src="js/quiaecrit.js?v=25"></script>
-<script src="js/crousprison-photos.js?v=25"></script>
-<script src="js/crousprison.js?v=25"></script>
-<script src="js/bots-maps.js?v=25"></script>
-<script src="js/bots.js?v=25"></script>
-<script src="js/pwa.js?v=25"></script>
-<script src="js/party.js?v=25"></script>
-<script src="js/hub.js?v=25"></script>
+<script src="js/common.js?v=26"></script>
+<script src="js/net.js?v=26"></script>
+<script src="js/demicercle.js?v=26"></script>
+<script src="js/cameleon.js?v=26"></script>
+<script src="js/imposteur.js?v=26"></script>
+<script src="js/loup.js?v=26"></script>
+<script src="js/classement.js?v=26"></script>
+<script src="js/quiaecrit.js?v=26"></script>
+<script src="js/crousprison-photos.js?v=26"></script>
+<script src="js/crousprison.js?v=26"></script>
+<script src="js/bots-maps.js?v=26"></script>
+<script src="js/bots.js?v=26"></script>
+<script src="js/pwa.js?v=26"></script>
+<script src="js/party.js?v=26"></script>
+<script src="js/hub.js?v=26"></script>
 </body>
 </html>

@@ -68,7 +68,7 @@
   var qs={
     players:[], scores:[], connected:[], clientIds:[],
     phase:'lobby',           /* 'lobby' | 'writing' | 'guess' | 'reveal' | 'scores' | 'over' | 'lobby_wait' */
-    round:0, roundSeats:[], question:'', answers:{}, order:[], idx:0, votes:{}, pool:[],
+    round:0, roundSeats:[], question:'', answers:{}, order:[], idx:0, votes:{}, laughs:{}, pool:[],
     deadline:0, timer:null, lastMsg:null, started:false
   };
   var netRole=null, mySeat=0, myName='', roomCode='';
@@ -104,7 +104,7 @@
     netRole=null; mySeat=0; roomCode='';
     inRound=false; roundLiveForLobby=false;
     qs.players=[]; qs.scores=[]; qs.connected=[]; qs.clientIds=[];
-    qs.phase='lobby'; qs.round=0; qs.roundSeats=[]; qs.answers={}; qs.order=[]; qs.votes={}; qs.lastMsg=null; qs.started=false;
+    qs.phase='lobby'; qs.round=0; qs.roundSeats=[]; qs.answers={}; qs.order=[]; qs.votes={}; qs.laughs={}; qs.lastMsg=null; qs.started=false;
     $('qaeRoundBadge').style.display='none';
     hideBanner();
     setNetStatus('offline','HORS LIGNE');
@@ -197,6 +197,16 @@
   function hostOnGuestMessage(seat, msg){
     if(msg.type==='write_submit') hostReceiveAnswer(seat, msg.text);
     else if(msg.type==='guess_vote') hostReceiveVote(seat, msg.target);
+    else if(msg.type==='laugh') hostReceiveLaugh(seat, msg.author);
+  }
+  /* 😂 pendant la révélation : la réponse la plus drôle de la manche rapporte +1 à son auteur */
+  function hostReceiveLaugh(seat, author){
+    if(qs.phase!=='reveal' || author!==qs.order[qs.idx] || seat===author || qs.roundSeats.indexOf(seat)===-1) return;
+    var l=qs.laughs[author]=qs.laughs[author]||[];
+    if(l.indexOf(seat)!==-1) return;
+    l.push(seat);
+    if(qs.lastMsg && qs.lastMsg.type==='guess_reveal') qs.lastMsg.laughs=l.length;
+    broadcast({type:'laugh_status', author:author, n:l.length});
   }
   function hostBroadcastLobby(){
     broadcast({type:'lobby_update', players:qs.players.slice(), scores:qs.scores.slice(),
@@ -233,7 +243,7 @@
     qs.question=qs.pool.pop();
     qs.round++;
     qs.roundSeats=seats;
-    qs.answers={}; qs.order=[]; qs.idx=0; qs.votes={}; qs.lastMsg=null;
+    qs.answers={}; qs.order=[]; qs.idx=0; qs.votes={}; qs.laughs={}; qs.lastMsg=null;
     qs.phase='writing';
     setPhaseTimer(WRITE_MS, function(){ if(qs.phase==='writing') hostStartGuessing(); });
     seats.forEach(function(s){ sendToSeat(s, writeMsg(s)); });
@@ -301,7 +311,7 @@
     qs.phase='reveal';
     qs.lastMsg={type:'guess_reveal', round:qs.round, question:qs.question, idx:qs.idx, count:qs.order.length,
       text:qs.answers[author], author:author, votes:qs.votes, correct:correct, pts:pts, scores:qs.scores.slice(),
-      last:qs.idx>=qs.order.length-1};
+      last:qs.idx>=qs.order.length-1, laughs:(qs.laughs[author]||[]).length};
     broadcast(qs.lastMsg);
     hostBroadcastLobby();
   }
@@ -311,9 +321,11 @@
     if(qs.idx<qs.order.length-1){ qs.idx++; hostStartGuess(); return; }
     /* toutes les réponses sont passées : récap de la manche */
     qs.phase='scores';
-    var all={};
-    qs.order.forEach(function(s){ all[s]=qs.answers[s]; });
-    qs.lastMsg={type:'round_scores', round:qs.round, question:qs.question, answers:all, scores:qs.scores.slice()};
+    var all={}, laughs={}, best=0;
+    qs.order.forEach(function(s){ all[s]=qs.answers[s]; laughs[s]=(qs.laughs[s]||[]).length; best=Math.max(best, laughs[s]); });
+    var funniest=best ? qs.order.filter(function(s){ return laughs[s]===best; }) : [];
+    funniest.forEach(function(s){ qs.scores[s]=(qs.scores[s]||0)+1; });
+    qs.lastMsg={type:'round_scores', round:qs.round, question:qs.question, answers:all, laughs:laughs, funniest:funniest, scores:qs.scores.slice()};
     broadcast(qs.lastMsg);
     hostBroadcastLobby();
     if(CG.partyEnd) CG.partyEnd(qs.players, qs.scores);
@@ -363,6 +375,7 @@
       case 'write_status': if(inRound){ view.written=msg.written; renderWriteStatus(); } break;
       case 'guess_start': onGuessStart(msg); break;
       case 'vote_status': if(inRound){ view.voted=msg.voted; renderVoteStatus(); } break;
+      case 'laugh_status': if(msg.author===view.revealAuthor) renderLaugh(msg.n); break;
       case 'guess_reveal': onReveal(msg); break;
       case 'round_scores': onRoundScores(msg); break;
       case 'game_over': showGameOver(msg); break;
@@ -529,6 +542,9 @@
     $('qaeRevealVerdict').innerHTML=verdict;
     $('qaeRevealVotes').innerHTML=lines;
     $('qaeRevealBox').style.display='block';
+    view.revealAuthor=msg.author; view.laughed=false;
+    $('qaeLaughBtn').disabled=msg.author===mySeat;
+    renderLaugh(msg.laughs||0);
     var host=netRole==='host';
     $('qaeHostBtns').style.display=host?'flex':'none';
     $('qaeNextAnswerBtn').querySelector('span').textContent = msg.last ? '📊 Voir les scores' : '▶ Réponse suivante';
@@ -544,6 +560,16 @@
     order.sort(function(a,b){ return (scores[b]||0)-(scores[a]||0); });
     return order;
   }
+  function renderLaugh(n){
+    $('qaeLaughCount').textContent = n ? n+' 😂' : '';
+    $('qaeLaughBtn').classList.toggle('picked', !!view.laughed);
+  }
+  $('qaeLaughBtn').addEventListener('click',function(){
+    if(view.laughed || view.revealAuthor===mySeat || view.revealAuthor===undefined) return;
+    view.laughed=true; this.disabled=true; this.classList.add('picked');
+    CG.sfxToggle(); CG.buzz(30);
+    if(netRole==='host') hostReceiveLaugh(0, view.revealAuthor); else net.send({type:'laugh', author:view.revealAuthor});
+  });
   function onRoundScores(msg){
     inRound=false; stopBars(); hideBanner();
     qs.scores=msg.scores.slice();
@@ -552,7 +578,9 @@
     var html='';
     Object.keys(msg.answers).forEach(function(s){
       s=Number(s);
-      html+='<div class="qae-answer-recap">'+dot(s)+'<b>'+escapeHtml(pname(s))+'</b><span>« '+escapeHtml(msg.answers[s])+' »</span></div>';
+      var n=(msg.laughs||{})[s]||0, top=(msg.funniest||[]).indexOf(s)!==-1;
+      html+='<div class="qae-answer-recap'+(top?' funniest':'')+'">'+dot(s)+'<b>'+escapeHtml(pname(s))+'</b><span>« '+escapeHtml(msg.answers[s])+' »</span>'+
+        (n?'<em>'+(top?'🏅 ':'')+n+' 😂'+(top?' · +1':'')+'</em>':'')+'</div>';
     });
     $('qaeRecapAnswers').innerHTML=html;
     var rows='';
