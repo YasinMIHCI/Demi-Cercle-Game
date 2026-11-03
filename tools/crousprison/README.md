@@ -19,12 +19,6 @@ Nécessite l'accès réseau à `commons.wikimedia.org` et `upload.wikimedia.org`
    ```
 3. Copier les photos retenues dans `img/cop/` (redimensionnées, nom neutre qui ne trahit
    pas la réponse) et les lister dans `js/crousprison-photos.js` avec la légende, l'auteur,
-   la licence et le lien de la source (`meta.json`). Puis réafficher la carte du jeu dans
-   le hub (`index.html`, carte « CROUS OU PRISON ? » actuellement masquée).
+   la licence et le lien de la source (`meta.json`). Les nouvelles photos s'ajoutent
+   à la liste existante.
 
-## Si Wikimedia bride les requêtes (erreurs 429)
-
-Le workflow `.github/workflows/cop-photos.yml` fait le téléchargement depuis les serveurs
-de GitHub : modifier `tools/crousprison/run.txt` sur une branche `claude/**` le lance, et
-les vignettes réduites reviennent dans `tools/crousprison/candidates/` sur cette branche.
-Ce dossier est temporaire : trier, puis repartir de `main` sans lui (il ne doit pas être fusionné).

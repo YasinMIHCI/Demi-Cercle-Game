@@ -79,11 +79,10 @@
   var revealTimers=[];
 
   /* ===================== RÉSEAU ===================== */
-  function setNetStatus(cls,label){
-    var el=$('clsNetStatus');
-    el.className='net-status '+cls;
-    el.querySelector('.net-label').textContent=label;
-  }
+  var ui=CG.roomUI('cls', {route:'classement', code:function(){ return roomCode; },
+    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
+  var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
+  var seats=CG.seatTools(cs), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
     prefix: ROOM_PREFIX,
     onStatus: setNetStatus,
@@ -96,9 +95,7 @@
     onReconnected: function(){ hideBanner(); },
     onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
-  /* l'hôte traite une copie : l'affichage ne doit pas toucher l'état qui fait foi */
-  function broadcast(msg){ handleMsg(JSON.parse(JSON.stringify(msg))); net.sendToAll(msg); }
-  function sendToSeat(seat,msg){ if(seat===0) handleMsg(JSON.parse(JSON.stringify(msg))); else net.sendTo(seat,msg); }
+  var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
 
   function stopReveal(){ revealTimers.forEach(clearTimeout); revealTimers=[]; }
   function cleanupOnline(){
@@ -113,23 +110,7 @@
     hideBanner();
     setNetStatus('offline','HORS LIGNE');
   }
-  function showBanner(t){ $('clsNetBannerText').textContent=t; $('clsNetBanner').classList.add('open'); }
-  function hideBanner(){ $('clsNetBanner').classList.remove('open'); }
-  function showLostModal(text){
-    hideBanner(); setNetStatus('offline','DÉCONNECTÉ');
-    $('clsDisconnectModalText').textContent=text;
-    openModal('clsDisconnectModal');
-  }
-  $('clsDisconnectBackBtn').addEventListener('click',function(){
-    closeModal('clsDisconnectModal'); cleanupOnline(); gotoScreen('online');
-  });
 
-  function isConnected(seat){ return seat===0 || cs.connected[seat]!==false; }
-  function activeCount(){
-    var n=0;
-    for(var s=0;s<cs.players.length;s++){ if(cs.players[s] && isConnected(s)) n++; }
-    return n;
-  }
   function pname(seat){ var p=cs.players[seat]; return p?p.name:'?'; }
   function pcolor(seat){ return COLORS[seat%COLORS.length]; }
 
@@ -170,19 +151,13 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('clsCopyCodeBtn').addEventListener('click',function(){ copyText(roomCode, $('clsCopyCodeBtn')); });
-  $('clsCopyLinkBtn').addEventListener('click',function(){ copyText(location.origin+location.pathname+'#classement?room='+roomCode, $('clsCopyLinkBtn')); });
   $('clsBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
   $('clsHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
-  $('clsRulesBtn').addEventListener('click',function(){ openModal('clsRulesModal'); sfxToggle(); });
-  $('clsRulesModalClose').addEventListener('click',function(){ closeModal('clsRulesModal'); });
-  $('clsRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('clsRulesModal'); });
+  CG.wireModal('clsRulesModal', 'clsRulesBtn');
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    for(var s=1;s<cs.clientIds.length;s++){
-      if(msg.clientId && cs.clientIds[s]===msg.clientId && cs.players[s]) return s;
-    }
+    var back=seats.returningSeat(msg); if(back) return back;
     if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
     return Math.max(1, cs.players.length);
   }
@@ -388,23 +363,16 @@
   }
 
   /* ===================== AFFICHAGE ===================== */
-  function gotoScreen(name){
-    var all=document.querySelectorAll('.cls-screen');
-    for(var i=0;i<all.length;i++) all[i].classList.remove('active');
-    $('cls-screen-'+name).classList.add('active');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
   function refreshBanner(){
     if(!netRole || !inRound){ hideBanner(); return; }
     var missing=view.roundSeats.filter(function(s){ return cs.players[s] && !isConnected(s); }).map(pname);
-    if(missing.length) showBanner('⚠ '+missing.join(', ')+(missing.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — la manche continue sans eux.');
+    if(missing.length) showBanner(CG.missingText(missing));
     else hideBanner();
   }
-  function dot(s){ return '<span class="cham-player-dot" style="background:'+pcolor(s)+';"></span>'; }
+  function dot(s){ return CG.playerDot(pcolor(s)); }
   function playerRow(s, extra){
-    var p=cs.players[s]||{name:'?'}, off=!isConnected(s);
-    return '<div class="cham-player-row filled'+(off?' offline':'')+'">'+dot(s)+
-      '<span class="cham-player-name">'+escapeHtml(p.name)+(s===mySeat?' (toi)':'')+(off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+(extra||'')+'</div>';
+    var p=cs.players[s]||{name:'?'};
+    return CG.playerRow({name:p.name, color:pcolor(s), me:s===mySeat, off:!isConnected(s), extra:extra});
   }
   function renderLobby(){
     var html='';

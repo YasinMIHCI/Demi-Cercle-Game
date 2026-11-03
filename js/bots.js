@@ -62,10 +62,6 @@
 
   /* ===================== TERRAIN ===================== */
   function newGrid(){ return new Uint8Array(GW*GH); }
-  function gridGet(g,cx,cy){
-    if(cx<0||cx>=GW||cy<0||cy>=GH) return EMPTY;
-    return g[cy*GW+cx];
-  }
   /* RLE : [valeur, longueur, valeur, longueur...] */
   function gridEncode(g){
     var out=[], cur=g[0], n=0;
@@ -358,11 +354,10 @@
   var lockedSeats=[], turnEndsAt=0;
 
   /* ===================== RÉSEAU ===================== */
-  function botsSetNetStatus(cls,label){
-    var el=$('botsNetStatus');
-    el.className='net-status '+cls;
-    el.querySelector('.net-label').textContent=label;
-  }
+  var ui=CG.roomUI('bots', {route:'bots', code:function(){ return botsRoomCode; },
+    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
+  var botsSetNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost;
+  var seats=CG.seatTools(bs), isConnected=seats.isConnected;
   var net=CG.createRoomNet({
     prefix: BOTS_ROOM_PREFIX,
     onStatus: botsSetNetStatus,
@@ -375,8 +370,7 @@
     onReconnected: function(){ hideBanner(); },
     onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
-  /* l'hôte traite une copie : l'animation ne doit jamais toucher l'état qui fait foi */
-  function broadcast(msg){ handleMsg(JSON.parse(JSON.stringify(msg))); net.sendToAll(msg); }
+  var broadcast=net.broadcast;
 
   function cleanupOnline(){
     net.close(botsNetRole==='host' ? {type:'room_closed'} : null);
@@ -388,19 +382,7 @@
     hideBanner();
     botsSetNetStatus('offline','HORS LIGNE');
   }
-  function showBanner(t){ $('botsNetBannerText').textContent=t; $('botsNetBanner').classList.add('open'); }
-  function hideBanner(){ $('botsNetBanner').classList.remove('open'); }
-  function showLostModal(text){
-    hideBanner();
-    botsSetNetStatus('offline','DÉCONNECTÉ');
-    $('botsDisconnectModalText').textContent=text;
-    openModal('botsDisconnectModal');
-  }
-  $('botsDisconnectBackBtn').addEventListener('click',function(){
-    closeModal('botsDisconnectModal'); cleanupOnline(); gotoScreen('online');
-  });
 
-  function isConnected(seat){ return seat===0 || bs.connected[seat]!==false; }
   function activeSeats(){
     var out=[];
     for(var s=0;s<bs.players.length;s++){ if(bs.players[s] && isConnected(s)) out.push(s); }
@@ -449,19 +431,13 @@
     net.join(code, {name:botsMyName});
     sfxToggle();
   });
-  $('botsCopyCodeBtn').addEventListener('click',function(){ copyText(botsRoomCode, $('botsCopyCodeBtn')); });
-  $('botsCopyLinkBtn').addEventListener('click',function(){ copyText(location.origin+location.pathname+'#bots?room='+botsRoomCode, $('botsCopyLinkBtn')); });
   $('botsBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
   $('botsHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
-  $('botsRulesBtn').addEventListener('click',function(){ openModal('botsRulesModal'); sfxToggle(); });
-  $('botsRulesModalClose').addEventListener('click',function(){ closeModal('botsRulesModal'); });
-  $('botsRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('botsRulesModal'); });
+  CG.wireModal('botsRulesModal', 'botsRulesBtn');
 
   /* ----- hôte : places ----- */
   function hostOnJoinRequest(msg){
-    for(var s=1;s<bs.clientIds.length;s++){
-      if(msg.clientId && bs.clientIds[s]===msg.clientId && bs.players[s]) return s;
-    }
+    var s, back=seats.returningSeat(msg); if(back) return back;
     if(bs.phase!=='lobby' && bs.phase!=='ended'){
       /* en plein combat : seul un joueur déconnecté peut reprendre sa place */
       for(s=1;s<bs.players.length;s++){
@@ -815,11 +791,8 @@
     for(var s=0;s<bs.players.length;s++){
       var p=bs.players[s];
       if(!p) continue;
-      var off=!isConnected(s);
-      var col = bs.mode==='2v2' ? TEAM_COLORS[p.team] : playerColor(s, s===0?0:1);
-      html+='<div class="cham-player-row filled'+(off?' offline':'')+'"><span class="cham-player-dot" style="background:'+col+';"></span>'+
-        '<span class="cham-player-name">'+escapeHtml(p.name)+(s===botsMySeat?' (toi)':'')+(off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+
-        '<span class="imp-tag">'+TANKS[p.tank].name+(bs.mode==='2v2'?(p.team?' · BLEU':' · ROUGE'):'')+'</span></div>';
+      html+=CG.playerRow({name:p.name, color:bs.mode==='2v2' ? TEAM_COLORS[p.team] : playerColor(s, s===0?0:1), me:s===botsMySeat, off:!isConnected(s),
+        extra:'<span class="imp-tag">'+TANKS[p.tank].name+(bs.mode==='2v2'?(p.team?' · BLEU':' · ROUGE'):'')+'</span>'});
     }
     $('botsPlayerList').innerHTML=html;
     var problem= botsNetRole==='host' ? lobbyProblem() : null;

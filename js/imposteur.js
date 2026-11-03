@@ -234,24 +234,11 @@
   function impLeft(){ return Math.max(0, impDeadline-Date.now()); }
 
   /* ----- screens ----- */
-  function impGoto_(name){
-    var all=document.querySelectorAll('.imp-screen');
-    for(var i=0;i<all.length;i++){ all[i].classList.remove('active'); }
-    $('imp-screen-'+name).classList.add('active');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
-  function impSetNetStatus(cls,label){
-    var el=$('impNetStatus');
-    el.className='net-status '+cls;
-    el.querySelector('.net-label').textContent=label;
-  }
   function impRenderBankCount(){
     $('impBankCount').textContent=impState.bank.length+' paires de questions';
   }
 
-  $('impRulesBtn').addEventListener('click',function(){ openModal('impRulesModal'); sfxToggle(); });
-  $('impRulesModalClose').addEventListener('click',function(){ closeModal('impRulesModal'); });
-  $('impRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('impRulesModal'); });
+  CG.wireModal('impRulesModal', 'impRulesBtn');
   $('impHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   $('impBackFromLobby').addEventListener('click',function(){ sfxToggle(); impCleanupOnline(); impGoto_('online'); });
 
@@ -267,7 +254,11 @@
   });
 
   /* ================= RÉSEAU ================= */
-  var net = CG.createRoomNet({
+  var ui=CG.roomUI('imp', {route:'imposteur', code:function(){ return impCurrentRoomCode; },
+    onLostBack:function(){ impCleanupOnline(); impGoto_('online'); }});
+  var impSetNetStatus=ui.setStatus, impShowBanner=ui.showBanner, impHideBanner=ui.hideBanner, impShowLostModal=ui.showLost, impGoto_=ui.goto;
+  var seats=CG.seatTools(impState), impIsConnected=seats.isConnected, impActiveCount=seats.activeCount;
+  var net=CG.createRoomNet({
     prefix: IMP_ROOM_PREFIX,
     onStatus: impSetNetStatus,
     onJoinRequest: impHostOnJoinRequest,
@@ -279,8 +270,7 @@
     onReconnected: function(){ impHideBanner(); },
     onLost: function(){ impShowLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
-  /* l'hôte traite une copie : l'affichage ne doit pas toucher l'état qui fait foi */
-  function impBroadcast(msg){ impHandleNetMessage(JSON.parse(JSON.stringify(msg))); net.sendToAll(msg); }
+  var impBroadcast=net.broadcast;
 
   function impCleanupOnline(){
     net.close(impNetRole==='host' ? {type:'room_closed'} : null);
@@ -297,11 +287,6 @@
     impSetNetStatus('offline','HORS LIGNE');
   }
 
-  function impShowBanner(text){
-    $('impNetBannerText').textContent=text;
-    $('impNetBanner').classList.add('open');
-  }
-  function impHideBanner(){ $('impNetBanner').classList.remove('open'); }
   function impRefreshBanner(){
     if(!impNetRole || !impInRound){ impHideBanner(); return; }
     var missing=[];
@@ -310,29 +295,12 @@
     });
     var live=$('imp-screen-answer').classList.contains('active') || $('imp-screen-vote').classList.contains('active');
     if(missing.length && live){
-      impShowBanner('⚠ '+missing.join(', ')+(missing.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — la manche continue sans eux.');
+      impShowBanner(CG.missingText(missing));
     } else {
       impHideBanner();
     }
   }
-  function impShowLostModal(text){
-    impHideBanner();
-    impSetNetStatus('offline','DÉCONNECTÉ');
-    $('impDisconnectModalText').textContent=text;
-    openModal('impDisconnectModal');
-  }
-  $('impDisconnectBackBtn').addEventListener('click',function(){
-    closeModal('impDisconnectModal');
-    impCleanupOnline();
-    impGoto_('online');
-  });
 
-  function impIsConnected(seat){ return seat===0 || impState.connected[seat]!==false; }
-  function impActiveCount(){
-    var n=0;
-    for(var s=0;s<impState.players.length;s++){ if(impState.players[s] && impIsConnected(s)) n++; }
-    return n;
-  }
   function impIsRoundLive(){ return impState.phase==='answering' || impState.phase==='voting'; }
   function impPickColor(){
     var used=impState.players.map(function(p){ return p?p.color:null; });
@@ -365,9 +333,7 @@
 
   /* ----- host: seats ----- */
   function impHostOnJoinRequest(msg){
-    for(var s=1;s<impState.clientIds.length;s++){
-      if(msg.clientId && impState.clientIds[s]===msg.clientId && impState.players[s]) return s;
-    }
+    var back=seats.returningSeat(msg); if(back) return back;
     if(impActiveCount()>=8) return 'SALLE COMPLÈTE (8/8)';
     return Math.max(1, impState.players.length);
   }
@@ -456,17 +422,11 @@
     net.join(code, {name:impMyName});
     sfxToggle();
   });
-  $('impCopyCodeBtn').addEventListener('click',function(){ copyText(impCurrentRoomCode, $('impCopyCodeBtn')); });
-  $('impCopyLinkBtn').addEventListener('click',function(){
-    copyText(location.origin+location.pathname+'#imposteur?room='+impCurrentRoomCode, $('impCopyLinkBtn'));
-  });
 
   /* ----- lobby ----- */
   function impPlayerRow(i, extra){
     var p=impState.players[i];
-    var off=!impIsConnected(i);
-    return '<div class="cham-player-row filled'+(off?' offline':'')+'"><span class="cham-player-dot" style="background:'+p.color+';"></span>'+
-      '<span class="cham-player-name">'+escapeHtml(p.name)+(i===impMySeat?' (toi)':'')+(off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+(extra||'')+'</div>';
+    return CG.playerRow({name:p.name, color:p.color, me:i===impMySeat, off:!impIsConnected(i), extra:extra});
   }
   function impRenderLobby(){
     var html='';

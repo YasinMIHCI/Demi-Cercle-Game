@@ -56,11 +56,10 @@
   var view={questions:[], tokens:{hot:1,cold:1}, endsAt:0, totalMs:1, phase:'', voteKind:'', voted:false, voteTarget:null};
 
   /* ===================== RÉSEAU ===================== */
-  function setNetStatus(cls,label){
-    var el=$('loupNetStatus');
-    el.className='net-status '+cls;
-    el.querySelector('.net-label').textContent=label;
-  }
+  var ui=CG.roomUI('loup', {route:'loup', code:function(){ return roomCode; },
+    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
+  var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
+  var seats=CG.seatTools(ls), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
     prefix: ROOM_PREFIX,
     onStatus: setNetStatus,
@@ -73,8 +72,7 @@
     onReconnected: function(){ hideBanner(); },
     onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
-  function broadcast(msg){ handleMsg(JSON.parse(JSON.stringify(msg))); net.sendToAll(msg); }
-  function sendToSeat(seat, msg){ if(seat===0) handleMsg(JSON.parse(JSON.stringify(msg))); else net.sendTo(seat, msg); }
+  var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
 
   function clearTimers(){
     clearTimeout(ls.phaseTimer); ls.phaseTimer=null;
@@ -92,23 +90,7 @@
     hideBanner();
     setNetStatus('offline','HORS LIGNE');
   }
-  function showBanner(t){ $('loupNetBannerText').textContent=t; $('loupNetBanner').classList.add('open'); }
-  function hideBanner(){ $('loupNetBanner').classList.remove('open'); }
-  function showLostModal(text){
-    hideBanner(); setNetStatus('offline','DÉCONNECTÉ');
-    $('loupDisconnectModalText').textContent=text;
-    openModal('loupDisconnectModal');
-  }
-  $('loupDisconnectBackBtn').addEventListener('click',function(){
-    closeModal('loupDisconnectModal'); cleanupOnline(); gotoScreen('online');
-  });
 
-  function isConnected(seat){ return seat===0 || ls.connected[seat]!==false; }
-  function activeCount(){
-    var n=0;
-    for(var s=0;s<ls.players.length;s++){ if(ls.players[s] && isConnected(s)) n++; }
-    return n;
-  }
   function isRoundLive(){ return ['choosing','asking','loupvote','villagevote'].indexOf(ls.phase)!==-1; }
   function pname(seat){ var p=ls.players[seat]; return p?p.name:'?'; }
   function pcolor(seat){ return COLORS[seat%COLORS.length]; }
@@ -151,19 +133,13 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('loupCopyCodeBtn').addEventListener('click',function(){ copyText(roomCode, $('loupCopyCodeBtn')); });
-  $('loupCopyLinkBtn').addEventListener('click',function(){ copyText(location.origin+location.pathname+'#loup?room='+roomCode, $('loupCopyLinkBtn')); });
   $('loupBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
   $('loupHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
-  $('loupRulesBtn').addEventListener('click',function(){ openModal('loupRulesModal'); sfxToggle(); });
-  $('loupRulesModalClose').addEventListener('click',function(){ closeModal('loupRulesModal'); });
-  $('loupRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('loupRulesModal'); });
+  CG.wireModal('loupRulesModal', 'loupRulesBtn');
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    for(var s=1;s<ls.clientIds.length;s++){
-      if(msg.clientId && ls.clientIds[s]===msg.clientId && ls.players[s]) return s;
-    }
+    var back=seats.returningSeat(msg); if(back) return back;
     if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
     return Math.max(1, ls.players.length);
   }
@@ -417,12 +393,6 @@
   }
 
   /* ===================== AFFICHAGE ===================== */
-  function gotoScreen(name){
-    var all=document.querySelectorAll('.loup-screen');
-    for(var i=0;i<all.length;i++) all[i].classList.remove('active');
-    $('loup-screen-'+name).classList.add('active');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
   function isMayor(){ return mySeat===ls.mayorSeat; }
   function refreshBanner(){
     if(!netRole || !inRound){ hideBanner(); return; }
@@ -431,9 +401,8 @@
     else hideBanner();
   }
   function playerRow(s, extra){
-    var p=ls.players[s], off=!isConnected(s);
-    return '<div class="cham-player-row filled'+(off?' offline':'')+'"><span class="cham-player-dot" style="background:'+pcolor(s)+';"></span>'+
-      '<span class="cham-player-name">'+escapeHtml(p.name)+(s===mySeat?' (toi)':'')+(off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+(extra||'')+'</div>';
+    var p=ls.players[s]||{name:'?'};
+    return CG.playerRow({name:p.name, color:pcolor(s), me:s===mySeat, off:!isConnected(s), extra:extra});
   }
   function renderLobby(){
     var html='';

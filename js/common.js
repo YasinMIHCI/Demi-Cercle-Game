@@ -95,7 +95,88 @@
     };
   }
 
+  /* Fenêtre d'aide : bouton qui l'ouvre, croix et clic sur le fond qui la ferment. */
+  function wireModal(modalId, openId, closeId){
+    if(openId) $(openId).addEventListener('click',function(){ openModal(modalId); sfxToggle(); });
+    $(closeId||modalId+'Close').addEventListener('click',function(){ closeModal(modalId); });
+    $(modalId).addEventListener('click',function(e){ if(e.target===this) closeModal(modalId); });
+  }
+
+  /* ---------- SALLES EN LIGNE : interface commune ----------
+     Chaque jeu en ligne a les mêmes éléments, nommés avec son préfixe p :
+     #pNetStatus, #pNetBanner(+Text), #pDisconnectModal(+Text, BackBtn),
+     #pCopyCodeBtn / #pCopyLinkBtn, et ses écrans .p-screen / #p-screen-<nom>. */
+  function roomUI(p, opts){
+    opts=opts||{};
+    var sp=opts.screens||p;
+    var ui={
+      setStatus:function(cls,label){
+        var el=$(p+'NetStatus');
+        el.className='net-status '+cls;
+        el.querySelector('.net-label').textContent=label;
+      },
+      showBanner:function(t){ $(p+'NetBannerText').textContent=t; $(p+'NetBanner').classList.add('open'); },
+      hideBanner:function(){ $(p+'NetBanner').classList.remove('open'); },
+      /* connexion perdue pour de bon : fenêtre avec retour au menu */
+      showLost:function(text){
+        ui.hideBanner(); ui.setStatus('offline','DÉCONNECTÉ');
+        $(p+'DisconnectModalText').textContent=text;
+        openModal(p+'DisconnectModal');
+      },
+      goto:function(name){
+        var all=document.querySelectorAll('.'+sp+'-screen');
+        for(var i=0;i<all.length;i++) all[i].classList.remove('active');
+        $(sp+'-screen-'+name).classList.add('active');
+        window.scrollTo({top:0,behavior:'smooth'});
+      }
+    };
+    if(opts.onLostBack) $(p+'DisconnectBackBtn').addEventListener('click',function(){ closeModal(p+'DisconnectModal'); opts.onLostBack(); });
+    /* boutons « copier le code » et « copier le lien d'invitation » */
+    if(opts.route) {
+      $(p+'CopyCodeBtn').addEventListener('click',function(){ copyText(opts.code(), $(p+'CopyCodeBtn')); });
+      $(p+'CopyLinkBtn').addEventListener('click',function(){
+        copyText(location.origin+location.pathname+'#'+opts.route+'?room='+opts.code(), $(p+'CopyLinkBtn'));
+      });
+    }
+    return ui;
+  }
+  /* places d'une salle : st.players / st.connected / st.clientIds (la place 0 est l'hôte) */
+  function seatTools(st){
+    function isConnected(seat){ return seat===0 || st.connected[seat]!==false; }
+    return {
+      isConnected:isConnected,
+      activeCount:function(){
+        var n=0;
+        for(var s=0;s<st.players.length;s++){ if(st.players[s] && isConnected(s)) n++; }
+        return n;
+      },
+      /* même onglet qui revient (même identifiant client) : il retrouve sa place, sinon 0 */
+      returningSeat:function(msg){
+        for(var s=1;s<st.clientIds.length;s++){
+          if(msg.clientId && st.clientIds[s]===msg.clientId && st.players[s]) return s;
+        }
+        return 0;
+      }
+    };
+  }
+  /* « ⚠ Alice, Bob se sont déconnectés — la manche continue sans eux. » */
+  function missingText(names, what){
+    return '⚠ '+names.join(', ')+(names.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — '+(what||'la manche')+' continue sans eux.';
+  }
+  function playerDot(color){ return '<span class="cham-player-dot" style="background:'+color+';"></span>'; }
+  /* ligne de joueur des listes (lobby, scores…) */
+  function playerRow(o){
+    return '<div class="cham-player-row filled'+(o.off?' offline':'')+'">'+playerDot(o.color)+
+      '<span class="cham-player-name">'+escapeHtml(o.name)+(o.me?' (toi)':'')+(o.off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+(o.extra||'')+'</div>';
+  }
+
   CG.$=$;
+  CG.wireModal=wireModal;
+  CG.roomUI=roomUI;
+  CG.seatTools=seatTools;
+  CG.missingText=missingText;
+  CG.playerDot=playerDot;
+  CG.playerRow=playerRow;
   CG.timerBar=timerBar;
   CG.escapeHtml=escapeHtml;
   CG.shuffle=shuffle;

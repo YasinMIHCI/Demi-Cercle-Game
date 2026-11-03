@@ -409,6 +409,11 @@
     net.sendToAll = function(msg){
       for(var s=1;s<net.conns.length;s++) safeSend(net.conns[s],msg);
     };
+    /* hôte : à tout le monde, lui compris. L'hôte traite une copie : son
+       affichage ne doit jamais modifier l'état qui fait foi. */
+    function selfCopy(msg){ call('onHostMessage', JSON.parse(JSON.stringify(msg))); }
+    net.broadcast = function(msg){ selfCopy(msg); net.sendToAll(msg); };
+    net.sendToSeat = function(seat, msg){ if(seat===0) selfCopy(msg); else net.sendTo(seat, msg); };
     net.sendToAllExcept = function(msg, exceptSeat){
       for(var s=1;s<net.conns.length;s++){ if(s!==exceptSeat) safeSend(net.conns[s],msg); }
     };
