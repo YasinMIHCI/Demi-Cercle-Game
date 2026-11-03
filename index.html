@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=30">
+<link rel="stylesheet" href="css/style.css?v=31">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=30"></script>
-<script src="js/intro.js?v=30"></script>
+<script src="js/audio.js?v=31"></script>
+<script src="js/intro.js?v=31"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -789,6 +789,16 @@
           <button class="btn ghost small" id="qaeCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
         </div>
         <div class="cham-player-list" id="qaePlayerList"></div>
+        <div class="host-opts" id="qaeHostOpts" hidden>
+          <label for="qaeFormatSel">✍️ Forme des réponses</label>
+          <select id="qaeFormatSel">
+            <option value="t" selected>Texte</option>
+            <option value="d">Dessin</option>
+            <option value="e">Emojis seulement</option>
+            <option value="free">Au choix de chacun</option>
+          </select>
+          <label class="settings-check" for="qaeAnonChk"><input type="checkbox" id="qaeAnonChk"> 🤐 Totalement anonyme (pas de devinette, aucun nom, aucun point)</label>
+        </div>
         <p class="lobby-status" id="qaeLobbyStatus">En attente de joueurs... (3 minimum)</p>
         <div class="btn-row center">
           <button class="btn yellow" id="qaeStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
@@ -801,9 +811,39 @@
       <div class="panel">
         <div class="clue-bubble"><small>La question</small><span id="qaeQuestion"></span></div>
         <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="qaeWriteTimerFill"></div><span id="qaeWriteTimerText"></span></div>
-        <label for="qaeAnswerInput">Ta réponse (anonyme… jusqu'à ce qu'on te démasque)</label>
-        <textarea id="qaeAnswerInput" class="qae-input" maxlength="140" rows="3" placeholder="Sois honnête. Ou pas."></textarea>
-        <div class="qae-charcount" id="qaeCharCount">0 / 140</div>
+        <p class="qae-hint mine" id="qaeAnonNote" hidden>🤐 Mode totalement anonyme : personne ne saura jamais que c'est toi.</p>
+        <div class="format-toggle" id="qaeFormatTabs" hidden>
+          <button type="button" class="btn ghost small format-opt active" data-k="t"><span>✍️ Texte</span></button>
+          <button type="button" class="btn ghost small format-opt" data-k="d"><span>🎨 Dessin</span></button>
+          <button type="button" class="btn ghost small format-opt" data-k="e"><span>😀 Emojis</span></button>
+        </div>
+        <div id="qaeWriteArea">
+          <div id="qaeTextBox">
+            <label for="qaeAnswerInput">Ta réponse (anonyme… jusqu'à ce qu'on te démasque)</label>
+            <textarea id="qaeAnswerInput" class="qae-input" maxlength="140" rows="3" placeholder="Sois honnête. Ou pas."></textarea>
+            <div class="qae-charcount" id="qaeCharCount">0 / 140</div>
+          </div>
+          <div id="qaeDrawBox" hidden>
+            <label>Ta réponse en dessin</label>
+            <canvas id="qaeDrawCanvas" class="qae-draw" width="480" height="300" aria-label="Zone de dessin"></canvas>
+            <div class="qae-draw-tools" id="qaeDrawColors">
+              <button type="button" class="qae-color active" data-c="#111111" aria-label="Noir"></button>
+              <button type="button" class="qae-color" data-c="#e60012" aria-label="Rouge"></button>
+              <button type="button" class="qae-color" data-c="#2e6ff2" aria-label="Bleu"></button>
+              <button type="button" class="qae-color" data-c="#1fa83a" aria-label="Vert"></button>
+              <button type="button" class="qae-color" data-c="#ffb300" aria-label="Jaune"></button>
+              <button type="button" class="qae-color" data-c="#ff6ec7" aria-label="Rose"></button>
+              <button type="button" class="qae-color eraser" data-c="#ffffff" aria-label="Gomme">🧽</button>
+              <button type="button" class="btn ghost small" id="qaeDrawUndo"><span>↶ Annuler</span></button>
+              <button type="button" class="btn ghost small" id="qaeDrawClear"><span>🗑️ Effacer</span></button>
+            </div>
+          </div>
+          <div id="qaeEmojiBox" hidden>
+            <label for="qaeEmojiInput">Ta réponse en emojis seulement</label>
+            <div class="loup-ask"><input type="text" id="qaeEmojiInput" class="qae-emoji-input" maxlength="40" autocomplete="off" placeholder="🤔🍕💀"><button type="button" class="btn ghost small" id="qaeEmojiDel" aria-label="Effacer le dernier emoji"><span>⌫</span></button></div>
+            <div class="qae-emoji-palette" id="qaeEmojiPalette"></div>
+          </div>
+        </div>
         <div class="btn-row center">
           <button class="btn yellow" id="qaeAnswerBtn"><span>✅ Envoyer ma réponse</span></button>
         </div>
@@ -817,7 +857,7 @@
       <div class="panel">
         <div class="qae-progress" id="qaeGuessProgress">RÉPONSE 1 / 1</div>
         <p class="subtitle" style="text-align:center;margin-bottom:6px;" id="qaeGuessQuestion"></p>
-        <div class="qae-card" id="qaeGuessCard"><span class="qae-quote">“</span><span id="qaeGuessText"></span></div>
+        <div class="qae-card" id="qaeGuessCard"><span class="qae-quote">“</span><span id="qaeGuessText" data-base=""></span></div>
         <p class="qae-hint" id="qaeGuessHint"></p>
         <div id="qaeGuessTimer"><div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="qaeGuessTimerFill"></div><span id="qaeGuessTimerText"></span></div></div>
         <div class="cls-pool" id="qaeVoteChoices"></div>
@@ -1611,12 +1651,13 @@
     <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — QUI A ÉCRIT ÇA ?</h2>
     <ol class="rules-list">
       <li>Une question tombe pour tout le monde : « Ce que tu penses vraiment des pieds ? »</li>
-      <li>Chacun écrit sa réponse en secret (90 s, 140 caractères).</li>
+      <li>Chacun écrit sa réponse en secret (90 s, 140 caractères). L'hôte peut aussi demander des réponses en <b>dessin 🎨</b>, en <b>emojis 😀</b> seulement, ou laisser chacun choisir.</li>
       <li>Les réponses s'affichent une par une, <b>sans nom</b>, dans le désordre. Tout le monde vote : <b>qui a écrit ça ?</b> (30 s)</li>
       <li>Si c'est ta réponse, vote quand même pour quelqu'un d'autre : personne ne doit deviner que c'est toi !</li>
       <li><b>Points :</b> +1 par bonne devinette. L'auteur gagne +1 par joueur qu'il a berné (3 au maximum).</li>
       <li><b>😂 Trop drôle :</b> pendant la révélation, appuie si la réponse t'a fait rire. La réponse la plus drôle de la manche rapporte +1 à son auteur.</li>
       <li>Après chaque réponse, on voit qui a voté pour qui. L'hôte passe à la suite, enchaîne les questions et termine la partie quand il veut.</li>
+      <li><b>🤐 Mode totalement anonyme</b> (option de l'hôte) : pour les questions qui piquent. Pas de devinette ni de point : les réponses défilent sans aucun nom, même à la fin, et on ne peut que rire 😂.</li>
     </ol>
   </div>
 </div>
@@ -1914,21 +1955,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=30"></script>
-<script src="js/net.js?v=30"></script>
-<script src="js/demicercle.js?v=30"></script>
-<script src="js/cameleon.js?v=30"></script>
-<script src="js/imposteur.js?v=30"></script>
-<script src="js/loup.js?v=30"></script>
-<script src="js/classement.js?v=30"></script>
-<script src="js/quiaecrit.js?v=30"></script>
-<script src="js/crousprison-photos.js?v=30"></script>
-<script src="js/crousprison.js?v=30"></script>
-<script src="js/bots-maps.js?v=30"></script>
-<script src="js/bots.js?v=30"></script>
-<script src="js/pwa.js?v=30"></script>
-<script src="js/party.js?v=30"></script>
-<script src="js/account.js?v=30"></script>
-<script src="js/hub.js?v=30"></script>
+<script src="js/common.js?v=31"></script>
+<script src="js/net.js?v=31"></script>
+<script src="js/demicercle.js?v=31"></script>
+<script src="js/cameleon.js?v=31"></script>
+<script src="js/imposteur.js?v=31"></script>
+<script src="js/loup.js?v=31"></script>
+<script src="js/classement.js?v=31"></script>
+<script src="js/quiaecrit.js?v=31"></script>
+<script src="js/crousprison-photos.js?v=31"></script>
+<script src="js/crousprison.js?v=31"></script>
+<script src="js/bots-maps.js?v=31"></script>
+<script src="js/bots.js?v=31"></script>
+<script src="js/pwa.js?v=31"></script>
+<script src="js/party.js?v=31"></script>
+<script src="js/account.js?v=31"></script>
+<script src="js/hub.js?v=31"></script>
 </body>
 </html>

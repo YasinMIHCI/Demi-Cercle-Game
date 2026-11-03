@@ -16,6 +16,31 @@
   var WRITE_MS=90000, GUESS_MS=30000, MAX_LEN=140, FOOL_MAX=3;
   var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff'];
   var CUSTOM_KEY='qae_custom_v1';
+  /* forme des réponses : texte, dessin ou emojis (l'hôte choisit, ou chacun choisit)
+     une réponse = {k:'t'|'d'|'e', v:texte | image PNG en data URL | emojis} */
+  var EMOJI_MAX=40, DRAW_MAX=200000;
+  var EMOJI_RE=/^(?:\p{Extended_Pictographic}|\p{Emoji_Component}|\p{Emoji_Modifier}|\u200d|\ufe0f|\s)+$/u;
+  var DATA_RE=/^data:image\/png;base64,[A-Za-z0-9+\/=]+$/;
+  function cleanAnswer(a){
+    if(typeof a==='string') a={k:'t', v:a};
+    if(!a || typeof a!=='object') return null;
+    var v=String(a.v||'');
+    if(a.k==='d') return (v.length<=DRAW_MAX && DATA_RE.test(v)) ? {k:'d', v:v} : null;
+    if(a.k==='e'){
+      v=v.replace(/\s+/g,' ').trim().slice(0,EMOJI_MAX);
+      return (v && EMOJI_RE.test(v) && /\p{Extended_Pictographic}/u.test(v)) ? {k:'e', v:v} : null;
+    }
+    v=v.replace(/\s+/g,' ').trim().slice(0,MAX_LEN);
+    return v ? {k:'t', v:v} : null;
+  }
+  /* affiche une réponse dans un élément (sans jamais passer par innerHTML pour le contenu) */
+  function showAnswer(el, a){
+    el.innerHTML='';
+    el.className=(el.getAttribute('data-base')||'')+' ans-'+(a&&a.k||'t');
+    if(!a) return;
+    if(a.k==='d'){ var img=document.createElement('img'); img.src=a.v; img.alt='Dessin'; el.appendChild(img); }
+    else el.textContent=a.v;
+  }
 
   var DEFAULT_QUESTIONS=[
     /* ce que tu penses vraiment de... */
@@ -69,7 +94,8 @@
     players:[], scores:[], connected:[], clientIds:[],
     phase:'lobby',           /* 'lobby' | 'writing' | 'guess' | 'reveal' | 'scores' | 'over' | 'lobby_wait' */
     round:0, roundSeats:[], question:'', answers:{}, order:[], idx:0, votes:{}, laughs:{}, pool:[],
-    deadline:0, timer:null, lastMsg:null, started:false
+    deadline:0, timer:null, lastMsg:null, started:false,
+    format:'t', anon:false         /* réglages de la manche : 't' | 'd' | 'e' | 'free', mode anonyme */
   };
   var netRole=null, mySeat=0, myName='', roomCode='';
   var inRound=false, roundLiveForLobby=false;
@@ -178,7 +204,8 @@
     var inThis=qs.roundSeats.indexOf(seat)!==-1;
     if(qs.phase==='writing' && inThis) net.sendTo(seat, writeMsg(seat));
     else if(qs.phase==='guess' && inThis) net.sendTo(seat, guessMsg(seat));
-    else if((qs.phase==='reveal' || qs.phase==='scores') && inThis && qs.lastMsg) net.sendTo(seat, qs.lastMsg);
+    else if(qs.phase==='reveal' && inThis) net.sendTo(seat, revealMsg(seat));
+    else if(qs.phase==='scores' && inThis && qs.lastMsg) net.sendTo(seat, qs.lastMsg);
     else if(qs.phase==='over' && qs.lastMsg) net.sendTo(seat, qs.lastMsg);
   }
   function hostOnSeatLost(seat){
@@ -195,18 +222,19 @@
     else if(qs.phase==='guess') hostCheckVotes();
   }
   function hostOnGuestMessage(seat, msg){
-    if(msg.type==='write_submit') hostReceiveAnswer(seat, msg.text);
+    if(msg.type==='write_submit') hostReceiveAnswer(seat, msg.ans!==undefined ? msg.ans : msg.text);
     else if(msg.type==='guess_vote') hostReceiveVote(seat, msg.target);
-    else if(msg.type==='laugh') hostReceiveLaugh(seat, msg.author);
+    else if(msg.type==='laugh') hostReceiveLaugh(seat, msg.idx);
   }
-  /* 😂 pendant la révélation : la réponse la plus drôle de la manche rapporte +1 à son auteur */
-  function hostReceiveLaugh(seat, author){
-    if(qs.phase!=='reveal' || author!==qs.order[qs.idx] || seat===author || qs.roundSeats.indexOf(seat)===-1) return;
+  /* 😂 pendant la révélation : la réponse la plus drôle de la manche rapporte +1 à son auteur
+     (on désigne la réponse par son numéro : en mode anonyme, personne ne connaît l'auteur) */
+  function hostReceiveLaugh(seat, idx){
+    var author=qs.order[qs.idx];
+    if(qs.phase!=='reveal' || idx!==qs.idx || seat===author || qs.roundSeats.indexOf(seat)===-1) return;
     var l=qs.laughs[author]=qs.laughs[author]||[];
     if(l.indexOf(seat)!==-1) return;
     l.push(seat);
-    if(qs.lastMsg && qs.lastMsg.type==='guess_reveal') qs.lastMsg.laughs=l.length;
-    broadcast({type:'laugh_status', author:author, n:l.length});
+    broadcast({type:'laugh_status', idx:idx, n:l.length});
   }
   function hostBroadcastLobby(){
     broadcast({type:'lobby_update', players:qs.players.slice(), scores:qs.scores.slice(),
@@ -222,6 +250,7 @@
   /* ===================== HÔTE : MANCHE ===================== */
   function writeMsg(seat){
     return {type:'write_start', round:qs.round, question:qs.question, roundSeats:qs.roundSeats.slice(),
+      format:qs.format, anon:qs.anon,
       ms:left(), total:WRITE_MS, mine: qs.answers.hasOwnProperty(seat) ? qs.answers[seat] : null,
       written:Object.keys(qs.answers).map(Number)};
   }
@@ -244,16 +273,19 @@
     qs.round++;
     qs.roundSeats=seats;
     qs.answers={}; qs.order=[]; qs.idx=0; qs.votes={}; qs.laughs={}; qs.lastMsg=null;
+    var f=$('qaeFormatSel').value;
+    qs.format=['t','d','e','free'].indexOf(f)!==-1 ? f : 't';
+    qs.anon=$('qaeAnonChk').checked;
     qs.phase='writing';
     setPhaseTimer(WRITE_MS, function(){ if(qs.phase==='writing') hostStartGuessing(); });
     seats.forEach(function(s){ sendToSeat(s, writeMsg(s)); });
     hostBroadcastLobby();
   }
-  function hostReceiveAnswer(seat, text){
+  function hostReceiveAnswer(seat, ans){
     if(qs.phase!=='writing' || qs.roundSeats.indexOf(seat)===-1 || qs.answers.hasOwnProperty(seat)) return;
-    text=String(text||'').replace(/\s+/g,' ').trim().slice(0,MAX_LEN);
-    if(!text) return;
-    qs.answers[seat]=text;
+    var a=cleanAnswer(ans);
+    if(!a || (qs.format!=='free' && a.k!==qs.format)) return;
+    qs.answers[seat]=a;
     broadcast({type:'write_status', written:Object.keys(qs.answers).map(Number)});
     hostCheckWritten();
   }
@@ -274,11 +306,19 @@
     var author=qs.order[qs.idx];
     return {type:'guess_start', round:qs.round, question:qs.question, roundSeats:qs.roundSeats.slice(),
       writers:qs.order.slice().sort(function(a,b){ return a-b; }),
-      idx:qs.idx, count:qs.order.length, text:qs.answers[author], isMine:seat===author,
+      idx:qs.idx, count:qs.order.length, ans:qs.answers[author], isMine:seat===author,
       ms:left(), total:GUESS_MS, voted:Object.keys(qs.votes).map(Number),
       myVote: qs.votes.hasOwnProperty(seat) ? qs.votes[seat] : null};
   }
   function hostStartGuess(){
+    /* mode anonyme : pas de devinette, la réponse s'affiche directement, sans nom */
+    if(qs.anon){
+      qs.phase='reveal'; qs.votes={};
+      clearTimeout(qs.timer); qs.timer=null;
+      qs.roundSeats.forEach(function(s){ sendToSeat(s, revealMsg(s)); });
+      hostBroadcastLobby();
+      return;
+    }
     qs.phase='guess'; qs.votes={};
     setPhaseTimer(GUESS_MS, function(){ if(qs.phase==='guess') hostReveal(); });
     qs.roundSeats.forEach(function(s){ sendToSeat(s, guessMsg(s)); });
@@ -309,11 +349,17 @@
     if(fooled) pts[author]=Math.min(FOOL_MAX, fooled);
     Object.keys(pts).forEach(function(s){ qs.scores[s]=(qs.scores[s]||0)+pts[s]; });
     qs.phase='reveal';
-    qs.lastMsg={type:'guess_reveal', round:qs.round, question:qs.question, idx:qs.idx, count:qs.order.length,
-      text:qs.answers[author], author:author, votes:qs.votes, correct:correct, pts:pts, scores:qs.scores.slice(),
-      last:qs.idx>=qs.order.length-1, laughs:(qs.laughs[author]||[]).length};
-    broadcast(qs.lastMsg);
+    qs.lastReveal={correct:correct, pts:pts};
+    qs.roundSeats.forEach(function(s){ sendToSeat(s, revealMsg(s)); });
     hostBroadcastLobby();
+  }
+  /* révélation d'une réponse, propre à chaque joueur (en mode anonyme, seul l'auteur sait que c'est la sienne) */
+  function revealMsg(seat){
+    var author=qs.order[qs.idx], r=qs.anon ? {correct:[], pts:{}} : (qs.lastReveal||{correct:[], pts:{}});
+    return {type:'guess_reveal', round:qs.round, question:qs.question, idx:qs.idx, count:qs.order.length,
+      ans:qs.answers[author], anon:qs.anon, author:qs.anon ? -1 : author, isMine:seat===author,
+      votes:qs.anon ? {} : qs.votes, correct:r.correct, pts:r.pts, scores:qs.scores.slice(),
+      last:qs.idx>=qs.order.length-1, laughs:(qs.laughs[author]||[]).length};
   }
   $('qaeNextAnswerBtn').addEventListener('click',function(){
     if(netRole!=='host' || qs.phase!=='reveal') return;
@@ -324,8 +370,14 @@
     var all={}, laughs={}, best=0;
     qs.order.forEach(function(s){ all[s]=qs.answers[s]; laughs[s]=(qs.laughs[s]||[]).length; best=Math.max(best, laughs[s]); });
     var funniest=best ? qs.order.filter(function(s){ return laughs[s]===best; }) : [];
-    funniest.forEach(function(s){ qs.scores[s]=(qs.scores[s]||0)+1; });
-    qs.lastMsg={type:'round_scores', round:qs.round, question:qs.question, answers:all, laughs:laughs, funniest:funniest, scores:qs.scores.slice()};
+    if(qs.anon){
+      /* anonyme : liste dans l'ordre de passage, sans auteur ni point (un point trahirait l'auteur) */
+      var list=qs.order.map(function(s){ return {ans:qs.answers[s], laughs:laughs[s], top:funniest.indexOf(s)!==-1}; });
+      qs.lastMsg={type:'round_scores', round:qs.round, question:qs.question, anon:true, list:list, scores:qs.scores.slice()};
+    } else {
+      funniest.forEach(function(s){ qs.scores[s]=(qs.scores[s]||0)+1; });
+      qs.lastMsg={type:'round_scores', round:qs.round, question:qs.question, answers:all, laughs:laughs, funniest:funniest, scores:qs.scores.slice()};
+    }
     broadcast(qs.lastMsg);
     hostBroadcastLobby();
     if(CG.partyEnd) CG.partyEnd(qs.players, qs.scores);
@@ -340,7 +392,7 @@
     if(netRole!=='host' || qs.phase!=='scores') return;
     sfxValidate();
     qs.phase='over';
-    qs.lastMsg={type:'game_over', scores:qs.scores.slice(), players:qs.players.slice()};
+    qs.lastMsg={type:'game_over', scores:qs.scores.slice(), players:qs.players.slice(), anyScored:qs.scores.some(function(x){ return x>0; })};
     broadcast(qs.lastMsg);
     hostBroadcastLobby();
   });
@@ -375,7 +427,7 @@
       case 'write_status': if(inRound){ view.written=msg.written; renderWriteStatus(); } break;
       case 'guess_start': onGuessStart(msg); break;
       case 'vote_status': if(inRound){ view.voted=msg.voted; renderVoteStatus(); } break;
-      case 'laugh_status': if(msg.author===view.revealAuthor) renderLaugh(msg.n); break;
+      case 'laugh_status': if(msg.idx===view.revealIdx) renderLaugh(msg.n); break;
       case 'guess_reveal': onReveal(msg); break;
       case 'round_scores': onRoundScores(msg); break;
       case 'game_over': showGameOver(msg); break;
@@ -425,39 +477,140 @@
     else if(count<MIN_PLAYERS) st.textContent=count+' joueur(s) connecté(s) — '+MIN_PLAYERS+' minimum pour lancer la partie.';
     else st.textContent = netRole==='host' ? (count+' joueurs prêts. Tu peux lancer la partie !') : (count+" joueurs prêts. En attente que l'hôte lance la partie...");
     $('qaeStartBtn').style.display = (netRole==='host' && count>=MIN_PLAYERS && !live) ? 'inline-block' : 'none';
+    $('qaeHostOpts').hidden = netRole!=='host' || live;
   }
 
-  /* ----- écriture ----- */
+  /* ----- écriture : texte, dessin ou emojis ----- */
+  var FORMAT_LABEL={t:'✍️ Texte', d:'🎨 Dessin', e:'😀 Emojis'};
+  var EMOJIS=['😂','🤣','😭','😍','🥰','😎','🤔','😱','🤢','🤮','😈','💀','👻','🤡','💩','👀','🙈','🔥','💯','❤️','💔','👍','👎','🙏',
+    '💪','🍕','🍔','🍟','🍺','🍷','☕','🎉','🎁','⚽','🎮','📱','💸','🚀','🚽','🛏️','🐶','🐱','🐷','🐍','🦄','🌈','☀️','🌧️','⏰','👑'];
+  /* petit carnet de dessin : fond blanc, quelques couleurs, effacer / annuler */
+  var pad=(function(){
+    var cv=$('qaeDrawCanvas'), ctx=cv.getContext('2d'), strokes=[], cur=null, color='#111111', locked=false;
+    function redraw(){
+      ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+      ctx.lineCap='round'; ctx.lineJoin='round';
+      strokes.forEach(function(st){
+        ctx.strokeStyle=st.c; ctx.lineWidth=st.w;
+        ctx.beginPath(); ctx.moveTo(st.p[0][0], st.p[0][1]);
+        if(st.p.length===1) ctx.lineTo(st.p[0][0]+0.1, st.p[0][1]);
+        for(var i=1;i<st.p.length;i++) ctx.lineTo(st.p[i][0], st.p[i][1]);
+        ctx.stroke();
+      });
+    }
+    function pos(e){
+      var r=cv.getBoundingClientRect();
+      return [Math.round((e.clientX-r.left)/r.width*cv.width), Math.round((e.clientY-r.top)/r.height*cv.height)];
+    }
+    cv.addEventListener('pointerdown', function(e){
+      if(locked) return;
+      e.preventDefault();
+      try{ cv.setPointerCapture(e.pointerId); }catch(err){}
+      cur={c:color, w:color==='#ffffff'?18:5, p:[pos(e)]}; strokes.push(cur); redraw();
+    });
+    cv.addEventListener('pointermove', function(e){ if(cur){ cur.p.push(pos(e)); redraw(); } });
+    function end(){ cur=null; }
+    cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+    var colors=document.querySelectorAll('#qaeDrawColors .qae-color');
+    Array.prototype.forEach.call(colors, function(b){
+      b.style.background=b.getAttribute('data-c');
+      b.addEventListener('click', function(){
+        color=b.getAttribute('data-c');
+        Array.prototype.forEach.call(colors, function(x){ x.classList.toggle('active', x===b); });
+        sfxToggle();
+      });
+    });
+    $('qaeDrawUndo').addEventListener('click', function(){ if(locked) return; strokes.pop(); redraw(); sfxToggle(); });
+    $('qaeDrawClear').addEventListener('click', function(){ if(locked) return; strokes=[]; redraw(); sfxToggle(); });
+    redraw();
+    return {
+      reset:function(){ strokes=[]; cur=null; locked=false; redraw(); },
+      lock:function(v){ locked=v; },
+      empty:function(){ return !strokes.length; },
+      show:function(url){ var img=new Image(); img.onload=function(){ ctx.drawImage(img,0,0,cv.width,cv.height); }; img.src=url; },
+      data:function(){ return cv.toDataURL('image/png'); }
+    };
+  })();
+  (function(){
+    var html='';
+    EMOJIS.forEach(function(e){ html+='<button type="button" class="qae-emoji">'+e+'</button>'; });
+    $('qaeEmojiPalette').innerHTML=html;
+    var btns=$('qaeEmojiPalette').querySelectorAll('.qae-emoji');
+    Array.prototype.forEach.call(btns, function(b){
+      b.addEventListener('click', function(){
+        if(view.sent) return;
+        var inp=$('qaeEmojiInput');
+        if((inp.value+b.textContent).length>EMOJI_MAX){ shake(inp); return; }
+        inp.value+=b.textContent; sfxToggle();
+      });
+    });
+    $('qaeEmojiDel').addEventListener('click', function(){
+      if(view.sent) return;
+      var arr=Array.from ? Array.from($('qaeEmojiInput').value) : $('qaeEmojiInput').value.split('');
+      /* retire le dernier emoji entier (avec ses variantes et liaisons) */
+      while(arr.length && /[\u200d\ufe0f]|\p{Emoji_Modifier}/u.test(arr[arr.length-1])) arr.pop();
+      arr.pop();
+      while(arr.length && arr[arr.length-1]==='\u200d'){ arr.pop(); arr.pop(); }
+      $('qaeEmojiInput').value=arr.join('');
+      sfxToggle();
+    });
+    var tabs=$('qaeFormatTabs').querySelectorAll('button');
+    Array.prototype.forEach.call(tabs, function(t){
+      t.addEventListener('click', function(){ if(view.sent) return; setWriteFormat(t.getAttribute('data-k')); sfxToggle(); });
+    });
+  })();
+  function setWriteFormat(k){
+    view.k=k;
+    var tabs=$('qaeFormatTabs').querySelectorAll('button');
+    Array.prototype.forEach.call(tabs, function(t){ t.classList.toggle('active', t.getAttribute('data-k')===k); });
+    $('qaeTextBox').hidden=k!=='t';
+    $('qaeDrawBox').hidden=k!=='d';
+    $('qaeEmojiBox').hidden=k!=='e';
+  }
   function onWriteStart(msg){
     if(!inRound) CG.yourTurn();
     inRound=true; stopBars();
     view.roundSeats=msg.roundSeats.slice(); view.written=msg.written||[]; view.sent=msg.mine!==null && msg.mine!==undefined;
+    view.format=msg.format||'t'; view.anon=!!msg.anon;
     setRound(msg.round);
     $('qaeQuestion').textContent=msg.question;
-    $('qaeAnswerInput').value=view.sent ? msg.mine : '';
+    $('qaeFormatTabs').hidden=view.format!=='free';
+    var mine=view.sent ? cleanAnswer(msg.mine) : null;
+    setWriteFormat(mine ? mine.k : (view.format==='free' ? 't' : view.format));
+    $('qaeAnswerInput').value=(mine && mine.k==='t') ? mine.v : '';
+    $('qaeEmojiInput').value=(mine && mine.k==='e') ? mine.v : '';
+    pad.reset();
+    if(mine && mine.k==='d') pad.show(mine.v);
+    $('qaeAnonNote').hidden=!view.anon;
     renderWriteBox();
     renderWriteStatus();
     writeBar.start(msg.ms, msg.total);
     gotoScreen('write');
     refreshBanner();
     sfxToggle();
-    if(!view.sent) setTimeout(function(){ try{ $('qaeAnswerInput').focus(); }catch(e){} }, 350);
+    if(!view.sent && view.k==='t') setTimeout(function(){ try{ $('qaeAnswerInput').focus(); }catch(e){} }, 350);
   }
   function renderWriteBox(){
     $('qaeAnswerInput').disabled=view.sent;
+    $('qaeEmojiInput').disabled=view.sent;
+    pad.lock(view.sent);
+    $('qaeWriteArea').classList.toggle('sent', view.sent);
     $('qaeAnswerBtn').style.display=view.sent?'none':'inline-block';
     updateCharCount();
   }
   function updateCharCount(){ $('qaeCharCount').textContent=$('qaeAnswerInput').value.length+' / '+MAX_LEN; }
   $('qaeAnswerInput').addEventListener('input', updateCharCount);
   $('qaeAnswerInput').addEventListener('keydown',function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $('qaeAnswerBtn').click(); } });
+  $('qaeEmojiInput').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('qaeAnswerBtn').click(); } });
   $('qaeAnswerBtn').addEventListener('click',function(){
     if(view.sent) return;
-    var text=$('qaeAnswerInput').value.replace(/\s+/g,' ').trim();
-    if(!text){ shake($('qaeAnswerInput')); return; }
+    var a=null;
+    if(view.k==='d'){ if(!pad.empty()) a=cleanAnswer({k:'d', v:pad.data()}); if(!a){ shake($('qaeDrawCanvas')); return; } }
+    else if(view.k==='e'){ a=cleanAnswer({k:'e', v:$('qaeEmojiInput').value}); if(!a){ shake($('qaeEmojiInput')); return; } }
+    else { a=cleanAnswer({k:'t', v:$('qaeAnswerInput').value}); if(!a){ shake($('qaeAnswerInput')); return; } }
     view.sent=true;
     sfxValidate();
-    if(netRole==='host') hostReceiveAnswer(0, text); else net.send({type:'write_submit', text:text});
+    if(netRole==='host') hostReceiveAnswer(0, a); else net.send({type:'write_submit', ans:a});
     renderWriteBox(); renderWriteStatus();
   });
   function renderWriteStatus(){
@@ -477,7 +630,7 @@
     setRound(msg.round);
     $('qaeGuessQuestion').textContent=msg.question;
     $('qaeGuessProgress').textContent='RÉPONSE '+(msg.idx+1)+' / '+msg.count;
-    $('qaeGuessText').textContent=msg.text;
+    showCard(msg.ans);
     $('qaeGuessCard').classList.remove('revealed');
     $('qaeGuessHint').textContent = msg.isMine ? '🤫 C’est ta réponse ! Vote pour quelqu’un d’autre pour brouiller les pistes.' : '🔎 Qui a écrit ça ?';
     $('qaeGuessHint').className='qae-hint'+(msg.isMine?' mine':'');
@@ -513,6 +666,11 @@
     refreshBanner();
     sfxToggle();
   }
+  function showCard(ans){
+    var a=cleanAnswer(ans);
+    showAnswer($('qaeGuessText'), a);
+    $('qaeGuessCard').classList.toggle('pic', !!a && a.k!=='t');
+  }
   function renderVoteStatus(){
     $('qaeVoteStatus').textContent=(view.myVote!==null?'Vote envoyé. ':'')+view.voted.length+' / '+view.roundSeats.length+' votes';
   }
@@ -523,10 +681,11 @@
     /* joueur revenu pendant la révélation : on remet la carte de la réponse */
     $('qaeGuessQuestion').textContent=msg.question;
     $('qaeGuessProgress').textContent='RÉPONSE '+(msg.idx+1)+' / '+msg.count;
-    $('qaeGuessText').textContent=msg.text;
+    showCard(msg.ans);
     $('qaeGuessCard').classList.add('revealed');
     $('qaeGuessHint').className='qae-hint author';
-    $('qaeGuessHint').innerHTML='✍️ Écrit par <b style="color:'+pcolor(msg.author)+'">'+escapeHtml(pname(msg.author))+'</b>'+(msg.author===mySeat?' (toi)':'')+' !';
+    if(msg.anon) $('qaeGuessHint').innerHTML='🤐 Réponse anonyme'+(msg.isMine?' <small>(c’est la tienne, chut !)</small>':'');
+    else $('qaeGuessHint').innerHTML='✍️ Écrit par <b style="color:'+pcolor(msg.author)+'">'+escapeHtml(pname(msg.author))+'</b>'+(msg.author===mySeat?' (toi)':'')+' !';
     $('qaeVoteChoices').style.display='none';
     $('qaeGuessTimer').style.display='none';
     var lines='';
@@ -539,11 +698,12 @@
     var nonAuthorVotes=Object.keys(msg.votes).filter(function(v){ return Number(v)!==msg.author; }).length;
     var verdict = !nonAuthorVotes ? '😴 Personne n’a voté.' : !msg.correct.length ? '🕵️ Personne n’a trouvé ! '+escapeHtml(pname(msg.author))+' +'+fooled
       : (fooled ? escapeHtml(pname(msg.author))+' a berné '+fooled+' joueur'+(fooled>1?'s':'')+' (+'+fooled+')' : '🎯 Tout le monde l’a reconnu(e) !');
+    if(msg.anon) verdict='';
     $('qaeRevealVerdict').innerHTML=verdict;
     $('qaeRevealVotes').innerHTML=lines;
     $('qaeRevealBox').style.display='block';
-    view.revealAuthor=msg.author; view.laughed=false;
-    $('qaeLaughBtn').disabled=msg.author===mySeat;
+    view.revealIdx=msg.idx; view.revealMine=!!msg.isMine; view.laughed=false;
+    $('qaeLaughBtn').disabled=view.revealMine;
     renderLaugh(msg.laughs||0);
     var host=netRole==='host';
     $('qaeHostBtns').style.display=host?'flex':'none';
@@ -551,7 +711,8 @@
     $('qaeGuessWait').style.display=host?'none':'block';
     $('qaeVoteStatus').textContent='';
     gotoScreen('guess');
-    if(msg.correct.indexOf(mySeat)!==-1 || (msg.author===mySeat && fooled)) sfxReveal(100);
+    if(msg.anon) sfxReveal(50);
+    else if(msg.correct.indexOf(mySeat)!==-1 || (msg.author===mySeat && fooled)) sfxReveal(100);
     else sfxReveal(msg.author===mySeat ? 0 : 20);
   }
   function scoreRows(scores){
@@ -565,24 +726,31 @@
     $('qaeLaughBtn').classList.toggle('picked', !!view.laughed);
   }
   $('qaeLaughBtn').addEventListener('click',function(){
-    if(view.laughed || view.revealAuthor===mySeat || view.revealAuthor===undefined) return;
+    if(view.laughed || view.revealMine || view.revealIdx===undefined) return;
     view.laughed=true; this.disabled=true; this.classList.add('picked');
     CG.sfxToggle(); CG.buzz(30);
-    if(netRole==='host') hostReceiveLaugh(0, view.revealAuthor); else net.send({type:'laugh', author:view.revealAuthor});
+    if(netRole==='host') hostReceiveLaugh(0, view.revealIdx); else net.send({type:'laugh', idx:view.revealIdx});
   });
   function onRoundScores(msg){
     inRound=false; stopBars(); hideBanner();
     qs.scores=msg.scores.slice();
     setRound(msg.round);
     $('qaeRecapQuestion').textContent=msg.question;
-    var html='';
-    Object.keys(msg.answers).forEach(function(s){
+    var box=$('qaeRecapAnswers'); box.innerHTML='';
+    /* une ligne par réponse ; le contenu passe par showAnswer (texte, image ou emojis) */
+    function recapRow(seat, ans, n, top){
+      var row=document.createElement('div');
+      row.className='qae-answer-recap'+(top?' funniest':'');
+      row.innerHTML=(seat>=0 ? dot(seat)+'<b>'+escapeHtml(pname(seat))+'</b>' : '<b>🤐</b>')+'<div class="qae-recap-ans" data-base="qae-recap-ans"></div>'+
+        (n?'<em>'+(top?'🏅 ':'')+n+' 😂'+(top && seat>=0?' · +1':'')+'</em>':'');
+      showAnswer(row.querySelector('.qae-recap-ans'), cleanAnswer(ans));
+      box.appendChild(row);
+    }
+    if(msg.anon) (msg.list||[]).forEach(function(it){ recapRow(-1, it.ans, it.laughs, it.top); });
+    else Object.keys(msg.answers).forEach(function(s){
       s=Number(s);
-      var n=(msg.laughs||{})[s]||0, top=(msg.funniest||[]).indexOf(s)!==-1;
-      html+='<div class="qae-answer-recap'+(top?' funniest':'')+'">'+dot(s)+'<b>'+escapeHtml(pname(s))+'</b><span>« '+escapeHtml(msg.answers[s])+' »</span>'+
-        (n?'<em>'+(top?'🏅 ':'')+n+' 😂'+(top?' · +1':'')+'</em>':'')+'</div>';
+      recapRow(s, msg.answers[s], (msg.laughs||{})[s]||0, (msg.funniest||[]).indexOf(s)!==-1);
     });
-    $('qaeRecapAnswers').innerHTML=html;
     var rows='';
     scoreRows(qs.scores).forEach(function(s){ rows+=playerRow(s, '<span class="cham-vote-count">'+(qs.scores[s]||0)+' pts</span>'); });
     $('qaeScoreList').innerHTML=rows;
@@ -607,7 +775,8 @@
         '<span class="cls-slot-name">'+escapeHtml((msg.players[s]||{}).name||'?')+(s===mySeat?' (toi)':'')+'</span><span class="cham-vote-count">'+(msg.scores[s]||0)+' pts</span></div>';
     });
     $('qaeFinalList').innerHTML=html;
-    if(CG.account) CG.account.recordRanked('quiaecrit', msg.scores, order, mySeat);
+    /* partie toute en mode anonyme : aucun point, rien à enregistrer */
+    if(CG.account && msg.anyScored!==false) CG.account.recordRanked('quiaecrit', msg.scores, order, mySeat);
     $('qaeNewGameBtn').style.display = netRole==='host' ? 'inline-block' : 'none';
     $('qaeOverWaitLabel').style.display = netRole==='host' ? 'none' : 'inline-block';
     sfxReveal(winners.indexOf(mySeat)!==-1 ? 100 : 50);
