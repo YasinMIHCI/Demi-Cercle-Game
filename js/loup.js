@@ -338,6 +338,7 @@
     ls.lastResult=msg;
     broadcast(msg);
     hostBroadcastLobby();
+    if(CG.partyEnd) CG.partyEnd(ls.players, ls.scores);
   }
   function hostAbort(reason){
     clearTimers();

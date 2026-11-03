@@ -44,6 +44,16 @@ Tout le son passe par `js/audio.js` (un seul contexte audio pour le site) :
 
 ## Les jeux
 
+### 🎉 Soirée All in
+Une seule salle pour toute la soirée (2 à 10 joueurs). L'hôte coche les jeux et choisit le
+nombre de manches (3 à 15) : chaque manche lance un jeu différent (les jeux choisis passent
+tous, dans un ordre mélangé, avant qu'un jeu ne revienne). La salle de chaque jeu s'ouvre et
+se rejoint toute seule, la partie démarre quand tout le monde est là, et à la fin de la manche
+tout le monde revient au classement général. Points de soirée selon la place dans la manche
+(10, 7, 5, 4, 3, 2, puis 1 ; égalité = même place), pour que tous les jeux pèsent pareil.
+Un jeu qui ne se joue pas au nombre de joueurs présents est remplacé ; l'hôte peut passer une
+manche bloquée. Fichier : `js/party.js` (chaque jeu appelle `CG.partyEnd()` côté hôte en fin de manche).
+
 ### 🌗 Le Demi-Cercle
 Jeu d'estimation inspiré du *Jeu du Demi-Cercle* (Wankil Studio).
 Un thème avec deux extrémités opposées (« Films » : NAVET TOTAL ↔ CHEF-D'ŒUVRE),
@@ -173,6 +183,8 @@ js/bots.js        Battle Bots : physique, simulation, réseau, visée, rendu
 js/pwa.js         app installable : service worker, bouton « Installer l'app »
 sw.js             service worker (cache hors ligne)
 manifest.webmanifest  nom, icônes et couleurs de l'app
+js/party.js       Soirée All in : salle de la soirée, enchaînement des jeux, classement général
+js/vendor/qrcode.js  générateur de QR codes (licence MIT)
 js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison), infos, bouton son
 ```
 

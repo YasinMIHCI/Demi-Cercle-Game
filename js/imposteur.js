@@ -515,6 +515,7 @@
       ms:IMP_VOTE_MS, total:IMP_VOTE_MS};
     impState.lastPhaseMsg=msg;
     impBroadcast(msg);
+    if(CG.partyEnd) CG.partyEnd(impState.players, impState.scores);
   }
   function impHostReceiveVote(seat, target){
     var rs=impState.roundSeats;
