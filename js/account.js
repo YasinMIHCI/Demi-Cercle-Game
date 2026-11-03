@@ -291,8 +291,28 @@
   }
   wire();
 
+  /* ---------- Demi-Cercle : meilleures estimations (table dc_estimates, voir schema.sql) ---------- */
+  function recordEstimate(e){
+    if(!session) return;
+    function txt(v,n){ return String(v||'').slice(0,n); }
+    authed('/rest/v1/rpc/record_estimate',{method:'POST', body:{
+      p_role:e.role==='giver'?'giver':'guesser', p_points:Math.round(+e.points||0), p_theme:txt(e.theme,30),
+      p_left:txt(e.left,20), p_right:txt(e.right,20), p_clue:txt(e.clue,60), p_target:+e.target||0, p_guess:+e.guess||0}})
+      .then(function(){ bestCache=null; }).catch(function(){});
+  }
+  var bestCache=null;
+  function bestEstimates(limit){
+    if(bestCache && Date.now()-bestCache.t<60000) return bestCache.p;
+    var p=request('/rest/v1/best_estimates?select=*&limit='+(limit||8));
+    bestCache={t:Date.now(), p:p};
+    p.catch(function(){ bestCache=null; });
+    return p;
+  }
+
   CG.account={
     record:record,
+    recordEstimate:recordEstimate,
+    bestEstimates:bestEstimates,
     isLoggedIn:function(){ return !!session; },
     /* raccourci pour les jeux à classement : score du joueur et victoire (ex-aequo compris) */
     recordRanked:function(game, scores, seats, mySeat){

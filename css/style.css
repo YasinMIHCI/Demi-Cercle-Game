@@ -878,3 +878,16 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .qae-recap-ans.ans-e{font-size:1.6rem;}
 #qaeWriteArea.sent .qae-emoji-palette,#qaeWriteArea.sent .qae-draw-tools,#qaeWriteArea.sent #qaeEmojiDel{display:none;}
 .qae-recap-ans{color:#ddd;flex:1;min-width:60%;word-break:break-word;}
+
+/* Demi-Cercle : équipes tournantes, meilleures estimations */
+.rot-lobby{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:14px 0;}
+.rot-board{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;width:100%;}
+.score-chip.rot-chip{padding:6px 10px;}
+.score-chip.rot-chip .score-name{font-size:0.85rem;}
+.score-chip.rot-chip.off{opacity:0.5;}
+.est-list{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.est-row{display:flex;gap:10px;align-items:center;background:#151515;border:2px solid #333;padding:8px 10px;}
+.est-pts{font-family:var(--font-display);font-size:1.6rem;color:var(--yellow);min-width:44px;text-align:center;}
+.est-body{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.est-body b{color:#fff;word-break:break-word;}
+.est-body small{color:#999;font-size:0.78rem;}
