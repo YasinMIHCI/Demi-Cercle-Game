@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=27">
+<link rel="stylesheet" href="css/style.css?v=28">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=27"></script>
-<script src="js/intro.js?v=27"></script>
+<script src="js/audio.js?v=28"></script>
+<script src="js/intro.js?v=28"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -605,7 +605,7 @@
     <section class="imp-screen active" id="imp-screen-online">
       <div class="panel">
         <h1 class="screen-title">L'IMPOSTEUR DES CHIFFRES</h1>
-        <p class="subtitle">3 à 8 joueurs. Tout le monde répond par un nombre à la même question… sauf un joueur qui a reçu une autre question, sans le savoir. Démasquez-le !</p>
+        <p class="subtitle">3 à 8 joueurs. Tout le monde répond à la même question, par un nombre ou en quelques mots… sauf un joueur (deux à partir de 6) qui a reçu une autre question, sans le savoir. Démasquez-le !</p>
         <div class="btn-row">
           <button class="btn ghost small" id="impRulesBtn"><span>📖 Règles du jeu</span></button>
         </div>
@@ -618,6 +618,7 @@
         <label for="impCustomQ">Paire de questions personnalisée (optionnel)</label>
         <input type="text" id="impCustomQ" placeholder="Question de tout le monde — ex : Combien de cafés bois-tu par semaine ?" maxlength="90">
         <input type="text" id="impCustomQImp" placeholder="Question de l'imposteur — ex : Combien de fois par semaine fais-tu du sport ?" maxlength="90">
+        <label class="settings-check" for="impCustomText"><input type="checkbox" id="impCustomText"> ✍️ Réponse en texte libre (pas un nombre)</label>
         <div class="btn-row">
           <button class="btn ghost small" id="impAddQBtn"><span>＋ Ajouter à la banque</span></button>
           <span class="theme-count" id="impBankCount" style="margin:0;align-self:center;"></span>
@@ -650,6 +651,15 @@
           <button class="btn ghost small" id="impCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
         </div>
         <div class="cham-player-list" id="impPlayerList"></div>
+        <div class="host-opts" id="impHostOpts" hidden>
+          <label for="impKindSel">✍️ Réponses</label>
+          <select id="impKindSel">
+            <option value="num" selected>Des nombres</option>
+            <option value="text">Du texte libre (quelques mots)</option>
+            <option value="mix">Un peu des deux</option>
+          </select>
+          <label class="settings-check" for="impTwoImpChk"><input type="checkbox" id="impTwoImpChk" checked> 🕵️🕵️ 2 imposteurs à partir de 6 joueurs</label>
+        </div>
         <p class="lobby-status" id="impLobbyStatus">En attente de joueurs... (3 minimum)</p>
         <div class="btn-row center">
           <button class="btn yellow" id="impStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
@@ -664,8 +674,9 @@
           <div class="cham-role-theme">TA QUESTION SECRÈTE</div>
           <div class="imp-question" id="impMyQuestion"></div>
         </div>
+        <p class="subtitle" id="impAnswerNImp" hidden>🕵️🕵️ Attention : cette manche, il y a <b>2 imposteurs</b>.</p>
         <div id="impAnswerBox">
-          <label for="impAnswerInput">Ta réponse (un nombre)</label>
+          <label for="impAnswerInput" id="impAnswerLabel">Ta réponse (un nombre)</label>
           <input type="text" id="impAnswerInput" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="Ex : 7">
           <div class="btn-row center">
             <button class="btn yellow" id="impAnswerBtn"><span>✅ Valider ma réponse</span></button>
@@ -680,11 +691,11 @@
     <!-- REVEAL + VOTE -->
     <section class="imp-screen" id="imp-screen-vote">
       <div class="panel">
-        <h1 class="screen-title">🔎 QUI EST L'IMPOSTEUR ?</h1>
+        <h1 class="screen-title" id="impVoteTitle">🔎 QUI EST L'IMPOSTEUR ?</h1>
         <p class="subtitle">La vraie question était :</p>
         <div class="clue-bubble"><small>Question</small><span id="impRealQuestion"></span></div>
         <div class="imp-line" id="impVoteLine"></div>
-        <p class="subtitle">Discutez, puis accusez le joueur dont la réponse cache une autre question. Si c'est toi qui as reçu une autre question… bluffe !</p>
+        <p class="subtitle" id="impVoteHint">Discutez, puis accusez le joueur dont la réponse cache une autre question. Si c'est toi qui as reçu une autre question… bluffe !</p>
         <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="impVoteTimerFill"></div><span id="impVoteTimerText"></span></div>
         <div class="cham-player-list" id="impVoteList"></div>
         <p class="lobby-status" id="impVoteStatus"></p>
@@ -1686,11 +1697,12 @@
     <button class="modal-close" id="impRulesModalClose" aria-label="Fermer">✕</button>
     <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — L'IMPOSTEUR</h2>
     <ol class="rules-list">
-      <li>Chaque joueur reçoit en secret une <b>question à réponse chiffrée</b> (ex : « Combien de cafés bois-tu par semaine ? »).</li>
-      <li>Un joueur tiré au sort, l'<b>Imposteur</b>, reçoit une <b>autre question</b> (ex : « Combien de fois par semaine fais-tu du sport ? »)… et <b>il ne le sait pas</b> !</li>
+      <li>Chaque joueur reçoit en secret une <b>question</b>, à réponse chiffrée (ex : « Combien de cafés bois-tu par semaine ? ») ou en <b>texte libre</b> (ex : « Quel est ton plat préféré ? ») selon le choix de l'hôte.</li>
+      <li>Un joueur tiré au sort, l'<b>Imposteur</b>, reçoit une <b>autre question</b> (ex : « Combien de fois par semaine fais-tu du sport ? »)… et <b>il ne le sait pas</b> ! À partir de 6 joueurs, il y a <b>2 imposteurs</b> (l'hôte peut le désactiver) : ils ont la même autre question, sans savoir qui est l'autre.</li>
       <li>Tout le monde répond honnêtement. Quand tout le monde a répondu, la vraie question et toutes les réponses sont révélées.</li>
       <li>L'Imposteur comprend alors qu'il a été piégé : il doit justifier sa réponse et se fondre dans la masse. Discutez, puis votez.</li>
       <li><b>Points :</b> si l'Imposteur est le plus accusé, chaque joueur qui a voté contre lui gagne 1 point. Sinon (ou en cas d'égalité), l'Imposteur s'échappe et gagne 2 points.</li>
+      <li><b>Avec 2 imposteurs :</b> les deux joueurs les plus accusés sont démasqués (un imposteur à égalité avec un innocent s'échappe). +1 pour chaque joueur qui a accusé un imposteur démasqué, +2 pour chaque imposteur qui s'échappe.</li>
     </ol>
   </div>
 </div>
@@ -1869,21 +1881,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=27"></script>
-<script src="js/net.js?v=27"></script>
-<script src="js/demicercle.js?v=27"></script>
-<script src="js/cameleon.js?v=27"></script>
-<script src="js/imposteur.js?v=27"></script>
-<script src="js/loup.js?v=27"></script>
-<script src="js/classement.js?v=27"></script>
-<script src="js/quiaecrit.js?v=27"></script>
-<script src="js/crousprison-photos.js?v=27"></script>
-<script src="js/crousprison.js?v=27"></script>
-<script src="js/bots-maps.js?v=27"></script>
-<script src="js/bots.js?v=27"></script>
-<script src="js/pwa.js?v=27"></script>
-<script src="js/party.js?v=27"></script>
-<script src="js/account.js?v=27"></script>
-<script src="js/hub.js?v=27"></script>
+<script src="js/common.js?v=28"></script>
+<script src="js/net.js?v=28"></script>
+<script src="js/demicercle.js?v=28"></script>
+<script src="js/cameleon.js?v=28"></script>
+<script src="js/imposteur.js?v=28"></script>
+<script src="js/loup.js?v=28"></script>
+<script src="js/classement.js?v=28"></script>
+<script src="js/quiaecrit.js?v=28"></script>
+<script src="js/crousprison-photos.js?v=28"></script>
+<script src="js/crousprison.js?v=28"></script>
+<script src="js/bots-maps.js?v=28"></script>
+<script src="js/bots.js?v=28"></script>
+<script src="js/pwa.js?v=28"></script>
+<script src="js/party.js?v=28"></script>
+<script src="js/account.js?v=28"></script>
+<script src="js/hub.js?v=28"></script>
 </body>
 </html>
