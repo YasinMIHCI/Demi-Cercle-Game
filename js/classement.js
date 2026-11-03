@@ -69,10 +69,13 @@
     players:[], scores:[], connected:[], clientIds:[],
     phase:'lobby',                 /* 'lobby' | 'ranking' | 'result' | 'over' | 'lobby_wait' */
     round:0, roundSeats:[], question:'', rankings:{}, pool:[],
-    deadline:0, timer:null, lastResult:null, started:false
+    deadline:0, timer:null, lastResult:null, started:false,
+    history:[],                    /* manches jouées : {question, rankings, group} (graphique de fin) */
+    proposals:[], questionBy:-1    /* questions écrites par le groupe : {text, seat}, posées en priorité */
   };
+  var MAX_PROPOSALS_EACH=3;
   var netRole=null, mySeat=0, myName='', roomCode='';
-  var inRound=false, roundLiveForLobby=false;
+  var inRound=false, roundLiveForLobby=false, proposedCount=0;
   /* vue du joueur */
   var view={roundSeats:[], question:'', order:[], sent:false, ranked:[]};
   var rankBar=CG.timerBar('clsTimerFill','clsTimerText');
@@ -106,6 +109,7 @@
     inRound=false; roundLiveForLobby=false;
     cs.players=[]; cs.scores=[]; cs.connected=[]; cs.clientIds=[];
     cs.phase='lobby'; cs.round=0; cs.roundSeats=[]; cs.rankings={}; cs.lastResult=null; cs.started=false;
+    cs.history=[]; cs.proposals=[]; cs.questionBy=-1; proposedCount=0;
     $('clsRoundBadge').style.display='none';
     hideBanner();
     setNetStatus('offline','HORS LIGNE');
@@ -191,15 +195,33 @@
   }
   function hostOnGuestMessage(seat, msg){
     if(msg.type==='rank_submit') hostReceiveRanking(seat, msg.order);
+    else if(msg.type==='propose_q') hostPropose(seat, msg.text);
   }
   function hostBroadcastLobby(){
     broadcast({type:'lobby_update', players:cs.players.slice(), scores:cs.scores.slice(),
-      connected:cs.connected.slice(), inRound:cs.phase==='ranking'});
+      connected:cs.connected.slice(), inRound:cs.phase==='ranking', proposed:cs.proposals.length});
+  }
+  /* question écrite par un joueur : elle passe avant la banque (3 en attente par joueur) */
+  function cleanQuestion(q){
+    q=String(q||'').replace(/\s+/g,' ').trim().slice(0,90);
+    if(q && !/\?\s*$/.test(q)) q+=' ?';
+    return q;
+  }
+  function hostPropose(seat, text){
+    if(!cs.players[seat]) return;
+    var q=cleanQuestion(text), reason='';
+    var mine=cs.proposals.filter(function(p){ return p.seat===seat; }).length;
+    if(!q) reason='Question vide.';
+    else if(mine>=MAX_PROPOSALS_EACH) reason='Tu as déjà '+MAX_PROPOSALS_EACH+' questions en attente.';
+    else if(cs.proposals.some(function(p){ return CG.normalizeWord(p.text)===CG.normalizeWord(q); })) reason='Cette question est déjà proposée.';
+    if(!reason) cs.proposals.push({text:q, seat:seat});
+    sendToSeat(seat, {type:'propose_ack', ok:!reason, reason:reason});
+    hostBroadcastLobby();
   }
 
   /* ===================== HÔTE : MANCHE ===================== */
   function roundMsg(seat){
-    return {type:'round_start', round:cs.round, question:cs.question, roundSeats:cs.roundSeats.slice(),
+    return {type:'round_start', round:cs.round, question:cs.question, by:cs.questionBy, roundSeats:cs.roundSeats.slice(),
       ms:Math.max(0, cs.deadline-Date.now()), total:RANK_MS,
       mine: cs.rankings.hasOwnProperty(seat) ? cs.rankings[seat].slice() : null,
       ranked:Object.keys(cs.rankings).map(Number)};
@@ -218,8 +240,12 @@
     }
     setNetStatus('connected','PARTIE EN COURS');
     cs.started=true;
-    if(!cs.pool.length) cs.pool=shuffle(bank());
-    cs.question=cs.pool.pop();
+    var prop=cs.proposals.shift();
+    if(prop){ cs.question=prop.text; cs.questionBy=prop.seat; }
+    else {
+      if(!cs.pool.length) cs.pool=shuffle(bank());
+      cs.question=cs.pool.pop(); cs.questionBy=-1;
+    }
     cs.round++;
     cs.roundSeats=seats;
     cs.rankings={};
@@ -289,7 +315,8 @@
     var best=rankers.length ? Math.max.apply(null, rankers.map(function(r){ return pts[r]; })) : 0;
     var closest= rankers.length>=2 ? rankers.filter(function(r){ return pts[r]===best; }) : [];
     cs.phase='result';
-    var msg={type:'round_result', round:cs.round, question:cs.question, roundSeats:seats.slice(),
+    if(rankers.length) cs.history.push({question:cs.question, rankings:cs.rankings, group:group});
+    var msg={type:'round_result', round:cs.round, question:cs.question, by:cs.questionBy, roundSeats:seats.slice(),
       group:group, avg:avg, rankings:cs.rankings, pts:pts, self:self,
       ego:ego, modest:modest, rebel:rebel, closest:closest, scores:cs.scores.slice()};
     cs.lastResult=msg;
@@ -303,11 +330,28 @@
     broadcast({type:'round_aborted', reason:reason});
     hostBroadcastLobby();
   }
+  /* bilan de la partie pour le graphique « qui pense quoi de qui » :
+     firsts[r][t] = nombre de fois où r a mis t en 1er ; tops[t] = questions
+     où le groupe a mis t en 1er ; rounds = nombre de manches classées par r */
+  function hostSummary(){
+    var firsts={}, tops={}, rounds={};
+    cs.history.forEach(function(h){
+      Object.keys(h.rankings).forEach(function(r){
+        var t=h.rankings[r][0];
+        firsts[r]=firsts[r]||{};
+        firsts[r][t]=(firsts[r][t]||0)+1;
+        rounds[r]=(rounds[r]||0)+1;
+      });
+      var g=h.group[0];
+      (tops[g]=tops[g]||[]).push(h.question);
+    });
+    return {firsts:firsts, tops:tops, rounds:rounds, n:cs.history.length};
+  }
   $('clsEndGameBtn').addEventListener('click',function(){
     if(netRole!=='host' || cs.phase!=='result') return;
     sfxValidate();
     cs.phase='over';
-    cs.lastResult={type:'game_over', scores:cs.scores.slice(), players:cs.players.slice()};
+    cs.lastResult={type:'game_over', scores:cs.scores.slice(), players:cs.players.slice(), summary:hostSummary()};
     broadcast(cs.lastResult);
   });
   $('clsNewGameBtn').addEventListener('click',function(){
@@ -316,7 +360,7 @@
     /* nouvelle partie : scores à zéro, les absents libèrent leur place */
     for(var s=1;s<cs.players.length;s++){ if(cs.players[s] && !isConnected(s)){ cs.players[s]=null; cs.clientIds[s]=null; } }
     for(s=0;s<cs.players.length;s++) cs.scores[s]=0;
-    cs.phase='lobby'; cs.round=0; cs.lastResult=null; cs.started=false;
+    cs.phase='lobby'; cs.round=0; cs.lastResult=null; cs.started=false; cs.history=[];
     broadcast({type:'back_to_lobby'});
     hostBroadcastLobby();
   });
@@ -336,9 +380,11 @@
       case 'lobby_update':
         cs.players=msg.players.slice(); if(msg.scores) cs.scores=msg.scores.slice(); if(msg.connected) cs.connected=msg.connected.slice();
         roundLiveForLobby=!!msg.inRound;
-        renderLobby(); refreshBanner();
+        proposedCount=msg.proposed||0;
+        renderLobby(); refreshBanner(); renderProposeBoxes();
         if(inRound) renderRankStatus();
         break;
+      case 'propose_ack': onProposeAck(msg); break;
       case 'round_start': onRoundStart(msg); break;
       case 'rank_status':
         if(!inRound) break;
@@ -403,6 +449,7 @@
     $('clsRoundBadge').textContent='MANCHE N°'+msg.round;
     $('clsRoundBadge').style.display='inline-block';
     $('clsQuestion').textContent=msg.question;
+    $('clsQuestionBy').textContent=byText(msg.by);
     renderRanker();
     renderRankStatus();
     rankBar.start(msg.ms, msg.total);
@@ -470,6 +517,7 @@
     inRound=false; rankBar.stop(); stopReveal(); hideBanner();
     if(msg.scores) cs.scores=msg.scores.slice();
     $('clsResultQuestion').textContent=msg.question;
+    $('clsResultQuestionBy').textContent=byText(msg.by);
     var mine=msg.rankings[mySeat]||null, n=msg.group.length;
     var list=$('clsPodium'); list.innerHTML='';
     $('clsTitles').innerHTML=''; $('clsTitles').style.display='none';
@@ -534,11 +582,82 @@
         '<span class="cls-slot-name">'+escapeHtml((msg.players[s]||{}).name||'?')+(s===mySeat?' (toi)':'')+'</span><span class="cham-vote-count">'+(msg.scores[s]||0)+' pts</span></div>';
     });
     $('clsFinalList').innerHTML=html;
+    renderSummary(msg);
     if(CG.account) CG.account.recordRanked('classement', msg.scores, order, mySeat);
     $('clsNewGameBtn').style.display = netRole==='host' ? 'inline-block' : 'none';
     $('clsOverWaitLabel').style.display = netRole==='host' ? 'none' : 'inline-block';
     sfxReveal(winners.indexOf(mySeat)!==-1 ? 100 : 50);
     gotoScreen('over');
+  }
+
+  /* ----- questions écrites par le groupe ----- */
+  function byText(seat){ return (typeof seat==='number' && seat>=0) ? '✍️ Question écrite par '+pname(seat) : ''; }
+  var proposeBoxes=document.querySelectorAll('.cls-propose');
+  function renderProposeBoxes(){
+    for(var i=0;i<proposeBoxes.length;i++){
+      proposeBoxes[i].querySelector('.cls-propose-count').textContent =
+        proposedCount ? '📝 '+proposedCount+' question'+(proposedCount>1?'s':'')+' du groupe en attente (posées en priorité)' : '';
+    }
+  }
+  var lastProposeBox=null;
+  function onProposeAck(msg){
+    if(!lastProposeBox) return;
+    var fb=lastProposeBox.querySelector('.cls-propose-fb');
+    fb.textContent = msg.ok ? '✅ Question envoyée ! Elle sera posée à une prochaine manche.' : '⚠ '+(msg.reason||'Refusée.');
+    if(msg.ok){ lastProposeBox.querySelector('input').value=''; sfxValidate(); }
+    else shake(lastProposeBox.querySelector('input'));
+  }
+  Array.prototype.forEach.call(proposeBoxes, function(box){
+    var inp=box.querySelector('input'), btn=box.querySelector('button');
+    function send(){
+      var q=cleanQuestion(inp.value);
+      if(!q){ shake(inp); return; }
+      lastProposeBox=box;
+      if(netRole==='host') hostPropose(0, q); else net.send({type:'propose_q', text:q});
+    }
+    btn.addEventListener('click', send);
+    inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); send(); } });
+  });
+
+  /* ----- graphique de fin : qui a mis qui en 1er ----- */
+  function shortQuestion(q){
+    var m=/^qui\s+(.*?)\s*\?*\s*$/i.exec(q||'');
+    return m ? m[1] : q;
+  }
+  function renderSummary(msg){
+    var sm=msg.summary, box=$('clsSummary');
+    if(!sm || !sm.n){ box.hidden=true; return; }
+    var seatsList=[];
+    for(var s=0;s<msg.players.length;s++) if(msg.players[s]) seatsList.push(s);
+    var name=function(s){ return escapeHtml((msg.players[s]||{}).name||'?'); };
+    var max=1;
+    Object.keys(sm.firsts).forEach(function(r){ Object.keys(sm.firsts[r]).forEach(function(t){ max=Math.max(max, sm.firsts[r][t]); }); });
+    /* matrice : une ligne par joueur qui classe, une colonne par joueur classé */
+    var html='<div class="cls-matrix-wrap"><table class="cls-matrix"><thead><tr><th class="corner">a mis ↓ en 1er →</th>';
+    seatsList.forEach(function(t){ html+='<th scope="col">'+dot(t)+'<span>'+name(t)+'</span></th>'; });
+    html+='</tr></thead><tbody>';
+    seatsList.forEach(function(r){
+      if(!sm.rounds[r]) return;
+      html+='<tr><th scope="row">'+dot(r)+'<span>'+name(r)+'</span></th>';
+      seatsList.forEach(function(t){
+        var v=(sm.firsts[r]||{})[t]||0;
+        var a=v ? (0.18+0.82*v/max) : 0;
+        html+='<td class="'+(r===t?'self ':'')+(!v?'zero':a>0.55?'hot':'')+'" style="--a:'+a.toFixed(2)+'" title="'+name(r)+' a mis '+name(t)+' en 1er '+v+' fois">'+(v||'·')+'</td>';
+      });
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+    $('clsMatrix').innerHTML=html;
+    /* étiquettes : les questions où le groupe a mis chacun en 1er */
+    var tags='';
+    seatsList.forEach(function(t){
+      var qs=sm.tops[t]||[];
+      if(!qs.length) return;
+      tags+='<div class="cls-tag-row'+(t===mySeat?' me':'')+'">'+dot(t)+'<b>'+name(t)+'</b><span>'+
+        qs.map(function(q){ return '<em>'+escapeHtml(shortQuestion(q))+'</em>'; }).join('')+'</span></div>';
+    });
+    $('clsTags').innerHTML=tags || '<p class="cls-hint">Personne n’a fini en tête.</p>';
+    box.hidden=false;
   }
 
   /* ---------- API pour le hub ---------- */

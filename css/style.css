@@ -830,3 +830,29 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .loup-chip{background:#1a1a1a;border:1px solid #444;color:#ddd;border-radius:14px;padding:5px 10px;font-size:0.8rem;cursor:pointer;font-family:inherit;}
 .loup-chip:hover,.loup-chip:focus-visible{border-color:var(--yellow);color:var(--yellow);}
 .loup-chip.more{padding:5px 8px;}
+
+/* Classement : questions du groupe, bilan de fin */
+.cls-by{text-align:center;color:var(--yellow);font-size:0.85rem;margin:-4px 0 8px;}
+.cls-by:empty{display:none;}
+.cls-propose{margin-top:16px;border-top:1px dashed #333;padding-top:10px;}
+.cls-propose-fb,.cls-propose-count{font-size:0.82rem;color:#bbb;margin:6px 0 0;}
+.cls-propose-fb:empty,.cls-propose-count:empty{display:none;}
+.cls-matrix-wrap{overflow-x:auto;margin:8px 0;-webkit-overflow-scrolling:touch;}
+.cls-matrix{border-collapse:separate;border-spacing:3px;margin:0 auto;font-size:0.8rem;}
+.cls-matrix th{font-weight:600;color:#ddd;white-space:nowrap;padding:2px 4px;}
+.cls-matrix thead th{vertical-align:bottom;}
+.cls-matrix thead th span{display:block;max-width:64px;overflow:hidden;text-overflow:ellipsis;}
+.cls-matrix tbody th{text-align:left;}
+.cls-matrix tbody th span{display:inline-block;max-width:90px;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;}
+.cls-matrix th.corner{font-weight:400;color:#888;font-size:0.7rem;text-align:left;}
+.cls-matrix td{width:36px;height:32px;text-align:center;font-family:var(--font-display);font-size:1.05rem;
+  background:rgba(255,230,0,var(--a));color:#fff;border:1px solid #333;}
+.cls-matrix td.zero{color:#555;}
+.cls-matrix td.hot{color:#000;}
+.cls-matrix td.self{outline:2px dashed var(--red-bright);outline-offset:-3px;}
+.cls-tags{display:flex;flex-direction:column;gap:6px;}
+.cls-tag-row{display:flex;align-items:flex-start;gap:8px;background:#151515;border:2px solid #333;padding:8px 10px;}
+.cls-tag-row.me{border-color:#fff;}
+.cls-tag-row > b{white-space:nowrap;}
+.cls-tag-row span{display:flex;flex-wrap:wrap;gap:4px;}
+.cls-tag-row em{font-style:normal;background:#2a2400;border:1px solid var(--yellow);color:var(--yellow);padding:1px 8px;font-size:0.8rem;border-radius:10px;}
