@@ -1218,6 +1218,8 @@
   function renderEndScreenOnline(){
     var s0=state.teamScores[0], s1=state.teamScores[1];
     var winnerIdx = s0===s1 ? -1 : (s0>s1?0:1);
+    var myTeam = seatsPerTeam===1 ? mySeat : Math.floor(mySeat/2);
+    if(CG.account) CG.account.record('demicercle', Math.max(0, state.teamScores[myTeam]||0), winnerIdx===myTeam);
     var prefix0 = seatsPerTeam===1 ? '' : '🔴 ';
     var prefix1 = seatsPerTeam===1 ? '' : '🔵 ';
     var html = '<div class="team-vs-final">';

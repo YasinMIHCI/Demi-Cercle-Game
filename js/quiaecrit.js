@@ -607,6 +607,7 @@
         '<span class="cls-slot-name">'+escapeHtml((msg.players[s]||{}).name||'?')+(s===mySeat?' (toi)':'')+'</span><span class="cham-vote-count">'+(msg.scores[s]||0)+' pts</span></div>';
     });
     $('qaeFinalList').innerHTML=html;
+    if(CG.account) CG.account.recordRanked('quiaecrit', msg.scores, order, mySeat);
     $('qaeNewGameBtn').style.display = netRole==='host' ? 'inline-block' : 'none';
     $('qaeOverWaitLabel').style.display = netRole==='host' ? 'none' : 'inline-block';
     sfxReveal(winners.indexOf(mySeat)!==-1 ? 100 : 50);
