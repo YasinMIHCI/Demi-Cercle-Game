@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=29"></script>
-<script src="js/intro.js?v=29"></script>
+<script src="js/audio.js?v=30"></script>
+<script src="js/intro.js?v=30"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1197,6 +1197,13 @@
         </div>
         <div class="cham-player-list" id="clsPlayerList"></div>
         <p class="lobby-status" id="clsLobbyStatus">En attente de joueurs... (3 minimum)</p>
+        <div class="cls-propose">
+          <label>✍️ Propose une question au groupe (posée en priorité)</label>
+          <div class="loup-ask"><input type="text" maxlength="90" placeholder="Ex : Qui ronfle le plus fort ?" autocomplete="off"><button class="btn ghost small" type="button"><span>Proposer</span></button></div>
+          <p class="cls-propose-fb"></p>
+          <p class="cls-propose-count"></p>
+        </div>
+
         <div class="btn-row center">
           <button class="btn yellow" id="clsStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
@@ -1207,6 +1214,7 @@
     <section class="cls-screen" id="cls-screen-rank">
       <div class="panel">
         <div class="clue-bubble"><small>La question</small><span id="clsQuestion"></span></div>
+        <p class="cls-by" id="clsQuestionBy"></p>
         <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="clsTimerFill"></div><span id="clsTimerText"></span></div>
         <div class="cls-slots" id="clsSlots"></div>
         <p class="cls-hint" id="clsPoolHint"></p>
@@ -1225,6 +1233,7 @@
       <div class="panel">
         <div class="cham-result-banner b-perfect">🏆 LE PODIUM DU GROUPE</div>
         <div class="clue-bubble"><small>La question</small><span id="clsResultQuestion"></span></div>
+        <p class="cls-by" id="clsResultQuestionBy"></p>
         <div class="cls-podium" id="clsPodium"></div>
         <div class="cls-titles" id="clsTitles" style="display:none;"></div>
         <div id="clsResultScores" style="display:none;">
@@ -1236,6 +1245,12 @@
           <button class="btn ghost" id="clsEndGameBtn" style="display:none;"><span>🏁 Terminer la partie</span></button>
           <span class="waiting-label" id="clsWaitingHostLabel" style="display:none;"></span>
         </div>
+        <div class="cls-propose">
+          <label>✍️ Propose une question au groupe (posée en priorité)</label>
+          <div class="loup-ask"><input type="text" maxlength="90" placeholder="Ex : Qui ronfle le plus fort ?" autocomplete="off"><button class="btn ghost small" type="button"><span>Proposer</span></button></div>
+          <p class="cls-propose-fb"></p>
+          <p class="cls-propose-count"></p>
+        </div>
       </div>
     </section>
 
@@ -1245,6 +1260,13 @@
         <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
         <div class="end-winner-text" id="clsWinnerText"></div>
         <div class="cls-podium" id="clsFinalList"></div>
+        <div id="clsSummary" hidden>
+          <h3 class="rules-subhead" style="text-align:center;margin-top:20px;">👀 QUI PENSE QUOI DE QUI</h3>
+          <p class="cls-hint">Combien de fois chacun (en ligne) a mis chaque joueur (en colonne) à la 1re place. La diagonale : les fois où il s'est mis 1er lui-même.</p>
+          <div id="clsMatrix"></div>
+          <h3 class="rules-subhead" style="text-align:center;margin-top:16px;">🏷️ POUR LE GROUPE, C'EST QUI LE PLUS…</h3>
+          <div class="cls-tags" id="clsTags"></div>
+        </div>
         <div class="btn-row center" style="margin-top:16px;">
           <button class="btn yellow" id="clsNewGameBtn" style="display:none;"><span>🔁 Nouvelle partie</span></button>
           <span class="waiting-label" id="clsOverWaitLabel" style="display:none;">⏳ En attente de l'hôte...</span>
@@ -1685,6 +1707,8 @@
       <li><b>Points :</b> jusqu'à 10 points par manche, selon la proximité de ton classement avec celui du groupe. Lis dans la tête des autres !</li>
       <li><b>Les titres :</b> 🪞 l'Ego se classe bien plus haut que le groupe ne le fait, 🙈 le Modeste bien plus bas, et 🤘 le Rebelle est le moins d'accord avec tout le monde.</li>
       <li>75 secondes pour classer. L'hôte enchaîne les questions et termine la partie quand il veut.</li>
+      <li><b>✍️ Vos questions :</b> dans le lobby et entre deux manches, chacun peut écrire une question (3 en attente maximum par joueur). Elles passent avant celles de la banque.</li>
+      <li><b>À la fin :</b> le tableau « qui pense quoi de qui » montre qui a mis qui en 1er, et pour chaque joueur les questions où le groupe l'a placé en tête.</li>
     </ol>
   </div>
 </div>
@@ -1890,21 +1914,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=29"></script>
-<script src="js/net.js?v=29"></script>
-<script src="js/demicercle.js?v=29"></script>
-<script src="js/cameleon.js?v=29"></script>
-<script src="js/imposteur.js?v=29"></script>
-<script src="js/loup.js?v=29"></script>
-<script src="js/classement.js?v=29"></script>
-<script src="js/quiaecrit.js?v=29"></script>
-<script src="js/crousprison-photos.js?v=29"></script>
-<script src="js/crousprison.js?v=29"></script>
-<script src="js/bots-maps.js?v=29"></script>
-<script src="js/bots.js?v=29"></script>
-<script src="js/pwa.js?v=29"></script>
-<script src="js/party.js?v=29"></script>
-<script src="js/account.js?v=29"></script>
-<script src="js/hub.js?v=29"></script>
+<script src="js/common.js?v=30"></script>
+<script src="js/net.js?v=30"></script>
+<script src="js/demicercle.js?v=30"></script>
+<script src="js/cameleon.js?v=30"></script>
+<script src="js/imposteur.js?v=30"></script>
+<script src="js/loup.js?v=30"></script>
+<script src="js/classement.js?v=30"></script>
+<script src="js/quiaecrit.js?v=30"></script>
+<script src="js/crousprison-photos.js?v=30"></script>
+<script src="js/crousprison.js?v=30"></script>
+<script src="js/bots-maps.js?v=30"></script>
+<script src="js/bots.js?v=30"></script>
+<script src="js/pwa.js?v=30"></script>
+<script src="js/party.js?v=30"></script>
+<script src="js/account.js?v=30"></script>
+<script src="js/hub.js?v=30"></script>
 </body>
 </html>
