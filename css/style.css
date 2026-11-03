@@ -823,3 +823,10 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .acc-top b{color:var(--yellow);}
 .btn.acc-danger{border-color:#ff6b6b;color:#ff6b6b;}
 @media(max-width:480px){.acc-row{grid-template-columns:repeat(3,1fr);}.acc-game{grid-column:1/-1;}}
+.loup-suggest{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;}
+.loup-suggest[hidden]{display:none;}
+.loup-suggest-label{font-size:0.8rem;color:#999;}
+#loupSuggestList{display:contents;}
+.loup-chip{background:#1a1a1a;border:1px solid #444;color:#ddd;border-radius:14px;padding:5px 10px;font-size:0.8rem;cursor:pointer;font-family:inherit;}
+.loup-chip:hover,.loup-chip:focus-visible{border-color:var(--yellow);color:var(--yellow);}
+.loup-chip.more{padding:5px 8px;}

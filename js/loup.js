@@ -26,26 +26,56 @@
     cold:{label:'LOIN !', cls:'loup-ans-cold'}, found:{label:'🎯 TROUVÉ !', cls:'loup-ans-found'}
   };
 
-  var WORDS=['Girafe','Pingouin','Dauphin','Araignée','Kangourou','Requin','Hibou','Escargot','Dragon','Licorne',
-    'Pizza','Sushi','Croissant','Fromage','Chocolat','Raclette','Pastèque','Hamburger','Crêpe','Popcorn',
-    'Guitare','Piano','Trompette','Batterie','Micro','Violon',
-    'Avion','Sous-marin','Fusée','Vélo','Trottinette','Hélicoptère','Montgolfière','Train','Bateau','Moto',
-    'Plage','Volcan','Désert','Cinéma','Bibliothèque','Hôpital','Prison','Château','Igloo','Aéroport','Piscine','Musée',
-    'Parapluie','Brosse à dents','Miroir','Bougie','Ciseaux','Lunettes','Montre','Oreiller','Valise','Aspirateur','Frigo','Clé',
-    'Pompier','Astronaute','Pirate','Vampire','Ninja','Magicien','Chirurgien','Boulanger','Détective','Clown',
-    'Football','Tennis','Natation','Boxe','Ski','Bowling','Échecs','Surf','Escalade','Judo',
-    'Neige','Orage','Arc-en-ciel','Tornade','Lune','Soleil','Étoile filante','Éclipse',
-    'Smartphone','Ordinateur','Robot','Drone','Console','Imprimante','Wi-Fi','Casque audio',
-    'Noël','Halloween','Anniversaire','Mariage','Carnaval','Feu d’artifice',
-    'Couronne','Épée','Bouclier','Trésor','Carte au trésor','Boussole','Masque','Cape',
-    'Café','Thé','Jus d’orange','Limonade','Milkshake','Soupe',
-    'Fantôme','Zombie','Sorcière','Momie','Extraterrestre','Sirène',
-    'Tour Eiffel','Pyramide','Statue de la Liberté','Muraille de Chine',
-    'Arbre','Cactus','Champignon','Tournesol','Rose','Palmier'];
+  /* mots secrets, rangés par thème : l'hôte choisit un thème (ou « Tout mélangé ») */
+  var THEMES={
+    animaux:{label:'🦒 Animaux', words:['Girafe','Pingouin','Dauphin','Araignée','Kangourou','Requin','Hibou','Escargot','Éléphant','Crocodile',
+      'Panda','Abeille','Chameau','Pieuvre','Hérisson','Perroquet','Tortue','Ours','Gorille','Flamant rose']},
+    nourriture:{label:'🍕 Nourriture et boissons', words:['Pizza','Sushi','Croissant','Fromage','Chocolat','Raclette','Pastèque','Hamburger','Crêpe','Popcorn',
+      'Café','Thé','Jus d’orange','Limonade','Milkshake','Soupe','Frites','Baguette','Glace','Spaghetti']},
+    lieux:{label:'🏰 Lieux', words:['Plage','Volcan','Désert','Cinéma','Bibliothèque','Hôpital','Prison','Château','Igloo','Aéroport','Piscine','Musée',
+      'Tour Eiffel','Pyramide','Statue de la Liberté','Muraille de Chine','Supermarché','Stade','Zoo','Boulangerie']},
+    objets:{label:'🔑 Objets', words:['Parapluie','Brosse à dents','Miroir','Bougie','Ciseaux','Lunettes','Montre','Oreiller','Valise','Aspirateur','Frigo','Clé',
+      'Couronne','Épée','Bouclier','Boussole','Masque','Cape','Trésor','Carte au trésor']},
+    transports:{label:'🚀 Transports', words:['Avion','Sous-marin','Fusée','Vélo','Trottinette','Hélicoptère','Montgolfière','Train','Bateau','Moto',
+      'Bus','Taxi','Métro','Tracteur','Ambulance','Skateboard','Paquebot','Téléphérique']},
+    personnages:{label:'🧙 Métiers et personnages', words:['Pompier','Astronaute','Pirate','Vampire','Ninja','Magicien','Chirurgien','Boulanger','Détective','Clown',
+      'Fantôme','Zombie','Sorcière','Momie','Extraterrestre','Sirène','Dragon','Licorne','Professeur','Policier']},
+    loisirs:{label:'⚽ Sports et loisirs', words:['Football','Tennis','Natation','Boxe','Ski','Bowling','Échecs','Surf','Escalade','Judo',
+      'Guitare','Piano','Trompette','Batterie','Micro','Violon','Karaoké','Puzzle','Cerf-volant','Yoga']},
+    nature:{label:'🌈 Nature et météo', words:['Neige','Orage','Arc-en-ciel','Tornade','Lune','Soleil','Étoile filante','Éclipse',
+      'Arbre','Cactus','Champignon','Tournesol','Rose','Palmier','Cascade','Montagne','Forêt','Grotte']},
+    tech:{label:'📱 Technologie', words:['Smartphone','Ordinateur','Robot','Drone','Console','Imprimante','Wi-Fi','Casque audio',
+      'Télécommande','Appareil photo','Clavier','Télévision','Batterie externe','Montre connectée','GPS','Satellite']},
+    fetes:{label:'🎉 Fêtes et événements', words:['Noël','Halloween','Anniversaire','Mariage','Carnaval','Feu d’artifice',
+      'Nouvel An','Saint-Valentin','Pâques','Concert','Festival','Pique-nique','Barbecue','Remise de diplôme','Bal masqué']}
+  };
+  var THEME_KEYS=Object.keys(THEMES);
+  function themeWords(key){
+    if(THEMES[key]) return THEMES[key].words.slice();
+    var all=[]; THEME_KEYS.forEach(function(k){ all=all.concat(THEMES[k].words); });
+    return all;
+  }
+  /* idées de questions fermées : générales + propres au thème de la manche */
+  var SUGGEST={
+    all:['Est-ce que c’est vivant ?','Est-ce que ça se mange ?','Est-ce plus grand qu’une voiture ?','Est-ce que ça tient dans la main ?',
+      'Est-ce qu’on en trouve dans une maison ?','Est-ce que ça existe vraiment ?','Est-ce que ça fait du bruit ?','Est-ce qu’on l’utilise tous les jours ?',
+      'Est-ce que c’est dehors ?','Est-ce que ça coûte cher ?','Est-ce que c’est dangereux ?','Est-ce que ça a un rapport avec l’eau ?',
+      'Est-ce que c’est électrique ?','Est-ce que ça se porte ?','Est-ce que les enfants aiment ça ?','Est-ce que c’est rond ?'],
+    animaux:['Est-ce un mammifère ?','Est-ce que ça vole ?','Est-ce que ça vit dans l’eau ?','Est-ce qu’il a des poils ?','Est-ce un animal de la ferme ?','Est-ce qu’on le trouve en France ?','Est-ce qu’il est carnivore ?'],
+    nourriture:['Est-ce sucré ?','Est-ce que ça se boit ?','Est-ce que ça se mange chaud ?','Est-ce un plat étranger ?','Est-ce qu’on en mange au petit-déjeuner ?','Est-ce un fruit ou un légume ?'],
+    lieux:['Est-ce un bâtiment ?','Est-ce qu’on y va en vacances ?','Est-ce un monument célèbre ?','Est-ce qu’on y travaille ?','Est-ce en France ?','Est-ce qu’on doit payer pour y entrer ?'],
+    objets:['Est-ce que ça a un moteur ?','Est-ce en métal ?','Est-ce que ça se trouve dans la salle de bain ?','Est-ce qu’on l’emporte en voyage ?','Est-ce que ça coupe ?'],
+    transports:['Est-ce que ça vole ?','Est-ce que ça roule ?','Est-ce que ça va sur l’eau ?','Est-ce qu’il faut un permis ?','Est-ce que ça a un moteur ?','Peut-on y monter à plusieurs ?'],
+    personnages:['Est-ce un métier ?','Est-ce une créature imaginaire ?','Est-ce que ça fait peur ?','Est-ce qu’il porte un uniforme ?','Est-ce qu’il a des pouvoirs ?'],
+    loisirs:['Est-ce un sport ?','Est-ce un instrument ?','Est-ce que ça se joue en équipe ?','Faut-il une balle ou un ballon ?','Est-ce aux Jeux olympiques ?','Est-ce qu’on le fait assis ?'],
+    nature:['Est-ce que ça pousse ?','Est-ce dans le ciel ?','Est-ce une plante ?','Est-ce lié à la météo ?','Est-ce que ça arrive la nuit ?'],
+    tech:['Est-ce qu’il faut le recharger ?','Est-ce que ça a un écran ?','Est-ce que ça tient dans la poche ?','Est-ce que ça existait il y a 50 ans ?','Est-ce que ça se connecte à internet ?'],
+    fetes:['Est-ce une fête de l’année ?','Est-ce qu’on offre des cadeaux ?','Est-ce que ça se passe en hiver ?','Est-ce qu’on se déguise ?','Est-ce en famille ?']
+  };
 
   var ls={
     players:[], scores:[], connected:[], clientIds:[],
-    timer:240, phase:'lobby', round:0, roundSeats:[], mayorSeat:-1, mayorTurn:-1,
+    timer:240, theme:'', phase:'lobby', round:0, roundSeats:[], mayorSeat:-1, mayorTurn:-1,
     roles:{}, word:'', choices:[], questions:[], tokens:{hot:1,cold:1}, nextQid:1,
     deadline:0, phaseTimer:null, votes:{}, voters:[], voteKind:'', mayorTimer:null, lastResult:null
   };
@@ -193,7 +223,7 @@
   function roleMsg(seat){
     var role=ls.roles[seat];
     var knows = role==='loup' || role==='voyant' || seat===ls.mayorSeat;
-    return {type:'round_start', round:ls.round, roundSeats:ls.roundSeats.slice(), mayorSeat:ls.mayorSeat,
+    return {type:'round_start', round:ls.round, roundSeats:ls.roundSeats.slice(), mayorSeat:ls.mayorSeat, theme:ls.theme,
       role:role, word:(knows && ls.word) ? ls.word : null, chosen:ls.phase!=='choosing',
       loups: role==='loup' ? ls.roundSeats.filter(function(s){ return ls.roles[s]==='loup'; }) : [],
       choices: (seat===ls.mayorSeat && ls.phase==='choosing') ? ls.choices.slice() : null,
@@ -234,7 +264,10 @@
     var order=shuffle(seats.slice());
     ls.roles={};
     order.forEach(function(s,i){ ls.roles[s] = i<nLoups ? 'loup' : (i===nLoups ? 'voyant' : 'villageois'); });
-    ls.word=''; ls.choices=shuffle(WORDS.slice()).slice(0,3);
+    /* thème choisi par l'hôte dans le lobby ('' = tout mélangé) */
+    var th=$('loupThemeSel').value;
+    ls.theme=THEMES[th] ? th : '';
+    ls.word=''; ls.choices=shuffle(themeWords(ls.theme)).slice(0,3);
     ls.questions=[]; ls.tokens={hot:1,cold:1}; ls.nextQid=1;
     ls.votes={}; ls.voters=[]; ls.voteKind=''; ls.lastResult=null;
     ls.phase='choosing';
@@ -419,7 +452,13 @@
     else if(count<MIN_PLAYERS) st.textContent=count+' joueur(s) connecté(s) — '+MIN_PLAYERS+' minimum pour lancer la partie.';
     else st.textContent = netRole==='host' ? (count+' joueurs prêts. Tu peux lancer la partie !') : (count+" joueurs prêts. En attente que l'hôte lance la partie...");
     $('loupStartBtn').style.display = (netRole==='host' && count>=MIN_PLAYERS && !live) ? 'inline-block' : 'none';
+    $('loupHostOpts').hidden = netRole!=='host' || live;
   }
+  (function(){
+    var html='<option value="">🎲 Tout mélangé</option>';
+    THEME_KEYS.forEach(function(k){ html+='<option value="'+k+'">'+THEMES[k].label+' ('+THEMES[k].words.length+')</option>'; });
+    $('loupThemeSel').innerHTML=html;
+  })();
 
   /* ----- rôle + choix du mot ----- */
   var roleTick=null;
@@ -429,6 +468,7 @@
     inRound=true;
     ls.round=msg.round; ls.roundSeats=msg.roundSeats; ls.mayorSeat=msg.mayorSeat;
     me.role=msg.role; me.word=msg.word; me.loups=msg.loups||[]; me.choices=msg.choices;
+    ls.theme=THEMES[msg.theme] ? msg.theme : '';
     if(newRound){ view.questions=[]; view.tokens={hot:1,cold:1}; view.phase='choosing'; }
     $('loupRoundBadge').textContent='MANCHE N°'+msg.round;
     $('loupRoundBadge').style.display='inline-block';
@@ -477,6 +517,7 @@
     if(me.role==='loup' && me.loups.length>1){
       extra+='<p>🐺 Ta meute : '+me.loups.filter(function(s){ return s!==mySeat; }).map(function(s){ return '<b>'+escapeHtml(pname(s))+'</b>'; }).join(', ')+'</p>';
     }
+    if(ls.theme) extra+='<p>Thème des mots : <b>'+THEMES[ls.theme].label+'</b></p>';
     card.innerHTML='<div class="ico">'+r.ico+'</div><h2>'+r.name+'</h2><p>'+r.desc+'</p>'+extra+
       (me.word ? '<div class="loup-secret">Mot secret : '+escapeHtml(me.word)+'</div>' : '');
   }
@@ -493,6 +534,8 @@
     renderMiniRole();
     $('loupAskBox').style.display = isMayor() ? 'none' : 'flex';
     $('loupAskInput').value='';
+    $('loupSuggest').hidden = isMayor();
+    renderSuggestions();
     renderFeed(true);
     gotoScreen('game');
     clearInterval(gameTick);
@@ -512,6 +555,7 @@
     var html='<span>'+r.ico+' <b>'+r.name+'</b>'+(isMayor()?' · 👑 <b>MAIRE</b>':'')+'</span>';
     html+='<span>Mot : <b>'+(me.word?escapeHtml(me.word):'???')+'</b></span>';
     if(!isMayor()) html+='<span>Maire : <b>'+escapeHtml(pname(ls.mayorSeat))+'</b></span>';
+    if(ls.theme) html+='<span>Thème : <b>'+THEMES[ls.theme].label+'</b></span>';
     if(me.role==='loup' && me.loups.length>1) html+='<span>Meute : <b>'+me.loups.filter(function(s){ return s!==mySeat; }).map(pname).map(escapeHtml).join(', ')+'</b></span>';
     $('loupMiniRole').innerHTML=html;
   }
@@ -564,7 +608,31 @@
     if(mine>=MAX_PENDING){ shake(inp); return; }
     inp.value='';
     if(netRole==='host') hostAsk(0, text); else net.send({type:'ask', text:text});
+    renderSuggestions(text);
   }
+  /* idées de questions : un clic remplit le champ (on peut la modifier avant d'envoyer) */
+  var SUGGEST_COUNT=4;
+  function renderSuggestions(justAsked){
+    var asked={};
+    if(justAsked) asked[CG.normalizeWord(justAsked)]=true;
+    view.questions.forEach(function(q){ asked[CG.normalizeWord(q.text)]=true; });
+    var pool=(SUGGEST[ls.theme]||[]).concat(SUGGEST.all).filter(function(t){ return !asked[CG.normalizeWord(t)]; });
+    /* les idées du thème d'abord, puis des générales */
+    var themed=shuffle(pool.filter(function(t){ return SUGGEST.all.indexOf(t)===-1; })).slice(0,2);
+    var picks=themed.concat(shuffle(pool.filter(function(t){ return themed.indexOf(t)===-1; })).slice(0, SUGGEST_COUNT-themed.length));
+    var html='';
+    picks.forEach(function(t){ html+='<button type="button" class="loup-chip">'+escapeHtml(t)+'</button>'; });
+    $('loupSuggestList').innerHTML=html;
+    var chips=$('loupSuggestList').querySelectorAll('.loup-chip');
+    for(var i=0;i<chips.length;i++){
+      chips[i].addEventListener('click',function(){
+        var inp=$('loupAskInput'); inp.value=this.textContent;
+        sfxToggle();
+        try{ inp.focus(); }catch(e){}
+      });
+    }
+  }
+  $('loupSuggestMoreBtn').addEventListener('click',function(){ sfxToggle(); renderSuggestions(); });
   $('loupAskBtn').addEventListener('click', submitQuestion);
   $('loupAskInput').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); submitQuestion(); } });
 
