@@ -315,7 +315,7 @@
       scores:gs.scores.slice(), picks:gs.picks, good:gs.good, solo:netRole==='solo'};
     broadcast(gs.lastMsg);
     hostBroadcastLobby();
-    if(netRole==='host') setNetStatus('connected','SALLE EN LIGNE');
+    if(netRole==='host'){ setNetStatus('connected','SALLE EN LIGNE'); if(CG.partyEnd) CG.partyEnd(gs.players, gs.scores); }
   }
 
   /* ===================== MESSAGES ===================== */

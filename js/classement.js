@@ -295,6 +295,7 @@
     cs.lastResult=msg;
     broadcast(msg);
     hostBroadcastLobby();
+    if(CG.partyEnd) CG.partyEnd(cs.players, cs.scores);
   }
   function hostAbort(reason){
     clearTimeout(cs.timer); cs.timer=null;

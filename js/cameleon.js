@@ -953,6 +953,7 @@
     chamState.lastPhaseMsg=result;
     chamBroadcast(result);
     chamBroadcastLobby();
+    if(CG.partyEnd) CG.partyEnd(chamState.players, chamState.scores);
   }
   function chamShowResult(msg){
     chamStopBars();

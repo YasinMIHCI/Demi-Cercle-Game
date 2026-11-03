@@ -316,6 +316,7 @@
     qs.lastMsg={type:'round_scores', round:qs.round, question:qs.question, answers:all, scores:qs.scores.slice()};
     broadcast(qs.lastMsg);
     hostBroadcastLobby();
+    if(CG.partyEnd) CG.partyEnd(qs.players, qs.scores);
   });
   function hostAbort(reason){
     clearTimeout(qs.timer); qs.timer=null;

@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=24">
+<link rel="stylesheet" href="css/style.css?v=25">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=24"></script>
-<script src="js/intro.js?v=24"></script>
+<script src="js/audio.js?v=25"></script>
+<script src="js/intro.js?v=25"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -52,6 +52,12 @@
     </header>
 
     <div class="game-grid">
+      <div class="game-card available party-card">
+        <div class="game-card-icon">🎉</div>
+        <h3>SOIRÉE ALL IN</h3>
+        <p>Une salle pour toute la soirée : 10 manches, un jeu différent à chaque fois, et un classement général. 2 à 10 joueurs.</p>
+        <button class="btn yellow" id="playSoireeBtn"><span>▶ JOUER</span></button>
+      </div>
       <div class="game-card available">
         <div class="game-card-icon">🌗</div>
         <h3>LE DEMI-CERCLE</h3>
@@ -830,6 +836,135 @@
   </div>
 </div>
 
+<!-- ================= SOIRÉE « ALL IN » ================= -->
+<div id="view-soiree" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="partyHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>LA <em>SOIRÉE</em></span></div>
+      </div>
+      <div class="net-status offline" id="partyNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="partyNetBanner" role="status">
+      <span id="partyNetBannerText"></span>
+    </div>
+
+    <!-- MENU -->
+    <section class="party-screen active" id="party-screen-menu">
+      <div class="panel">
+        <h1 class="screen-title">SOIRÉE ALL IN</h1>
+        <p class="subtitle">Une seule salle pour toute la soirée : l'hôte choisit les jeux et le nombre de manches, chaque manche lance un jeu différent, et un classement général désigne le champion de la soirée.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="partyRulesBtn"><span>📖 Comment ça marche</span></button>
+        </div>
+        <label for="partyName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="partyName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER LA SOIRÉE</h2>
+        <label for="partyHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="partyHostCode" data-room-code="partyCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="partyCreateRoomBtn"><span>Créer la soirée</span></button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SOIRÉE</h2>
+        <label for="partyJoinCode">Code de la salle</label>
+        <input type="text" id="partyJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="partyJoinRoomBtn"><span>Rejoindre</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="party-screen" id="party-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="partyBackFromLobby">◀ Quitter la soirée</span>
+        <h1 class="screen-title">LOBBY DE LA SOIRÉE</h1>
+        <div class="room-code-display" id="partyCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="partyCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="partyCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="partyPlayerList"></div>
+        <div id="partyHostSettings" hidden>
+          <h3 class="rules-subhead">JEUX DE LA SOIRÉE</h3>
+          <div class="party-games" id="partyGames"></div>
+          <label for="partyRounds">Nombre de manches</label>
+          <select id="partyRounds">
+            <option value="3">3 manches</option>
+            <option value="5">5 manches</option>
+            <option value="7">7 manches</option>
+            <option value="10">10 manches</option>
+            <option value="15">15 manches</option>
+          </select>
+        </div>
+        <p class="lobby-status" id="partyLobbyStatus"></p>
+        <div class="btn-row center">
+          <button class="btn yellow" id="partyStartBtn" style="display:none;"><span>🎉 Lancer la soirée</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANNONCE DE LA MANCHE -->
+    <section class="party-screen" id="party-screen-intro">
+      <div class="party-intro" id="partyIntroCard">
+        <div class="party-intro-round" id="partyIntroRound">MANCHE 1 / 10</div>
+        <div class="party-intro-icon" id="partyIntroIcon">🎲</div>
+        <div class="party-intro-game" id="partyIntroGame">—</div>
+        <p class="lobby-status" id="partyIntroLeader"></p>
+        <p class="waiting-label" style="text-align:center;">⏳ Ouverture de la salle du jeu...</p>
+      </div>
+    </section>
+
+    <!-- RÉSULTATS DE LA MANCHE -->
+    <section class="party-screen" id="party-screen-standings">
+      <div class="panel">
+        <div class="cham-result-banner b-perfect" id="partyStandTitle">MANCHE</div>
+        <h3 class="rules-subhead" style="text-align:center;">RÉSULTATS DE LA MANCHE</h3>
+        <div class="cls-podium" id="partyRoundList"></div>
+        <h3 class="rules-subhead" style="text-align:center;margin-top:18px;">CLASSEMENT DE LA SOIRÉE</h3>
+        <div class="cls-podium" id="partyTotalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="partyNextBtn" style="display:none;"><span>▶ Manche suivante</span></button>
+          <span class="waiting-label" id="partyWaitLabel" style="display:none;">⏳ L'hôte lance la manche suivante...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIN DE SOIRÉE -->
+    <section class="party-screen" id="party-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA SOIRÉE</h1>
+        <div class="end-winner-text" id="partyWinnerText"></div>
+        <div class="cls-podium" id="partyFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="partyNewBtn" style="display:none;"><span>🔁 Nouvelle soirée</span></button>
+          <span class="waiting-label" id="partyOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- bandeau de la soirée, affiché pendant les jeux -->
+<div class="party-bar" id="partyBar" hidden>
+  <span id="partyBarText">🎉 SOIRÉE</span>
+  <button class="btn ghost small" id="partySkipBtn" hidden><span>⏭ Passer la manche</span></button>
+</div>
+
 <!-- ================= CROUS OU PRISON ? ================= -->
 <div id="view-crousprison" class="view">
   <div class="hub-return-bar">
@@ -1421,6 +1556,32 @@
   </div>
 </div>
 
+<!-- SOIRÉE : RÈGLES -->
+<div class="modal-overlay" id="partyRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="partyRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">SOIRÉE ALL IN</h2>
+    <ol class="rules-list">
+      <li>L'hôte crée la soirée, les autres la rejoignent avec le code, le lien ou le QR code. On ne le fait qu'une fois pour toute la soirée.</li>
+      <li>L'hôte coche les jeux à jouer et choisit le nombre de manches (par exemple 10). Chaque manche lance un jeu différent ; quand tous les jeux choisis sont passés, ils reviennent dans un nouvel ordre.</li>
+      <li>La salle de chaque jeu s'ouvre et se rejoint toute seule. On joue une manche du jeu, puis tout le monde revient au classement de la soirée.</li>
+      <li><b>Points de la soirée :</b> selon ta place dans la manche : 1er 10 pts, 2e 7, 3e 5, 4e 4, 5e 3, 6e 2, puis 1. Égalité = même place. Tous les jeux comptent pareil.</li>
+      <li>Un jeu qui ne se joue pas au nombre de joueurs présents est remplacé par un autre jeu choisi. L'hôte peut passer une manche bloquée avec le bandeau en bas de l'écran.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- SOIRÉE : CONNEXION PERDUE -->
+<div class="modal-overlay" id="partyDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="partyDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="partyDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- CROUS OU PRISON RULES MODAL -->
 <div class="modal-overlay" id="copRulesModal">
   <div class="modal-box">
@@ -1636,19 +1797,20 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=24"></script>
-<script src="js/net.js?v=24"></script>
-<script src="js/demicercle.js?v=24"></script>
-<script src="js/cameleon.js?v=24"></script>
-<script src="js/imposteur.js?v=24"></script>
-<script src="js/loup.js?v=24"></script>
-<script src="js/classement.js?v=24"></script>
-<script src="js/quiaecrit.js?v=24"></script>
-<script src="js/crousprison-photos.js?v=24"></script>
-<script src="js/crousprison.js?v=24"></script>
-<script src="js/bots-maps.js?v=24"></script>
-<script src="js/bots.js?v=24"></script>
-<script src="js/pwa.js?v=24"></script>
-<script src="js/hub.js?v=24"></script>
+<script src="js/common.js?v=25"></script>
+<script src="js/net.js?v=25"></script>
+<script src="js/demicercle.js?v=25"></script>
+<script src="js/cameleon.js?v=25"></script>
+<script src="js/imposteur.js?v=25"></script>
+<script src="js/loup.js?v=25"></script>
+<script src="js/classement.js?v=25"></script>
+<script src="js/quiaecrit.js?v=25"></script>
+<script src="js/crousprison-photos.js?v=25"></script>
+<script src="js/crousprison.js?v=25"></script>
+<script src="js/bots-maps.js?v=25"></script>
+<script src="js/bots.js?v=25"></script>
+<script src="js/pwa.js?v=25"></script>
+<script src="js/party.js?v=25"></script>
+<script src="js/hub.js?v=25"></script>
 </body>
 </html>

@@ -764,3 +764,29 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .settings-grid input[type=range]{width:100%;accent-color:var(--red);}
 .settings-check{display:flex;align-items:center;gap:10px;cursor:pointer;margin-top:6px;}
 .settings-check input{width:22px;height:22px;accent-color:var(--red);}
+
+/* ================= SOIRÉE ALL IN ================= */
+.party-card{border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow), 8px 8px 0 var(--red);}
+.party-screen{display:none;animation:fadeIn .35s ease;}
+.party-screen.active{display:block;}
+.party-games{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin:8px 0 14px;}
+.party-game{display:flex;align-items:center;gap:10px;background:#181818;border:2px solid #333;padding:8px 10px;cursor:pointer;margin:0;}
+.party-game:has(input:checked){border-color:var(--yellow);background:#2a2400;}
+.party-game input{width:20px;height:20px;accent-color:var(--red);flex:none;}
+.party-game-icon{font-size:1.5rem;}
+.party-game small{display:block;color:#aaa;font-size:0.72rem;}
+#partyRounds{width:100%;max-width:260px;}
+.party-intro{min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:10px;}
+.party-intro-round{font-family:var(--font-display);font-size:clamp(1.4rem,5vw,2.2rem);letter-spacing:3px;background:#fff;color:#000;padding:2px 18px;transform:skewX(-9deg);box-shadow:5px 5px 0 var(--red);}
+.party-intro-icon{font-size:clamp(4rem,18vw,8rem);line-height:1;}
+.party-intro-game{font-family:var(--font-display);font-size:clamp(2.4rem,10vw,5rem);color:var(--yellow);text-shadow:4px 4px 0 var(--red),7px 7px 0 #000;line-height:1;}
+.party-intro.go .party-intro-round{animation:partyIn .4s cubic-bezier(.2,.9,.3,1.3) both;}
+.party-intro.go .party-intro-icon{animation:partyIn .45s .08s cubic-bezier(.2,.9,.3,1.3) both;}
+.party-intro.go .party-intro-game{animation:partyIn .5s .16s cubic-bezier(.2,.9,.3,1.3) both;}
+@keyframes partyIn{from{opacity:0;transform:scale(2.2) rotate(-6deg);}to{opacity:1;transform:none;}}
+.party-bar{position:fixed;left:0;right:0;bottom:0;z-index:500;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  background:var(--red);color:#fff;font-family:var(--font-display);letter-spacing:2px;font-size:1.05rem;border-top:3px solid #000;
+  padding:6px max(16px, env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px));}
+.party-bar[hidden]{display:none;}
+.party-bar .btn{margin:0;}
+.party-bar [hidden]{display:none;}

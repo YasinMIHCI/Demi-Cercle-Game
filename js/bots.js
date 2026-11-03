@@ -610,6 +610,8 @@
         bs.lastEnd={type:'match_end', winners:winners, draw:!alive.length, stats:bs.stats, tanks:m.tanks, mode:bs.mode};
         broadcast(bs.lastEnd);
         hostBroadcastLobby();
+        /* soirée : les gagnants d'abord, puis aux dégâts infligés */
+        if(CG.partyEnd) CG.partyEnd(bs.players, bs.players.map(function(p,s){ return (winners.indexOf(s)!==-1?100000:0)+((bs.stats[s]||{}).dmg||0); }));
       } else {
         hostStartTurn();
       }
