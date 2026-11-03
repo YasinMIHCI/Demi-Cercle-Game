@@ -181,6 +181,53 @@
     ["Combien de langues aimerais-tu parler couramment ?", "Combien de pays aimerais-tu visiter dans ta vie ?"],
     ["Combien de minutes faut-il pour t'énerver dans un bouchon ?", "Combien de minutes faut-il pour que tu t'ennuies en réunion ou en cours ?"]
   ];
+  /* Questions à réponse libre (un mot ou quelques mots) : même principe, les
+     deux questions appellent des réponses du même genre. */
+  var IMP_TEXT_BANK = [
+    ["Quel est ton plat préféré ?", "Quel plat cuisines-tu le mieux ?"],
+    ["Quel animal aimerais-tu être ?", "Quel animal aimerais-tu avoir chez toi ?"],
+    ["Quelle ville rêves-tu de visiter ?", "Dans quelle ville ne voudrais-tu jamais habiter ?"],
+    ["Quel est ton dessert préféré ?", "Quel dessert détestes-tu ?"],
+    ["Quel super-pouvoir voudrais-tu avoir ?", "Quel super-pouvoir serait le plus inutile ?"],
+    ["Quelle est ta boisson préférée ?", "Que bois-tu le matin ?"],
+    ["Quel métier rêvais-tu de faire enfant ?", "Quel métier ne pourrais-tu jamais faire ?"],
+    ["Quel est ton film préféré ?", "Quel film t'a le plus fait peur ?"],
+    ["Quel objet emporterais-tu sur une île déserte ?", "Quel objet perds-tu tout le temps ?"],
+    ["Quelle est ta saison préférée ?", "À quelle saison es-tu le plus de mauvaise humeur ?"],
+    ["Quelle appli utilises-tu le plus ?", "Quelle appli supprimerais-tu en premier ?"],
+    ["Quel est ton fruit préféré ?", "Quel fruit manges-tu le plus souvent ?"],
+    ["Quel sport aimes-tu regarder ?", "Quel sport aimerais-tu essayer ?"],
+    ["Quel est ton jeu vidéo préféré ?", "À quel jeu vidéo as-tu le plus joué enfant ?"],
+    ["Quelle couleur aimes-tu le plus ?", "De quelle couleur est ton pull préféré ?"],
+    ["Quel pays aimerais-tu visiter ?", "Quel pays as-tu visité en dernier ?"],
+    ["Quel légume détestes-tu ?", "Quel légume manges-tu le plus ?"],
+    ["Quel est ton dessin animé préféré ?", "Quel dessin animé te faisait peur enfant ?"],
+    ["Quelle célébrité aimerais-tu rencontrer ?", "Quelle célébrité t'agace le plus ?"],
+    ["Qu'est-ce que tu manges au petit-déjeuner ?", "Qu'est-ce que tu manges quand tu rentres tard ?"],
+    ["Quel est ton parfum de glace préféré ?", "Quel parfum de bonbon préfères-tu ?"],
+    ["Où partirais-tu en vacances demain ?", "Où as-tu passé tes pires vacances ?"],
+    ["Quel instrument aimerais-tu savoir jouer ?", "Quel instrument fait le plus de bruit selon toi ?"],
+    ["Quel est le dernier truc que tu as acheté ?", "Quel est le dernier cadeau que tu as offert ?"],
+    ["Quelle est ta série préférée ?", "Quelle série as-tu abandonnée ?"],
+    ["Quel est ton fast-food préféré ?", "Où manges-tu quand tu n'as pas d'argent ?"],
+    ["Quel mot dis-tu tout le temps ?", "Quel mot ne supportes-tu pas ?"],
+    ["Quel est ton emoji préféré ?", "Quel emoji n'utilises-tu jamais ?"],
+    ["Quel est ton chanteur ou ta chanteuse préféré(e) ?", "Qui chantes-tu sous la douche ?"],
+    ["Quelle est ta pizza préférée ?", "Quelle garniture de pizza est une hérésie ?"],
+    ["Quel personnage de fiction aimerais-tu être ?", "Quel méchant de fiction trouves-tu le plus classe ?"],
+    ["Qu'emportes-tu toujours dans ton sac ?", "Qu'est-ce qui traîne au fond de ton sac ?"],
+    ["Quelle est ta matière préférée à l'école ?", "Dans quelle matière étais-tu le plus nul(le) ?"],
+    ["Quel est ton fromage préféré ?", "Quel fromage sent le plus fort ?"],
+    ["Quel prénom donnerais-tu à un chien ?", "Quel prénom donnerais-tu à un poisson rouge ?"],
+    ["Quelle voiture aimerais-tu conduire ?", "Quelle voiture est la plus moche ?"],
+    ["Quel est ton plat de cantine préféré ?", "Quel plat de cantine te dégoûtait ?"],
+    ["Quel cadeau rêves-tu de recevoir ?", "Quel cadeau nul as-tu déjà reçu ?"],
+    ["Quel est ton jeu de société préféré ?", "À quel jeu de société triches-tu ?"],
+    ["Que fais-tu le dimanche matin ?", "Que fais-tu quand tu t'ennuies ?"]
+  ].map(function(q){ return [q[0], q[1], 't']; });
+  /* une paire : [question de tous, question de l'imposteur] (+ 't' si réponse en texte) */
+  function impIsText(pair){ return pair[2]==='t'; }
+  function impValidPair(q){ return Array.isArray(q) && (q.length===2 || (q.length===3 && q[2]==='t')) && q[0] && q[1]; }
   /* On ne sauvegarde que les paires personnalisées : avant, toute la banque
      était enregistrée et les nouvelles questions par défaut n'apparaissaient
      jamais chez ceux qui avaient ajouté une question. */
@@ -200,7 +247,7 @@
         }
       }
     }catch(e){}
-    return custom.filter(function(q){ return Array.isArray(q) && q.length===2 && q[0] && q[1]; });
+    return custom.filter(impValidPair);
   }
   var impCustom=impLoadCustom();
   function impSaveCustom(){
@@ -209,12 +256,14 @@
 
   var impState = {
     players:[], scores:[], connected:[],
-    bank: impCustom.concat(IMP_DEFAULT_BANK), pool:[],
+    bank: impCustom.concat(IMP_DEFAULT_BANK, IMP_TEXT_BANK),
+    pools:{num:[], text:[]},     /* paires restantes, mélangées, par type de réponse */
+    kind:'num',                  /* type de réponse de la manche : 'num' | 'text' */
     round:0, roundSeats:[],
     myQuestion:'', answers:{}, votes:{},
     /* host only */
     phase:'lobby',               /* 'lobby' | 'answering' | 'voting' | 'result' | 'lobby_wait' */
-    question:'', imposterQuestion:'', imposterSeat:-1,
+    question:'', imposterQuestion:'', imposterSeats:[],
     clientIds:[], lastPhaseMsg:null
   };
   var impNetRole=null, impMySeat=0, impMyName='', impCurrentRoomCode='';
@@ -223,6 +272,18 @@
   var impRoundLiveForLobby=false;
   var impMyVoteTarget=null;
   var impImposterTimer=null;
+  var IMP_TWO_FROM=6;            /* 2 imposteurs à partir de 6 joueurs (si l'hôte le veut) */
+  var IMP_TEXT_MAX=40;           /* longueur maximale d'une réponse en texte */
+  function impIsImposter(s){ return impState.imposterSeats.indexOf(s)!==-1; }
+  /* réponse validée : nombre arrondi au centième, ou texte court ; null si invalide */
+  function impCleanAnswer(value, kind){
+    if(kind==='text'){
+      var t=String(value==null?'':value).replace(/\s+/g,' ').trim().slice(0,IMP_TEXT_MAX);
+      return t ? t : null;
+    }
+    var v=parseFloat(String(value).replace(',','.'));
+    return isFinite(v) ? Math.round(v*100)/100 : null;
+  }
   var IMP_IMPOSTER_GRACE=30000;  /* délai laissé à l'imposteur déconnecté pour revenir */
   /* sans limite de temps, un joueur inactif bloquait la manche pour tout le monde */
   var IMP_ANSWER_MS=90000, IMP_VOTE_MS=60000;
@@ -235,7 +296,16 @@
 
   /* ----- screens ----- */
   function impRenderBankCount(){
-    $('impBankCount').textContent=impState.bank.length+' paires de questions';
+    var t=impState.bank.filter(impIsText).length;
+    $('impBankCount').textContent=impState.bank.length+' paires de questions ('+(impState.bank.length-t)+' en nombres, '+t+' en texte)';
+  }
+  /* pioche une paire du type voulu ('num' ou 'text') ; la pioche se remélange une fois vide */
+  function impDrawPair(kind){
+    var pool=impState.pools[kind];
+    if(!pool.length){
+      pool=impState.pools[kind]=shuffle(impState.bank.filter(function(q){ return impIsText(q)===(kind==='text'); }));
+    }
+    return pool.pop();
   }
 
   CG.wireModal('impRulesModal', 'impRulesBtn');
@@ -245,8 +315,10 @@
   $('impAddQBtn').addEventListener('click',function(){
     var q=$('impCustomQ').value.trim(), qi=$('impCustomQImp').value.trim();
     if(!q||!qi){ shake($('impCustomQ')); return; }
-    impCustom.unshift([q,qi]);
-    impState.bank.unshift([q,qi]);
+    var pair=$('impCustomText').checked ? [q,qi,'t'] : [q,qi];
+    impCustom.unshift(pair);
+    impState.bank.unshift(pair);
+    impState.pools={num:[], text:[]};
     impSaveCustom();
     $('impCustomQ').value=''; $('impCustomQImp').value='';
     impRenderBankCount();
@@ -322,7 +394,7 @@
       impState.connected=[true];
       impState.clientIds=[net.clientId];
       impState.phase='lobby';
-      impState.pool=shuffle(impState.bank.slice());
+      impState.pools={num:[], text:[]};
       try{ history.replaceState(null,'','#imposteur?room='+code); }catch(e){}
       $('impCodeDisplay').textContent=code;
       impRenderLobby();
@@ -369,11 +441,11 @@
     }
     /* l'imposteur parti : on l'attend un peu, puis la manche est annulée
        (sinon il gagnerait des points sans être là) */
-    if(seat===impState.imposterSeat){
+    if(impIsImposter(seat)){
       if(impImposterTimer) clearTimeout(impImposterTimer);
       impImposterTimer=setTimeout(function(){
         impImposterTimer=null;
-        if(impIsRoundLive() && !impIsConnected(impState.imposterSeat)){
+        if(impIsRoundLive() && impState.imposterSeats.some(function(s){ return !impIsConnected(s); })){
           impBroadcast({type:'round_aborted', reason:"l'imposteur a quitté la partie (aucun point attribué)."});
         }
       }, IMP_IMPOSTER_GRACE);
@@ -446,6 +518,7 @@
       statusEl.textContent = impNetRole==='host' ? (count+' joueurs prêts. Tu peux lancer la partie !') : (count+" joueurs prêts. En attente que l'hôte lance la partie...");
     }
     $('impStartBtn').style.display = (impNetRole==='host' && count>=3 && !live) ? 'inline-block' : 'none';
+    $('impHostOpts').hidden = impNetRole!=='host' || live;
   }
   $('impStartBtn').addEventListener('click',function(){ sfxValidate(); impHostStartRound(); });
   $('impNextRoundBtn').addEventListener('click',function(){ sfxToggle(); impHostStartRound(); });
@@ -453,7 +526,8 @@
   /* ----- round flow (host authoritative) ----- */
   function impRoundStartMsg(seat){
     return {type:'round_start', round:impState.round, roundSeats:impState.roundSeats.slice(),
-      question: seat===impState.imposterSeat ? impState.imposterQuestion : impState.question,
+      question: impState.imposterSeats.indexOf(seat)!==-1 ? impState.imposterQuestion : impState.question,
+      kind:impState.kind, nImp:impState.imposterSeats.length,
       ms: impState.phase==='answering' ? impLeft() : 0, total:IMP_ANSWER_MS};
   }
   function impHostStartRound(){
@@ -468,13 +542,16 @@
     }
     impSetNetStatus('connected','PARTIE EN COURS');
     impGameStarted=true;
-    if(impState.pool.length===0) impState.pool=shuffle(impState.bank.slice());
-    var pair=impState.pool.pop();
+    /* réglages de l'hôte : type de réponses, nombre d'imposteurs */
+    var kindOpt=$('impKindSel').value;
+    impState.kind = kindOpt==='text' ? 'text' : kindOpt==='mix' ? (Math.random()<0.5?'text':'num') : 'num';
+    var pair=impDrawPair(impState.kind);
     /* une fois sur deux on inverse la paire : impossible de deviner son rôle à la question */
     var flip=Math.random()<0.5;
     impState.question=flip?pair[1]:pair[0];
     impState.imposterQuestion=flip?pair[0]:pair[1];
-    impState.imposterSeat=seats[Math.floor(Math.random()*seats.length)];
+    var nImp=($('impTwoImpChk').checked && seats.length>=IMP_TWO_FROM) ? 2 : 1;
+    impState.imposterSeats=shuffle(seats.slice()).slice(0,nImp).sort(function(a,b){ return a-b; });
     impState.roundSeats=seats;
     impState.answers={}; impState.votes={};
     impState.round++;
@@ -493,15 +570,15 @@
   function impHostReceiveAnswer(seat, value){
     if(impState.phase!=='answering' || impState.roundSeats.indexOf(seat)===-1) return;
     if(impState.answers.hasOwnProperty(seat)) return;
-    var v=parseFloat(value);
-    if(!isFinite(v)) return;
-    impState.answers[seat]=Math.round(v*100)/100;
+    var v=impCleanAnswer(value, impState.kind);
+    if(v===null) return;
+    impState.answers[seat]=v;
     impBroadcast({type:'answer_status', answered:Object.keys(impState.answers).map(Number)});
     impHostCheckAnswers();
   }
   function impHostCheckAnswers(){
     if(impState.phase!=='answering') return;
-    var pending=impState.roundSeats.filter(function(s){ return (impIsConnected(s) || s===impState.imposterSeat) && !impState.answers.hasOwnProperty(s); });
+    var pending=impState.roundSeats.filter(function(s){ return (impIsConnected(s) || impIsImposter(s)) && !impState.answers.hasOwnProperty(s); });
     if(pending.length) return;
     impHostRevealAnswers();
   }
@@ -512,10 +589,10 @@
     clearTimeout(impPhaseTimer);
     impPhaseTimer=setTimeout(function(){ if(impState.phase==='voting') impHostFinishRound(); }, IMP_VOTE_MS+300);
     var msg={type:'reveal_answers', question:impState.question, answers:impState.answers, roundSeats:impState.roundSeats.slice(),
+      kind:impState.kind, nImp:impState.imposterSeats.length,
       ms:IMP_VOTE_MS, total:IMP_VOTE_MS};
     impState.lastPhaseMsg=msg;
     impBroadcast(msg);
-    if(CG.partyEnd) CG.partyEnd(impState.players, impState.scores);
   }
   function impHostReceiveVote(seat, target){
     var rs=impState.roundSeats;
@@ -527,7 +604,7 @@
   }
   function impHostCheckVotes(){
     if(impState.phase!=='voting') return;
-    var pending=impState.roundSeats.filter(function(s){ return (impIsConnected(s) || s===impState.imposterSeat) && !impState.votes.hasOwnProperty(s); });
+    var pending=impState.roundSeats.filter(function(s){ return (impIsConnected(s) || impIsImposter(s)) && !impState.votes.hasOwnProperty(s); });
     if(pending.length) return;
     impHostFinishRound();
   }
@@ -536,30 +613,34 @@
     var tally={};
     impState.roundSeats.forEach(function(s){ tally[s]=0; });
     Object.keys(impState.votes).forEach(function(v){ var t=impState.votes[v]; if(tally.hasOwnProperty(t)) tally[t]++; });
-    var max=-1, leaders=[];
-    impState.roundSeats.forEach(function(s){
-      if(tally[s]>max){ max=tally[s]; leaders=[s]; }
-      else if(tally[s]===max){ leaders.push(s); }
-    });
-    /* démasqué seulement s'il est seul en tête des votes */
-    var caught = leaders.length===1 && leaders[0]===impState.imposterSeat;
-    var winners=[];
-    if(caught){
-      Object.keys(impState.votes).forEach(function(v){
-        if(impState.votes[v]===impState.imposterSeat){ v=Number(v); winners.push(v); impState.scores[v]=(impState.scores[v]||0)+1; }
-      });
-    } else {
-      winners.push(impState.imposterSeat);
-      impState.scores[impState.imposterSeat]=(impState.scores[impState.imposterSeat]||0)+2;
+    /* les nImp plus accusés sont démasqués, seulement s'ils se détachent :
+       un imposteur à égalité avec un innocent à la limite s'échappe
+       (avec un seul imposteur : démasqué seulement s'il est seul en tête) */
+    var imps=impState.imposterSeats, nImp=imps.length;
+    var counts=impState.roundSeats.map(function(s){ return tally[s]; }).sort(function(a,b){ return b-a; });
+    var limit=counts.length>nImp ? counts[nImp] : -1;
+    var leaders=impState.roundSeats.filter(function(s){ return tally[s]>0 && tally[s]>limit; });
+    var caughtSeats=imps.filter(function(s){ return leaders.indexOf(s)!==-1; });
+    var winners=[], gains={};
+    function give(s, pts){
+      if(winners.indexOf(s)===-1) winners.push(s);
+      gains[s]=(gains[s]||0)+pts;
+      impState.scores[s]=(impState.scores[s]||0)+pts;
     }
+    /* +1 à qui a accusé un imposteur démasqué, +2 à chaque imposteur qui s'échappe */
+    Object.keys(impState.votes).forEach(function(v){
+      if(caughtSeats.indexOf(impState.votes[v])!==-1) give(Number(v), 1);
+    });
+    imps.forEach(function(s){ if(caughtSeats.indexOf(s)===-1) give(s, 2); });
     impState.phase='result';
-    var msg={type:'round_result', caught:caught, imposterSeat:impState.imposterSeat,
+    var msg={type:'round_result', caughtSeats:caughtSeats, imposterSeats:imps.slice(), kind:impState.kind, gains:gains,
       question:impState.question, imposterQuestion:impState.imposterQuestion,
       answers:impState.answers, tally:tally, votes:impState.votes, winners:winners,
       leaders:leaders, scores:impState.scores.slice(), roundSeats:impState.roundSeats.slice()};
     impState.lastPhaseMsg=msg;
     impBroadcast(msg);
     impBroadcastLobby();
+    if(CG.partyEnd) CG.partyEnd(impState.players, impState.scores);
   }
 
   /* ----- incoming message dispatcher ----- */
@@ -595,6 +676,8 @@
         impState.round=msg.round;
         impState.roundSeats=msg.roundSeats.slice();
         impState.myQuestion=msg.question;
+        impState.kind=msg.kind==='text'?'text':'num';
+        impState.nImp=msg.nImp||1;
         impState.answers={}; impState.votes={};
         impShowAnswerScreen(null);
         impAnswerBar.start(msg.ms||IMP_ANSWER_MS, msg.total||IMP_ANSWER_MS);
@@ -640,6 +723,12 @@
     $('impRoundBadge').textContent='MANCHE N°'+impState.round;
     $('impRoundBadge').style.display='inline-block';
     $('impMyQuestion').textContent=impState.myQuestion;
+    var text=impState.kind==='text', inp=$('impAnswerInput');
+    $('impAnswerLabel').textContent = text ? 'Ta réponse (un mot ou quelques mots)' : 'Ta réponse (un nombre)';
+    inp.setAttribute('inputmode', text ? 'text' : 'decimal');
+    inp.maxLength = text ? IMP_TEXT_MAX : 12;
+    inp.placeholder = text ? 'Ex : la raclette' : 'Ex : 7';
+    $('impAnswerNImp').hidden = (impState.nImp||1)<2;
     $('impAnswerInput').value='';
     $('impAnswerInput').disabled=false;
     $('impAnswerBtn').disabled=false;
@@ -671,9 +760,8 @@
     if(e.key==='Enter'){ e.preventDefault(); $('impAnswerBtn').click(); }
   });
   $('impAnswerBtn').addEventListener('click',function(){
-    var raw=$('impAnswerInput').value.replace(',','.').trim();
-    var v=parseFloat(raw);
-    if(raw==='' || !isFinite(v)){ shake($('impAnswerInput')); return; }
+    var v=impCleanAnswer($('impAnswerInput').value, impState.kind);
+    if(v===null){ shake($('impAnswerInput')); return; }
     sfxValidate();
     impMarkAnswered(v);
     if(impNetRole==='host') impHostReceiveAnswer(0, v);
@@ -682,11 +770,17 @@
   });
 
   /* ----- reveal & vote ----- */
-  function impFormat(v){ return String(v).replace('.',','); }
+  /* réponse affichable (déjà échappée) : « 2,5 » ou le texte du joueur */
+  function impFormat(v){ return typeof v==='number' ? String(v).replace('.',',') : escapeHtml(String(v)); }
+  function impCompare(a, b){
+    return (typeof a==='number' && typeof b==='number') ? a-b : String(a).localeCompare(String(b), 'fr', {sensitivity:'base'});
+  }
   /* Ligne graduée : les réponses placées entre la plus petite et la plus grande. */
-  function impRenderLine(el, answers, seats, highlightSeat){
+  function impRenderLine(el, answers, seats, highlights, kind){
     var vals=seats.filter(function(s){ return answers.hasOwnProperty(s); });
-    if(!vals.length){ el.innerHTML=''; return; }
+    /* réponses en texte : pas de ligne graduée, la liste suffit */
+    el.hidden = kind==='text';
+    if(!vals.length || kind==='text'){ el.innerHTML=''; return; }
     var min=Infinity, max=-Infinity;
     vals.forEach(function(s){ min=Math.min(min,answers[s]); max=Math.max(max,answers[s]); });
     var span=(max-min)||1;
@@ -695,7 +789,7 @@
     vals.forEach(function(s,i){
       var p=impState.players[s]||{name:'?',color:'#888'};
       var left=(max===min)?50:((answers[s]-min)/span*100);
-      html+='<div class="imp-line-dot" style="left:'+left+'%;background:'+p.color+';'+(s===highlightSeat?'box-shadow:0 0 0 3px var(--red-bright);':'')+'"></div>';
+      html+='<div class="imp-line-dot" style="left:'+left+'%;background:'+p.color+';'+(highlights.indexOf(s)!==-1?'box-shadow:0 0 0 3px var(--red-bright);':'')+'"></div>';
       /* seulement la valeur : la liste en dessous associe couleur, nom et réponse */
       html+='<div class="imp-line-label'+(i%2?' low':'')+'" style="left:'+left+'%;color:'+p.color+';" title="'+escapeHtml(p.name)+'">'+impFormat(answers[s])+'</div>';
     });
@@ -703,11 +797,17 @@
   }
   function impShowVoteScreen(msg, alreadyVoted){
     $('impRealQuestion').textContent=msg.question;
-    impRenderLine($('impVoteLine'), msg.answers, msg.roundSeats, -1);
+    impRenderLine($('impVoteLine'), msg.answers, msg.roundSeats, [], msg.kind);
+    var n=msg.nImp||1;
+    $('impVoteTitle').textContent = n>1 ? "🔎 QUI SONT LES 2 IMPOSTEURS ?" : "🔎 QUI EST L'IMPOSTEUR ?";
+    $('impVoteHint').textContent = n>1
+      ? "Cette manche, deux joueurs ont reçu l'autre question (la même pour les deux). Discutez, puis accusez un suspect. Si c'est toi qui as reçu une autre question… bluffe !"
+      : "Discutez, puis accusez le joueur dont la réponse cache une autre question. Si c'est toi qui as reçu une autre question… bluffe !";
     impMyVoteTarget = alreadyVoted ? -1 : null;
     var seats=msg.roundSeats.slice().sort(function(a,b){
-      var va=msg.answers.hasOwnProperty(a)?msg.answers[a]:Infinity, vb=msg.answers.hasOwnProperty(b)?msg.answers[b]:Infinity;
-      return va-vb;
+      var ha=msg.answers.hasOwnProperty(a), hb=msg.answers.hasOwnProperty(b);
+      if(ha!==hb) return ha ? -1 : 1;
+      return ha ? impCompare(msg.answers[a], msg.answers[b]) : 0;
     });
     var html='';
     seats.forEach(function(s){
@@ -743,22 +843,29 @@
   function impShowResult(msg){
     impInRound=false;
     impAnswerBar.stop(); impVoteBar.stop();
-    var imp=impState.players[msg.imposterSeat]||{name:'?'};
-    var banner=$('impResultBanner');
-    banner.textContent = msg.caught ? '🎯 IMPOSTEUR DÉMASQUÉ !' : "🕵️ L'IMPOSTEUR S'ÉCHAPPE !";
-    banner.className='cham-result-banner '+(msg.caught?'b-perfect':'b-fail');
-    var who = msg.imposterSeat===impMySeat ? 'C’était <b>toi</b> !' : 'C’était <b>'+escapeHtml(imp.name)+'</b>.';
+    var imps=msg.imposterSeats||[], caught=msg.caughtSeats||[], gains=msg.gains||{};
+    var banner=$('impResultBanner'), ok=caught.length===imps.length, none=!caught.length;
+    if(imps.length>1) banner.textContent = ok ? '🎯 LES 2 IMPOSTEURS DÉMASQUÉS !' : none ? "🕵️ LES IMPOSTEURS S'ÉCHAPPENT !" : "🎯 UN IMPOSTEUR DÉMASQUÉ, L'AUTRE S'ÉCHAPPE !";
+    else banner.textContent = ok ? '🎯 IMPOSTEUR DÉMASQUÉ !' : "🕵️ L'IMPOSTEUR S'ÉCHAPPE !";
+    banner.className='cham-result-banner '+(ok?'b-perfect':none?'b-fail':'b-ok');
+    var names=imps.map(function(s){
+      if(s===impMySeat) return '<b>toi</b>';
+      return '<b>'+escapeHtml((impState.players[s]||{name:'?'}).name)+'</b>';
+    });
+    var who = (imps.length>1 ? 'Les imposteurs : '+names.join(' et ')+'.' : 'C’était '+names[0]+(imps[0]===impMySeat?' !':'.'));
+    var impAns=imps.map(function(s){ return msg.answers.hasOwnProperty(s)?impFormat(msg.answers[s]):'—'; });
     $('impResultText').innerHTML = who+'<br>Question de tous : « '+escapeHtml(msg.question)+' »<br>'+
-      'Question de l’imposteur : « '+escapeHtml(msg.imposterQuestion)+' » — réponse : <b>'+
-      (msg.answers.hasOwnProperty(msg.imposterSeat)?impFormat(msg.answers[msg.imposterSeat]):'—')+'</b>';
-    impRenderLine($('impResultLine'), msg.answers, msg.roundSeats, msg.imposterSeat);
+      'Question '+(imps.length>1?'des imposteurs':'de l’imposteur')+' : « '+escapeHtml(msg.imposterQuestion)+' » — '+
+      (imps.length>1?'réponses':'réponse')+' : <b>'+impAns.join('</b> et <b>')+'</b>';
+    impRenderLine($('impResultLine'), msg.answers, msg.roundSeats, imps, msg.kind);
 
     var html='';
     for(var i=0;i<impState.players.length;i++){
       if(!impState.players[i]) continue;
-      var gained=msg.winners.indexOf(i)!==-1 ? (i===msg.imposterSeat?' +2':' +1') : '';
+      var gained=gains[i] ? ' +'+gains[i] : '';
       var votes=msg.tally.hasOwnProperty(i) ? (msg.tally[i]+' vote(s)') : '';
-      html+=impPlayerRow(i, '<span class="imp-tag">'+(i===msg.imposterSeat?'🕵️ ':'')+votes+'</span><span class="cham-vote-count">'+(impState.scores[i]||0)+' pts'+gained+'</span>');
+      var ans=(msg.kind==='text' && msg.answers.hasOwnProperty(i)) ? '« '+impFormat(msg.answers[i])+' » · ' : '';
+      html+=impPlayerRow(i, '<span class="imp-tag">'+(imps.indexOf(i)!==-1?'🕵️ ':'')+ans+votes+'</span><span class="cham-vote-count">'+(impState.scores[i]||0)+' pts'+gained+'</span>');
     }
     $('impScoreList').innerHTML=html;
 
