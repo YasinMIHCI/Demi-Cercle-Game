@@ -661,7 +661,7 @@ button.cls-slot:disabled{cursor:default;opacity:1;}
 .qae-bluff{color:#aaa;margin-left:auto;font-style:italic;}
 .qae-recap{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
 .qae-answer-recap{display:flex;align-items:baseline;gap:8px;background:#181818;border:2px solid #333;padding:8px 12px;flex-wrap:wrap;}
-.qae-answer-recap span{color:#ddd;flex:1;min-width:60%;}
+.qae-answer-recap .cham-player-dot{flex:none;}
 
 /* ================= INTRO ANIMÉE ================= */
 html.intro-playing, html.intro-playing body{overflow:hidden;}
@@ -856,3 +856,25 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .cls-tag-row > b{white-space:nowrap;}
 .cls-tag-row span{display:flex;flex-wrap:wrap;gap:4px;}
 .cls-tag-row em{font-style:normal;background:#2a2400;border:1px solid var(--yellow);color:var(--yellow);padding:1px 8px;font-size:0.8rem;border-radius:10px;}
+
+/* Qui a écrit ça : dessin et emojis */
+#qaeFormatTabs[hidden],#qaeTextBox[hidden],#qaeDrawBox[hidden],#qaeEmojiBox[hidden]{display:none;}
+#qaeFormatTabs{margin-bottom:10px;}
+.qae-draw{display:block;width:100%;max-width:480px;aspect-ratio:8/5;margin:6px auto;background:#fff;border:4px solid #000;
+  box-shadow:4px 4px 0 var(--red);touch-action:none;cursor:crosshair;}
+#qaeWriteArea.sent .qae-draw{cursor:default;opacity:0.85;}
+.qae-draw-tools{display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:center;margin:8px 0;}
+.qae-draw-tools .btn{margin:0;}
+.qae-color{width:30px;height:30px;border-radius:50%;border:3px solid #444;cursor:pointer;padding:0;font-size:0.9rem;}
+.qae-color.active{border-color:var(--yellow);box-shadow:0 0 0 2px #000;}
+.qae-emoji-input{font-size:1.6rem;letter-spacing:2px;}
+.qae-emoji-palette{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:4px;margin:8px 0;}
+.qae-emoji{font-size:1.5rem;background:#181818;border:1px solid #333;border-radius:8px;padding:4px 0;cursor:pointer;}
+.qae-emoji:active{transform:scale(0.9);}
+.qae-card.pic .qae-quote{display:none;}
+.qae-card .ans-e,.qae-recap-ans.ans-e{font-size:2.2rem;letter-spacing:3px;line-height:1.3;}
+.qae-card .ans-d img{display:block;width:100%;max-width:480px;margin:0 auto;}
+.qae-recap-ans.ans-d img{display:block;width:100%;max-width:240px;border:2px solid #000;background:#fff;}
+.qae-recap-ans.ans-e{font-size:1.6rem;}
+#qaeWriteArea.sent .qae-emoji-palette,#qaeWriteArea.sent .qae-draw-tools,#qaeWriteArea.sent #qaeEmojiDel{display:none;}
+.qae-recap-ans{color:#ddd;flex:1;min-width:60%;word-break:break-word;}
