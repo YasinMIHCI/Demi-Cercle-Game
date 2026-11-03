@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=31">
+<link rel="stylesheet" href="css/style.css?v=32">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=31"></script>
-<script src="js/intro.js?v=31"></script>
+<script src="js/audio.js?v=32"></script>
+<script src="js/intro.js?v=32"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -187,8 +187,18 @@
 
       <div class="mode-buttons">
         <button class="btn yellow" id="chooseLocalBtn"><span>🏠 LOCAL — Même écran</span></button>
-        <button class="btn yellow" id="chooseOnlineBtn"><span>🌐 EN LIGNE — 1 VS 1 / 2 VS 2</span></button>
+        <button class="btn yellow" id="chooseOnlineBtn"><span>🌐 EN LIGNE — 2 À 10 JOUEURS</span></button>
       </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="screen-title" style="font-size:clamp(1.2rem,4vw,1.7rem);">🎯 MEILLEURES ESTIMATIONS</h2>
+      <div class="format-toggle" id="bestEstTabs">
+        <button type="button" class="btn ghost small format-opt active" data-tab="mine"><span>📱 Sur cet appareil</span></button>
+        <button type="button" class="btn ghost small format-opt" data-tab="all"><span>🌍 Top de tous les joueurs</span></button>
+      </div>
+      <div class="est-list" id="bestEstList"></div>
+      <p class="subtitle" style="font-size:0.8rem;margin:6px 0 0;">Le top de tous les joueurs regroupe les manches en ligne à 50 points ou plus des joueurs connectés à un compte.</p>
     </div>
   </section>
 
@@ -219,7 +229,7 @@
     <div class="panel">
       <span class="back-link" id="backFromOnline">◀ Retour</span>
       <h1 class="screen-title">PARTIE EN LIGNE</h1>
-      <p class="subtitle">Affronte un autre joueur en 1 vs 1, ou forme une équipe de 2 en 2 vs 2. Choisis le format en créant la salle — les autres la rejoignent ensuite avec le code (ou le lien).</p>
+      <p class="subtitle">Affronte un autre joueur en 1 vs 1, forme une équipe de 2 en 2 vs 2, ou jouez de 3 à 10 en équipes tournantes. Choisis le format en créant la salle — les autres la rejoignent ensuite avec le code (ou le lien). Les thèmes que tu as ajoutés à ta banque sont partagés avec la salle.</p>
       <label for="onlineName">Ton nom</label>
       <input type="text" id="onlineName" placeholder="Ton pseudo" maxlength="18">
     </div>
@@ -230,6 +240,7 @@
       <div class="format-toggle">
         <button class="btn ghost small format-opt active" id="formatBtn1v1" data-format="1v1"><span>👤 1 VS 1</span></button>
         <button class="btn ghost small format-opt" id="formatBtn2v2" data-format="2v2"><span>👥 2 VS 2</span></button>
+        <button class="btn ghost small format-opt" id="formatBtnRot" data-format="rot"><span>🔄 ÉQUIPES TOURNANTES (3-10)</span></button>
       </div>
       <label for="hostCodeInput">Code de la salle (choisis-le, tes amis tapent le même)</label>
       <input type="text" id="hostCodeInput" data-room-code="createRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
@@ -259,7 +270,8 @@
         <button class="btn ghost small" id="copyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
       </div>
 
-      <div class="team-columns">
+      <div class="rot-lobby" id="rotPlayerList" style="display:none;"></div>
+      <div class="team-columns" id="lobbyTeamCols">
         <div class="team-col">
           <h3 id="teamColHeader0">🔴 ÉQUIPE ROUGE</h3>
           <div class="seat" id="seatSlot0">En attente...</div>
@@ -273,6 +285,7 @@
       </div>
 
       <p class="lobby-status" id="lobbyStatusMsg">En attente de joueurs...</p>
+      <p class="theme-count" id="lobbySharedThemes" style="text-align:center;"></p>
       <div class="btn-row center">
         <button class="btn yellow" id="lobbyStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
       </div>
@@ -1928,6 +1941,9 @@
       <li><b>Le devinement :</b> le Devin place l'aiguille là où il pense que se trouve la cible, à partir du seul indice donné.</li>
       <li><b>Révélation :</b> la cible est dévoilée ! Plus l'aiguille est proche, plus l'équipe marque de points, selon le barème ci-dessous.</li>
       <li><b>En ligne :</b> choisis 1 vs 1 (chacun alterne donneur/devin à son tour) ou 2 vs 2 (2 équipes de 2, qui alternent donneur/devin en interne pendant que l'équipe adverse observe en direct). Les points s'ajoutent au score de l'équipe (ou du joueur, en 1 vs 1).</li>
+      <li><b>Équipes tournantes (3 à 10 joueurs) :</b> à chaque manche, un duo joue (un donneur, un devin) pendant que les autres regardent. Les duos changent à chaque manche pour que tout le monde joue avec tout le monde ; les deux joueurs du duo marquent les points, et chacun a son propre score. On peut arriver en cours de partie.</li>
+      <li><b>Thèmes partagés :</b> en ligne, les thèmes que chaque invité a ajoutés à sa banque rejoignent la partie (« thème de … »).</li>
+      <li><b>Meilleures estimations :</b> tes plus belles manches sont gardées sur l'appareil ; connecté à un compte, celles à 50 points ou plus en ligne entrent dans le top de tous les joueurs.</li>
       <li><b>Pari de Confiance :</b> le Devin peut activer un pari avant de valider. Réussite (zone 80 ou 100) : les points sont multipliés par ×1,5. Échec (zone 20 ou 0) : l'équipe perd 30 points !</li>
     </ol>
     <h3 class="rules-subhead">BARÈME DES POINTS</h3>
@@ -1955,21 +1971,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=31"></script>
-<script src="js/net.js?v=31"></script>
-<script src="js/demicercle.js?v=31"></script>
-<script src="js/cameleon.js?v=31"></script>
-<script src="js/imposteur.js?v=31"></script>
-<script src="js/loup.js?v=31"></script>
-<script src="js/classement.js?v=31"></script>
-<script src="js/quiaecrit.js?v=31"></script>
-<script src="js/crousprison-photos.js?v=31"></script>
-<script src="js/crousprison.js?v=31"></script>
-<script src="js/bots-maps.js?v=31"></script>
-<script src="js/bots.js?v=31"></script>
-<script src="js/pwa.js?v=31"></script>
-<script src="js/party.js?v=31"></script>
-<script src="js/account.js?v=31"></script>
-<script src="js/hub.js?v=31"></script>
+<script src="js/common.js?v=32"></script>
+<script src="js/net.js?v=32"></script>
+<script src="js/demicercle.js?v=32"></script>
+<script src="js/cameleon.js?v=32"></script>
+<script src="js/imposteur.js?v=32"></script>
+<script src="js/loup.js?v=32"></script>
+<script src="js/classement.js?v=32"></script>
+<script src="js/quiaecrit.js?v=32"></script>
+<script src="js/crousprison-photos.js?v=32"></script>
+<script src="js/crousprison.js?v=32"></script>
+<script src="js/bots-maps.js?v=32"></script>
+<script src="js/bots.js?v=32"></script>
+<script src="js/pwa.js?v=32"></script>
+<script src="js/party.js?v=32"></script>
+<script src="js/account.js?v=32"></script>
+<script src="js/hub.js?v=32"></script>
 </body>
 </html>

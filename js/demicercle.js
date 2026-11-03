@@ -1,4 +1,9 @@
-/* Le Demi-Cercle — jeu d'estimation (local + en ligne 1v1 / 2v2). */
+/* Le Demi-Cercle — jeu d'estimation (local + en ligne 1v1 / 2v2 / équipes tournantes).
+   Équipes tournantes (3 à 10 joueurs) : à chaque manche un duo joue (un
+   donneur d'indice, un devineur) et les duos changent à chaque manche ; les
+   points vont aux deux joueurs du duo, chacun a son score. Les thèmes perso
+   des invités rejoignent ceux de l'hôte (thèmes partagés), et les meilleures
+   estimations sont gardées (dans le navigateur, et sur le compte si connecté). */
 (function(){
   'use strict';
   var CG=window.CG;
@@ -101,7 +106,11 @@
   /* host only: clientId de chaque place (pour récupérer sa place après une
      coupure), et journal de la manche en cours pour resynchroniser un
      joueur qui se reconnecte. */
-  var seatClientIds = [null,null,null,null];
+  var MAX_SEATS = 10;             /* équipes tournantes : jusqu'à 10 joueurs */
+  var ROT_MIN = 3;
+  var rotating = false;          /* format 'rot' : duos qui tournent, scores individuels */
+  function emptySeats(v){ var a=[]; for(var i=0;i<MAX_SEATS;i++) a.push(v); return a; }
+  var seatClientIds = emptySeats(null);
   var roundLog = [];
   var roundSnapshot = null;
 
@@ -315,6 +324,15 @@
   function renderScoreboardOnline(){
     var box=$('scoreboard');
     var html='';
+    if(rotating){
+      for(var s=0;s<totalSeats;s++){
+        if(!state.players[s]) continue;
+        var role = s===state.giverSeat ? '🎯 ' : s===state.guesserSeat ? '🕵️ ' : '';
+        html += '<div class="score-chip rot-chip'+(role?' active-team':'')+(state.connected[s]===false?' off':'')+'"><span class="score-name">'+role+escapeHtml(state.players[s])+(s===mySeat?' (toi)':'')+'</span><span class="score-num">'+(state.playerScores[s]||0)+'</span></div>';
+      }
+      box.innerHTML='<div class="rot-board">'+html+'</div>';
+      return;
+    }
     for(var t=0;t<2;t++){
       var active = state.activeTeam===t;
       var cls = 'score-chip team-chip '+(t===0?'team-red':'team-blue')+(active?' active-team':'');
@@ -552,6 +570,7 @@
     var guesserIdx = 1-state.giverIndex;
     var points = computeScore(state.targetPercent, state.guessPercent);
     state.scores[guesserIdx]+=points;
+    saveEstimate('guesser', points, state.players[guesserIdx]);
 
     $('revealGiverName').textContent = state.players[state.giverIndex];
     $('revealGuesserName').textContent = state.players[guesserIdx];
@@ -680,22 +699,38 @@
   }
 
   function applyFormat(fmt){
-    onlineFormat = (fmt==='2v2') ? '2v2' : '1v1';
+    onlineFormat = (fmt==='2v2' || fmt==='rot') ? fmt : '1v1';
+    rotating = onlineFormat==='rot';
     seatsPerTeam = onlineFormat==='2v2' ? 2 : 1;
-    totalSeats = onlineFormat==='2v2' ? 4 : 2;
+    totalSeats = onlineFormat==='2v2' ? 4 : rotating ? MAX_SEATS : 2;
   }
+  function formatTitle(){ return onlineFormat==='2v2' ? '2 VS 2' : rotating ? 'ÉQUIPES TOURNANTES' : '1 VS 1'; }
   /* Label to show for a team: real player name in 1v1 (each "team" is
      just one person), or the team name in 2v2. */
   function teamLabel(t){
+    if(rotating) return duoLabel();
     return seatsPerTeam===1 ? state.players[t] : state.teamNames[t];
   }
+  function duoLabel(){ return (state.players[state.giverSeat]||'?')+' & '+(state.players[state.guesserSeat]||'?'); }
   /* Label for a specific seat: just their name in 1v1 (no team suffix
      needed since the team IS that one player), or "Name (Team)" in 2v2. */
   function actorLabel(seat, team){
-    if(seatsPerTeam===1) return state.players[seat];
+    if(seatsPerTeam===1 || rotating) return state.players[seat];
     return state.players[seat]+' ('+teamLabel(team)+')';
   }
+  /* équipes tournantes : le donneur change à chaque manche, et son partenaire
+     se décale d'un cran à chaque tour complet (tous les duos finissent par jouer) */
+  function rotSeats(){
+    var list=[];
+    for(var s=0;s<totalSeats;s++){ if(state.players[s] && state.connected[s]!==false) list.push(s); }
+    return list;
+  }
   function computeGiverGuesserSeats(){
+    if(rotating){
+      var list=rotSeats(), n=list.length, k=state.rotIdx||0;
+      var gi=k%n, off=1+Math.floor(k/n)%(n-1);
+      return {giver:list[gi], guesser:list[(gi+off)%n]};
+    }
     if(seatsPerTeam===1){
       return {giver:state.activeTeam, guesser:1-state.activeTeam};
     }
@@ -709,10 +744,12 @@
        tenteraient de se reconnecter pendant une minute) */
     net.close(netRole==='host' ? {type:'room_closed'} : null);
     netRole=null; mySeat=0; gameStarted=false; gameEnded=false; currentRoomCode='';
-    state.players=[null,null,null,null];
-    state.connected=[true,true,true,true];
-    seatClientIds=[null,null,null,null];
+    state.players=emptySeats(null);
+    state.connected=emptySeats(true);
+    state.playerScores=emptySeats(0);
+    seatClientIds=emptySeats(null);
     roundLog=[]; roundSnapshot=null;
+    sharedThemes=[]; sharedCount=0; rotating=false;
     hideNetBanner();
     setNetStatus('offline','HORS LIGNE');
   }
@@ -728,6 +765,8 @@
     if(gameMode!=='online' || !gameStarted || gameEnded){ hideNetBanner(); return; }
     var missing=[];
     for(var s=0;s<totalSeats;s++){
+      /* équipes tournantes : seuls le donneur et le devineur de la manche bloquent la partie */
+      if(rotating && s!==state.giverSeat && s!==state.guesserSeat) continue;
       if(state.players[s] && state.connected[s]===false) missing.push(state.players[s]);
     }
     if(missing.length){
@@ -758,12 +797,21 @@
     selectedCreateFormat='1v1';
     $('formatBtn1v1').classList.add('active');
     $('formatBtn2v2').classList.remove('active');
+    $('formatBtnRot').classList.remove('active');
     sfxToggle();
   });
   $('formatBtn2v2').addEventListener('click',function(){
     selectedCreateFormat='2v2';
     $('formatBtn2v2').classList.add('active');
     $('formatBtn1v1').classList.remove('active');
+    $('formatBtnRot').classList.remove('active');
+    sfxToggle();
+  });
+  $('formatBtnRot').addEventListener('click',function(){
+    selectedCreateFormat='rot';
+    $('formatBtnRot').classList.add('active');
+    $('formatBtn1v1').classList.remove('active');
+    $('formatBtn2v2').classList.remove('active');
     sfxToggle();
   });
 
@@ -777,9 +825,12 @@
     net.host(function(code){
       netRole='host'; mySeat=0;
       currentRoomCode=code;
-      state.players=[myOnlineName,null,null,null];
-      state.connected=[true,true,true,true];
-      seatClientIds=[net.clientId,null,null,null];
+      state.players=emptySeats(null); state.players[0]=myOnlineName;
+      state.connected=emptySeats(true);
+      seatClientIds=emptySeats(null); seatClientIds[0]=net.clientId;
+      state.playerScores=emptySeats(0);
+      state.rotIdx=0;
+      sharedThemes=[];
       state.teamScores=[0,0];
       state.teamTurnCount=[0,0];
       state.activeTeam=0;
@@ -790,7 +841,7 @@
       gameStarted=false; gameEnded=false;
       try{ history.replaceState(null,'','#demicercle?room='+code); }catch(e){}
       $('lobbyCodeDisplay').textContent=code;
-      $('lobbyTitle').textContent = 'LOBBY — '+(onlineFormat==='2v2'?'2 VS 2':'1 VS 1');
+      $('lobbyTitle').textContent = 'LOBBY — '+formatTitle();
       renderLobbyScreen();
       goto_('lobby');
     }, wantedCode);
@@ -806,9 +857,12 @@
     var s;
     /* même onglet qui revient : il récupère sa place */
     for(s=1;s<totalSeats;s++){ if(msg.clientId && seatClientIds[s]===msg.clientId) return s; }
-    if(!gameStarted){
+    /* équipes tournantes : on peut arriver en cours de partie (on joue dès qu'un duo nous inclut) */
+    if(!gameStarted || rotating){
+      if(gameStarted){ for(s=1;s<totalSeats;s++){ if(state.connected[s]===false && state.players[s]===msg.name) return s; } }
       s=nextOpenSeat();
-      return s===-1 ? 'SALLE COMPLÈTE ('+totalSeats+'/'+totalSeats+')' : s;
+      if(s!==-1) return s;
+      if(!gameStarted) return 'SALLE COMPLÈTE ('+totalSeats+'/'+totalSeats+')';
     }
     /* partie en cours : on peut reprendre la place d'un joueur déconnecté
        (de préférence celle qui porte le même nom) */
@@ -822,14 +876,17 @@
     return free!==-1 ? free : 'PARTIE DÉJÀ EN COURS';
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
+    var isNew=!state.players[seat];
     seatClientIds[seat]=msg.clientId||null;
     if(msg.name) state.players[seat]=msg.name;
     state.connected[seat]=true;
+    if(isNew) state.playerScores[seat]=0;
+    if(!isRepeat) hostAddSharedThemes(seat, msg.themes);
     net.sendTo(seat, {
       type:'seat_assigned', seat:seat, format:onlineFormat,
       players:state.players.slice(), connected:state.connected.slice(),
       teamNames:state.teamNames, roundsLimit:state.roundsLimit,
-      started:gameStarted, snapshot:roundSnapshot
+      started:gameStarted, snapshot:roundSnapshot, shared:sharedThemes.length
     });
     if(gameStarted){
       /* rejoue la manche en cours pour remettre le joueur au bon écran */
@@ -841,6 +898,13 @@
     if(!isRepeat) sfxValidate();
   }
   function hostOnSeatLost(seat){
+    /* équipes tournantes : un joueur qui n'a encore joué aucune manche libère simplement sa place */
+    if(gameStarted && rotating && seat!==state.giverSeat && seat!==state.guesserSeat &&
+       !state.history.some(function(h){ return h.giverSeat===seat || h.guesserSeat===seat; })){
+      state.players[seat]=null; seatClientIds[seat]=null;
+      broadcastPlayerStatus();
+      return;
+    }
     if(!gameStarted){
       state.players[seat]=null;
       seatClientIds[seat]=null;
@@ -862,11 +926,11 @@
     net.sendToAllExcept(msg, seat);
   }
   function broadcastLobby(){
-    net.sendToAll({type:'lobby_update', players:state.players.slice(), teamNames:state.teamNames, roundsLimit:state.roundsLimit, format:onlineFormat});
+    net.sendToAll({type:'lobby_update', players:state.players.slice(), teamNames:state.teamNames, roundsLimit:state.roundsLimit, format:onlineFormat, shared:sharedThemes.length});
     renderLobbyScreen();
   }
   function broadcastPlayerStatus(){
-    var msg={type:'player_status', players:state.players.slice(), connected:state.connected.slice()};
+    var msg={type:'player_status', players:state.players.slice(), connected:state.connected.slice(), playerScores:state.playerScores.slice()};
     net.sendToAll(msg);
     refreshDisconnectBanner();
     renderScoreboard();
@@ -882,7 +946,7 @@
     if(!code){ shake($('joinCodeInput')); return; }
     cleanupOnline();
     netRole='guest';
-    net.join(code, {name:myOnlineName});
+    net.join(code, {name:myOnlineName, themes:myCustomThemes()});
     sfxToggle();
   });
 
@@ -905,6 +969,22 @@
     }
   }
   function renderLobbyScreen(){
+    $('lobbyTeamCols').style.display = rotating ? 'none' : '';
+    $('rotPlayerList').style.display = rotating ? '' : 'none';
+    $('lobbySharedThemes').textContent = sharedCount ? '🎨 '+sharedCount+' thème'+(sharedCount>1?'s':'')+' perso des invités ajouté'+(sharedCount>1?'s':'')+' à la partie' : '';
+    if(rotating){
+      var rows='', n=0;
+      for(var r=0;r<totalSeats;r++){
+        if(!state.players[r]) continue; n++;
+        rows+='<div class="seat filled">'+escapeHtml(state.players[r])+(r===mySeat?' (toi)':'')+(r===0?' 👑':'')+'</div>';
+      }
+      $('rotPlayerList').innerHTML=rows;
+      var st=$('lobbyStatusMsg');
+      if(n<ROT_MIN) st.textContent=n+' joueur(s) — '+ROT_MIN+' minimum, jusqu’à '+MAX_SEATS+'.';
+      else st.textContent = netRole==='host' ? n+' joueurs. Tu peux lancer la partie (d’autres peuvent encore arriver).' : n+" joueurs. En attente que l'hôte lance la partie...";
+      $('lobbyStartBtn').style.display = (netRole==='host' && n>=ROT_MIN) ? 'inline-block' : 'none';
+      return;
+    }
     if(onlineFormat==='2v2'){
       $('teamColHeader0').textContent='🔴 ÉQUIPE ROUGE';
       $('teamColHeader1').textContent='🔵 ÉQUIPE BLEUE';
@@ -935,25 +1015,30 @@
   $('lobbyStartBtn').addEventListener('click',function(){
     sfxValidate();
     gameStarted=true; gameEnded=false;
-    state.pool = shuffle(state.allThemes.slice());
+    state.pool = shuffle(gameThemes());
     hostAdvanceRoundOnline();
   });
 
   /* ----- round flow (host authoritative) ----- */
   function hostAdvanceRoundOnline(){
-    if(state.pool.length===0){ state.pool=shuffle(state.allThemes.slice()); }
+    if(state.pool.length===0){ state.pool=shuffle(gameThemes()); }
     var theme = state.pool.pop();
     var target = 6+Math.random()*88;
     var gg = computeGiverGuesserSeats();
     /* état avant la manche : un joueur qui revient le reçoit, puis on lui
        rejoue les messages de la manche (les points sont donc comptés une fois) */
-    roundSnapshot = {teamScores:state.teamScores.slice(), history:JSON.parse(JSON.stringify(state.history))};
+    roundSnapshot = {teamScores:state.teamScores.slice(), playerScores:state.playerScores.slice(), history:JSON.parse(JSON.stringify(state.history))};
     roundLog = [];
-    var msg = {type:'round_setup', round:state.round, theme:theme, targetPercent:target, activeTeam:state.activeTeam, giverSeat:gg.giver, guesserSeat:gg.guesser};
+    var msg = {type:'round_setup', round:state.round, theme:theme, targetPercent:target, activeTeam:state.activeTeam, giverSeat:gg.giver, guesserSeat:gg.guesser,
+      players:state.players.slice()};
     handleNetMessage(msg);
     send(msg);
   }
   function hostGoToNextRoundOnline(){
+    if(rotating){
+      if(rotSeats().length<2){ var endMsg={type:'game_end'}; send(endMsg); handleNetMessage(endMsg); return; }
+      state.rotIdx=(state.rotIdx||0)+1;
+    }
     state.teamTurnCount[state.activeTeam]++;
     state.activeTeam = 1-state.activeTeam;
     state.round++;
@@ -972,19 +1057,21 @@
         mySeat = msg.seat;
         currentRoomCode = net.code;
         state.players = msg.players.slice();
-        state.connected = msg.connected ? msg.connected.slice() : [true,true,true,true];
+        state.connected = msg.connected ? msg.connected.slice() : emptySeats(true);
         state.roundsLimit = msg.roundsLimit;
+        sharedCount = msg.shared||0;
         if(msg.snapshot){
           state.teamScores = msg.snapshot.teamScores.slice();
+          state.playerScores = (msg.snapshot.playerScores||emptySeats(0)).slice();
           state.history = msg.snapshot.history.slice();
         } else {
-          state.teamScores=[0,0]; state.history=[];
+          state.teamScores=[0,0]; state.playerScores=emptySeats(0); state.history=[];
         }
         state.teamTurnCount=[0,0]; state.activeTeam=0;
         gameStarted = !!msg.started;
         gameEnded = false;
         $('lobbyCodeDisplay').textContent = currentRoomCode;
-        $('lobbyTitle').textContent = 'LOBBY — '+(onlineFormat==='2v2'?'2 VS 2':'1 VS 1');
+        $('lobbyTitle').textContent = 'LOBBY — '+formatTitle();
         renderLobbyScreen();
         refreshDisconnectBanner();
         /* partie déjà lancée : la suite (round_setup...) arrive juste après */
@@ -993,11 +1080,13 @@
       case 'lobby_update':
         state.players = msg.players.slice();
         state.roundsLimit = msg.roundsLimit;
+        sharedCount = msg.shared||0;
         renderLobbyScreen();
         break;
       case 'player_status':
         state.players = msg.players.slice();
         state.connected = msg.connected.slice();
+        if(msg.playerScores && netRole!=='host') state.playerScores = msg.playerScores.slice();
         refreshDisconnectBanner();
         renderScoreboard();
         break;
@@ -1012,6 +1101,7 @@
         break;
       case 'round_setup':
         gameStarted=true;
+        if(msg.players && netRole!=='host') state.players = msg.players.slice();
         state.round = msg.round;
         state.currentTheme = msg.theme;
         state.targetPercent = msg.targetPercent;
@@ -1069,7 +1159,7 @@
   /* ----- online screen renderers ----- */
   function renderTargetScreenOnline(){
     $('targetGiverName').textContent = actorLabel(state.giverSeat, state.activeTeam);
-    $('targetThemeName').textContent = state.currentTheme.theme;
+    $('targetThemeName').textContent = themeTitle(state.currentTheme);
     $('targetLeftLabel').textContent = state.currentTheme.left;
     $('targetRightLabel').textContent = state.currentTheme.right;
     $('clueInput').value='';
@@ -1087,13 +1177,13 @@
   function renderWaitOnline(){
     $('passLocalContent').style.display='none';
     $('passOnlineContent').style.display='block';
-    var waitingText = (mySeat===state.guesserSeat) ? state.players[state.giverSeat] : (teamLabel(state.activeTeam)+' joue');
+    var waitingText = (mySeat===state.guesserSeat) ? state.players[state.giverSeat] : (rotating ? duoLabel()+' jouent' : teamLabel(state.activeTeam)+' joue');
     $('passOnlineGiverName').textContent = waitingText;
   }
 
   function renderSpectateScreenOnline(){
     $('spectateGuesserName').textContent = actorLabel(state.guesserSeat, state.activeTeam);
-    $('spectateThemeName').textContent = state.currentTheme.theme;
+    $('spectateThemeName').textContent = themeTitle(state.currentTheme);
     $('spectateClueText').textContent = state.clueText;
     $('spectateLeftLabel').textContent = state.currentTheme.left;
     $('spectateRightLabel').textContent = state.currentTheme.right;
@@ -1105,7 +1195,7 @@
 
   function renderGuessScreenOnline(){
     $('guessGuesserName').textContent = actorLabel(state.guesserSeat, state.activeTeam);
-    $('guessThemeName').textContent = state.currentTheme.theme;
+    $('guessThemeName').textContent = themeTitle(state.currentTheme);
     $('guessLeftLabel').textContent = state.currentTheme.left;
     $('guessRightLabel').textContent = state.currentTheme.right;
     $('guessClueText').textContent = state.clueText;
@@ -1143,10 +1233,15 @@
   function revealRoundOnline(wagerFlag){
     var base = computeBasePoints(state.targetPercent, state.guessPercent);
     var final = computeFinalPoints(base, wagerFlag);
-    state.teamScores[state.activeTeam] = Math.max(0, state.teamScores[state.activeTeam]+final);
+    if(rotating){
+      /* les deux joueurs du duo marquent */
+      [state.giverSeat, state.guesserSeat].forEach(function(s){ state.playerScores[s]=Math.max(0, (state.playerScores[s]||0)+final); });
+    } else state.teamScores[state.activeTeam] = Math.max(0, state.teamScores[state.activeTeam]+final);
 
     state.history.push({
-      round:state.round, team:state.activeTeam, teamName:teamLabel(state.activeTeam),
+      round:state.round, team:rotating ? 0 : state.activeTeam, teamName:teamLabel(state.activeTeam),
+      giverSeat:state.giverSeat, guesserSeat:state.guesserSeat, target:state.targetPercent, guess:state.guessPercent,
+      left:state.currentTheme.left, right:state.currentTheme.right,
       giver:state.players[state.giverSeat], guesser:state.players[state.guesserSeat],
       theme:state.currentTheme.theme, clue:state.clueText,
       base:base, wager:wagerFlag, final:final
@@ -1173,7 +1268,10 @@
 
     $('revealWagerBadge').style.display = wagerFlag ? 'inline-block' : 'none';
     $('revealPointsDetail').textContent = wagerFlag ? ('Base : '+base+' pts, avec Pari de Confiance') : '';
-    $('revealTeamScoreLine').textContent = teamLabel(state.activeTeam)+' : '+state.teamScores[state.activeTeam]+' pts au total';
+    $('revealTeamScoreLine').textContent = rotating
+      ? state.players[state.giverSeat]+' : '+state.playerScores[state.giverSeat]+' pts · '+state.players[state.guesserSeat]+' : '+state.playerScores[state.guesserSeat]+' pts'
+      : teamLabel(state.activeTeam)+' : '+state.teamScores[state.activeTeam]+' pts au total';
+    if(mySeat===state.guesserSeat || mySeat===state.giverSeat) saveEstimate(mySeat===state.guesserSeat ? 'guesser' : 'giver', base);
 
     if(!dialReveal){ dialReveal=createDial($('dialRevealWrap'),{interactive:false}); }
     dialReveal.colorZones(state.targetPercent);
@@ -1215,7 +1313,36 @@
     goto_('reveal');
   }
 
+  function renderEndScreenRot(){
+    var order=[];
+    for(var s=0;s<totalSeats;s++) if(state.players[s]) order.push(s);
+    order.sort(function(a,b){ return (state.playerScores[b]||0)-(state.playerScores[a]||0); });
+    var top=order.length ? state.playerScores[order[0]]||0 : 0;
+    if(CG.account && order.indexOf(mySeat)!==-1) CG.account.record('demicercle', Math.max(0, state.playerScores[mySeat]||0), top>0 && (state.playerScores[mySeat]||0)===top);
+    var winners=order.filter(function(s){ return (state.playerScores[s]||0)===top; });
+    var html='<div class="end-winner-text">'+(top>0 ? escapeHtml(winners.map(function(s){ return state.players[s]; }).join(' & '))+(winners.length>1?' REMPORTENT':' REMPORTE')+' LA PARTIE !' : 'PERSONNE N’A MARQUÉ…')+'</div><div class="cls-podium">';
+    order.forEach(function(s,i){
+      html+='<div class="cls-podium-row'+(i===0?' first':'')+(s===mySeat?' me':'')+'"><span class="cls-pos">'+(winners.indexOf(s)!==-1 && top>0?'👑':(i+1))+'</span><span class="cls-slot-name">'+escapeHtml(state.players[s])+(s===mySeat?' (toi)':'')+'</span><span class="cham-vote-count">'+(state.playerScores[s]||0)+' pts</span></div>';
+    });
+    html+='</div>'+historyHtml();
+    $('endOnlineContent').innerHTML = html;
+  }
+  function historyHtml(){
+    var html = '<h3 class="rules-subhead" style="margin-top:22px;text-align:center;">HISTORIQUE DES MANCHES</h3>';
+    html += '<div class="history-list">';
+    for(var i=0;i<state.history.length;i++){
+      var h=state.history[i];
+      html += '<div class="history-row team'+h.team+'">';
+      html += '<span class="hist-round">M'+h.round+'</span>';
+      if(!rotating) html += '<span class="hist-team">'+escapeHtml(h.teamName)+'</span>';
+      html += '<span class="hist-detail">'+escapeHtml(h.giver)+' ➜ '+escapeHtml(h.guesser)+' : « '+escapeHtml(h.clue)+' »'+(h.wager?' 🎲':'')+'</span>';
+      html += '<span class="hist-points">'+(h.final>=0?'+':'')+h.final+'</span>';
+      html += '</div>';
+    }
+    return html+'</div>';
+  }
   function renderEndScreenOnline(){
+    if(rotating){ renderEndScreenRot(); return; }
     var s0=state.teamScores[0], s1=state.teamScores[1];
     var winnerIdx = s0===s1 ? -1 : (s0>s1?0:1);
     var myTeam = seatsPerTeam===1 ? mySeat : Math.floor(mySeat/2);
@@ -1228,20 +1355,88 @@
     html += '<div class="team-final-block blue'+(winnerIdx===1?' winner':'')+'"><h3 style="color:var(--blue);">'+prefix1+escapeHtml(teamLabel(1))+'</h3><div class="team-final-score">'+s1+'</div>'+(winnerIdx===1?'<div class="crown">👑</div>':'')+'</div>';
     html += '</div>';
     html += '<div class="end-winner-text">'+(winnerIdx===-1?'ÉGALITÉ PARFAITE !':escapeHtml(teamLabel(winnerIdx))+' REMPORTE LA PARTIE !')+'</div>';
-    html += '<h3 class="rules-subhead" style="margin-top:22px;text-align:center;">HISTORIQUE DES MANCHES</h3>';
-    html += '<div class="history-list">';
-    for(var i=0;i<state.history.length;i++){
-      var h=state.history[i];
-      html += '<div class="history-row team'+h.team+'">';
-      html += '<span class="hist-round">M'+h.round+'</span>';
-      html += '<span class="hist-team">'+escapeHtml(h.teamName)+'</span>';
-      html += '<span class="hist-detail">'+escapeHtml(h.giver)+' ➜ '+escapeHtml(h.guesser)+' : « '+escapeHtml(h.clue)+' »'+(h.wager?' 🎲':'')+'</span>';
-      html += '<span class="hist-points">'+(h.final>=0?'+':'')+h.final+'</span>';
-      html += '</div>';
-    }
-    html += '</div>';
+    html += historyHtml();
     $('endOnlineContent').innerHTML = html;
   }
+
+  /* ---------- THÈMES PARTAGÉS ----------
+     En ligne, chaque invité apporte les thèmes qu'il a ajoutés à sa banque :
+     l'hôte les mélange aux siens pour toute la partie (« thème de Alice »). */
+  var sharedThemes=[], sharedCount=0, SHARED_MAX=30;
+  function themeKey(t){ return CG.normalizeWord(t.theme)+'|'+CG.normalizeWord(t.left)+'|'+CG.normalizeWord(t.right); }
+  function myCustomThemes(){
+    var known={};
+    DEFAULT_THEMES.forEach(function(t){ known[themeKey(t)]=true; });
+    return state.allThemes.filter(function(t){ return t && !known[themeKey(t)]; }).slice(0,SHARED_MAX)
+      .map(function(t){ return {theme:t.theme, left:t.left, right:t.right}; });
+  }
+  function hostAddSharedThemes(seat, list){
+    if(!Array.isArray(list)) return;
+    var have={};
+    state.allThemes.concat(sharedThemes).forEach(function(t){ have[themeKey(t)]=true; });
+    list.slice(0,SHARED_MAX).forEach(function(t){
+      if(!t || typeof t!=='object') return;
+      var th={theme:String(t.theme||'').trim().slice(0,30), left:String(t.left||'').trim().slice(0,20).toUpperCase(),
+        right:String(t.right||'').trim().slice(0,20).toUpperCase(), by:state.players[seat]||'?'};
+      if(!th.theme || !th.left || !th.right || have[themeKey(th)]) return;
+      have[themeKey(th)]=true;
+      sharedThemes.push(th);
+      /* partie en cours : le thème entre dans la pioche tout de suite */
+      if(gameStarted) state.pool.splice(Math.floor(Math.random()*(state.pool.length+1)), 0, th);
+    });
+    sharedCount=sharedThemes.length;
+  }
+  function gameThemes(){ return state.allThemes.concat(sharedThemes); }
+  function themeTitle(t){ return t.theme+(t.by ? ' · thème de '+t.by : ''); }
+
+  /* ---------- MEILLEURES ESTIMATIONS ----------
+     Gardées dans le navigateur (les 10 meilleures) et, si on est connecté,
+     envoyées au compte : le menu affiche les siennes et le top de tout le monde. */
+  var EST_KEY='demicercle_best_v1', EST_KEEP=10;
+  function loadEstimates(){
+    try{ var a=JSON.parse(localStorage.getItem(EST_KEY)||'[]'); if(Array.isArray(a)) return a; }catch(e){}
+    return [];
+  }
+  function estimateSort(a,b){ return (b.points-a.points) || (Math.abs(a.target-a.guess)-Math.abs(b.target-b.guess)) || (b.at-a.at); }
+  /* who : nom du joueur en local (même écran) ; en ligne, c'est toi */
+  function saveEstimate(role, base, who){
+    var t=state.currentTheme||{};
+    var e={role:role, points:base, theme:t.theme||'', left:t.left||'', right:t.right||'', clue:state.clueText||'',
+      target:Math.round(state.targetPercent*10)/10, guess:Math.round(state.guessPercent*10)/10, at:Date.now(), who:who||''};
+    var list=loadEstimates(); list.push(e); list.sort(estimateSort);
+    try{ localStorage.setItem(EST_KEY, JSON.stringify(list.slice(0,EST_KEEP))); }catch(err){}
+    if(!who && base>=50 && CG.account && CG.account.recordEstimate) CG.account.recordEstimate(e);
+    renderBestEstimates();
+  }
+  function estimateRow(e, name){
+    var gap=Math.abs(e.target-e.guess);
+    return '<div class="est-row"><span class="est-pts">'+e.points+'</span><span class="est-body"><b>« '+escapeHtml(e.clue)+' »</b> '+
+      '<small>'+escapeHtml(e.theme)+' ('+escapeHtml(e.left)+' ⟷ '+escapeHtml(e.right)+') · écart '+String(Math.round(gap*10)/10).replace('.',',')+' %'+
+      (name ? ' · '+escapeHtml(name) : '')+(e.role==='giver' ? ' · 🎯 indice' : ' · 🕵️ estimation')+'</small></span></div>';
+  }
+  var estTab='mine';
+  function renderBestEstimates(){
+    var box=$('bestEstList'); if(!box) return;
+    var tabs=$('bestEstTabs').querySelectorAll('button');
+    Array.prototype.forEach.call(tabs, function(b){ b.classList.toggle('active', b.getAttribute('data-tab')===estTab); });
+    if(estTab==='mine'){
+      var list=loadEstimates();
+      box.innerHTML = list.length ? list.slice(0,5).map(function(e){ return estimateRow(e, e.who); }).join('')
+        : '<p class="theme-count">Aucune estimation pour l’instant : joue une manche !</p>';
+      return;
+    }
+    box.innerHTML='<p class="theme-count">Chargement…</p>';
+    if(!CG.account || !CG.account.bestEstimates){ box.innerHTML='<p class="theme-count">Indisponible.</p>'; return; }
+    CG.account.bestEstimates(8).then(function(rows){
+      if(estTab!=='all') return;
+      box.innerHTML = rows.length ? rows.map(function(r){
+        return estimateRow({points:r.points, theme:r.theme, left:r.left_label, right:r.right_label, clue:r.clue, target:+r.target, guess:+r.guess, role:r.role}, r.display_name);
+      }).join('') : '<p class="theme-count">Pas encore de record : connecte-toi et fais un « pile poil » en ligne !</p>';
+    }, function(){ if(estTab==='all') box.innerHTML='<p class="theme-count">Top indisponible pour le moment.</p>'; });
+  }
+  Array.prototype.forEach.call($('bestEstTabs').querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){ estTab=b.getAttribute('data-tab'); sfxToggle(); renderBestEstimates(); });
+  });
 
   /* ---------- API pour le hub ---------- */
   CG.demicercle = {
@@ -1262,4 +1457,5 @@
   };
 
   renderThemeList();
+  renderBestEstimates();
 })();

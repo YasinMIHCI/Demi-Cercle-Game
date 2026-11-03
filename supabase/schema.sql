@@ -118,3 +118,58 @@ grant  execute on function public.record_result(text, integer, boolean) to authe
 revoke execute on function public.delete_my_account() from public, anon;
 grant  execute on function public.delete_my_account() to authenticated;
 revoke execute on function public.handle_new_user() from public, anon, authenticated;
+
+-- =====================================================================
+-- Demi-Cercle : meilleures estimations (ajout du lot 5, relançable sans risque)
+-- Chaque joueur connecté garde ses 20 meilleures manches en ligne (50 points ou plus).
+-- =====================================================================
+create table if not exists public.dc_estimates (
+  id          bigint generated always as identity primary key,
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  role        text not null check (role in ('guesser','giver')),
+  points      integer not null check (points between 0 and 100),
+  theme       text not null check (char_length(theme) between 1 and 30),
+  left_label  text not null check (char_length(left_label) between 1 and 20),
+  right_label text not null check (char_length(right_label) between 1 and 20),
+  clue        text not null check (char_length(clue) between 1 and 60),
+  target      numeric(5,1) not null check (target between 0 and 100),
+  guess       numeric(5,1) not null check (guess between 0 and 100),
+  created_at  timestamptz not null default now()
+);
+create index if not exists dc_estimates_best_idx on public.dc_estimates (points desc, created_at);
+create index if not exists dc_estimates_user_idx on public.dc_estimates (user_id, points desc);
+
+alter table public.dc_estimates enable row level security;
+drop policy if exists "estimations lisibles" on public.dc_estimates;
+create policy "estimations lisibles" on public.dc_estimates for select using (true);
+revoke all on public.dc_estimates from anon, authenticated;
+grant  select on public.dc_estimates to anon, authenticated;
+
+-- le top de tout le monde, avec le nom affiché (meilleurs points, puis plus petit écart)
+create or replace view public.best_estimates with (security_invoker = on) as
+select e.points, e.role, e.theme, e.left_label, e.right_label, e.clue, e.target, e.guess, e.created_at,
+       e.user_id, p.display_name
+from public.dc_estimates e join public.profiles p on p.id = e.user_id
+order by e.points desc, abs(e.target - e.guess) asc, e.created_at asc;
+grant select on public.best_estimates to anon, authenticated;
+
+create or replace function public.record_estimate(p_role text, p_points integer, p_theme text, p_left text,
+  p_right text, p_clue text, p_target numeric, p_guess numeric)
+returns void language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'non connecté'; end if;
+  if p_points is null or p_points < 50 or p_points > 100 then return; end if;
+  -- anti-spam : une estimation toutes les 3 secondes au plus
+  if exists (select 1 from public.dc_estimates where user_id = uid and created_at > now() - interval '3 seconds') then return; end if;
+  insert into public.dc_estimates (user_id, role, points, theme, left_label, right_label, clue, target, guess)
+  values (uid, p_role, p_points, left(trim(p_theme), 30), left(trim(p_left), 20), left(trim(p_right), 20),
+          left(trim(p_clue), 60), round(p_target, 1), round(p_guess, 1));
+  -- on ne garde que les 20 meilleures du joueur
+  delete from public.dc_estimates where id in (
+    select id from public.dc_estimates where user_id = uid
+    order by points desc, abs(target - guess) asc, created_at asc offset 20);
+end $$;
+
+revoke execute on function public.record_estimate(text, integer, text, text, text, text, numeric, numeric) from public, anon;
+grant  execute on function public.record_estimate(text, integer, text, text, text, text, numeric, numeric) to authenticated;
