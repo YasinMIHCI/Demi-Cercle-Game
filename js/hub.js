@@ -80,9 +80,7 @@
   $('playCameleonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='cameleon'; });
 
   /* ----- hub toolbar: info modal + mute ----- */
-  $('hubInfoBtn').addEventListener('click',function(){ CG.openModal('hubInfoModal'); CG.sfxToggle(); });
-  $('hubInfoModalClose').addEventListener('click',function(){ CG.closeModal('hubInfoModal'); });
-  $('hubInfoModal').addEventListener('click',function(e){ if(e.target===this) CG.closeModal('hubInfoModal'); });
+  CG.wireModal('hubInfoModal', 'hubInfoBtn');
 
   function refreshMuteBtn(){
     $('muteBtn').querySelector('span').textContent = CG.isMuted() ? '🔇 Son coupé' : '🔊 Son activé';

@@ -483,7 +483,6 @@ footer b{color:#777;}
   min-width:64px;text-align:right;
 }
 .imp-tag{font-size:0.75rem;color:#999;font-weight:400;margin-left:6px;}
-.imp-player-row-imposter{border-color:var(--red-bright) !important;box-shadow:0 0 0 2px var(--red-bright);}
 
 /* ligne graduée : chaque réponse placée entre la plus petite et la plus grande */
 .imp-line{

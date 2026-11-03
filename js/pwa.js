@@ -63,8 +63,7 @@
     $('installSteps').innerHTML=steps();
     CG.openModal('installModal');
   });
-  $('installModalClose').addEventListener('click', function(){ CG.closeModal('installModal'); });
-  $('installModal').addEventListener('click', function(e){ if(e.target===this) CG.closeModal('installModal'); });
+  CG.wireModal('installModal');
   if(isApp()) document.documentElement.classList.add('is-app');
   refresh();
 })();

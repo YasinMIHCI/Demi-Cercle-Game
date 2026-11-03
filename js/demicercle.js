@@ -330,9 +330,7 @@
   }
 
   /* ---------- RULES MODAL ---------- */
-  $('rulesBtn').addEventListener('click',function(){ openModal('rulesModal'); sfxToggle(); });
-  $('rulesModalClose').addEventListener('click',function(){ closeModal('rulesModal'); });
-  $('rulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('rulesModal'); });
+  CG.wireModal('rulesModal', 'rulesBtn');
 
   /* ---------- THEME BANK ---------- */
   function renderThemeList(){

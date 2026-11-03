@@ -66,11 +66,10 @@
   var countTimer=null;
 
   /* ===================== RÉSEAU ===================== */
-  function setNetStatus(cls,label){
-    var el=$('copNetStatus');
-    el.className='net-status '+cls;
-    el.querySelector('.net-label').textContent=label;
-  }
+  var ui=CG.roomUI('cop', {route:'crousprison', code:function(){ return roomCode; },
+    onLostBack:function(){ cleanupOnline(); gotoScreen('menu'); }});
+  var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
+  var seats=CG.seatTools(gs), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
     prefix: ROOM_PREFIX,
     onStatus: setNetStatus,
@@ -83,9 +82,7 @@
     onReconnected: function(){ hideBanner(); },
     onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
-  /* l'hôte traite une copie : l'affichage ne doit pas toucher l'état qui fait foi */
-  function broadcast(msg){ handleMsg(JSON.parse(JSON.stringify(msg))); if(netRole==='host') net.sendToAll(msg); }
-  function sendToSeat(seat,msg){ if(seat===0) handleMsg(JSON.parse(JSON.stringify(msg))); else net.sendTo(seat,msg); }
+  var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
   function isHostLike(){ return netRole==='host' || netRole==='solo'; }
 
   function stopLocalTimers(){ bar.stop(); clearInterval(countTimer); countTimer=null; }
@@ -99,23 +96,7 @@
     hideBanner();
     setNetStatus('offline', 'HORS LIGNE');
   }
-  function showBanner(t){ $('copNetBannerText').textContent=t; $('copNetBanner').classList.add('open'); }
-  function hideBanner(){ $('copNetBanner').classList.remove('open'); }
-  function showLostModal(text){
-    hideBanner(); setNetStatus('offline','DÉCONNECTÉ');
-    $('copDisconnectModalText').textContent=text;
-    openModal('copDisconnectModal');
-  }
-  $('copDisconnectBackBtn').addEventListener('click',function(){
-    closeModal('copDisconnectModal'); cleanupOnline(); gotoScreen('menu');
-  });
 
-  function isConnected(seat){ return seat===0 || gs.connected[seat]!==false; }
-  function activeCount(){
-    var n=0;
-    for(var s=0;s<gs.players.length;s++){ if(gs.players[s] && isConnected(s)) n++; }
-    return n;
-  }
   function isGameLive(){ return gs.phase==='countdown' || gs.phase==='photo' || gs.phase==='reveal'; }
   function pname(seat){ var p=gs.players[seat]; return p?p.name:'?'; }
   function pcolor(seat){ return COLORS[seat%COLORS.length]; }
@@ -166,13 +147,9 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('copCopyCodeBtn').addEventListener('click',function(){ copyText(roomCode, $('copCopyCodeBtn')); });
-  $('copCopyLinkBtn').addEventListener('click',function(){ copyText(location.origin+location.pathname+'#crousprison?room='+roomCode, $('copCopyLinkBtn')); });
   $('copBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('menu'); });
   $('copHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
-  $('copRulesBtn').addEventListener('click',function(){ openModal('copRulesModal'); sfxToggle(); });
-  $('copRulesModalClose').addEventListener('click',function(){ closeModal('copRulesModal'); });
-  $('copRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('copRulesModal'); });
+  CG.wireModal('copRulesModal', 'copRulesBtn');
   function openCredits(){
     var html='';
     PHOTOS.forEach(function(p){
@@ -184,16 +161,13 @@
   }
   $('copCreditsBtn').addEventListener('click', openCredits);
   $('copOverCreditsBtn').addEventListener('click', openCredits);
-  $('copCreditsModalClose').addEventListener('click',function(){ closeModal('copCreditsModal'); });
-  $('copCreditsModal').addEventListener('click',function(e){ if(e.target===this) closeModal('copCreditsModal'); });
+  CG.wireModal('copCreditsModal');
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    for(var s=1;s<gs.clientIds.length;s++){
-      if(msg.clientId && gs.clientIds[s]===msg.clientId && gs.players[s]) return s;
-    }
+    var back=seats.returningSeat(msg); if(back) return back;
     if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
-    for(s=1;s<gs.players.length;s++){ if(!gs.players[s]) return s; }
+    for(var s=1;s<gs.players.length;s++){ if(!gs.players[s]) return s; }
     return Math.max(1, gs.players.length);
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
@@ -378,24 +352,17 @@
   }
 
   /* ===================== AFFICHAGE ===================== */
-  function gotoScreen(name){
-    var all=document.querySelectorAll('.cop-screen');
-    for(var i=0;i<all.length;i++) all[i].classList.remove('active');
-    $('cop-screen-'+name).classList.add('active');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
   function refreshBanner(){
     if(netRole!=='host' && netRole!=='guest'){ hideBanner(); return; }
     if(view.idx<0){ hideBanner(); return; }
     var missing=view.seats.filter(function(s){ return gs.players[s] && !isConnected(s); }).map(pname);
-    if(missing.length) showBanner('⚠ '+missing.join(', ')+(missing.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — la partie continue sans eux.');
+    if(missing.length) showBanner(CG.missingText(missing,'la partie'));
     else hideBanner();
   }
-  function dot(s){ return '<span class="cham-player-dot" style="background:'+pcolor(s)+';"></span>'; }
+  function dot(s){ return CG.playerDot(pcolor(s)); }
   function playerRow(s, extra){
-    var p=gs.players[s]||{name:'?'}, off=!isConnected(s);
-    return '<div class="cham-player-row filled'+(off?' offline':'')+'">'+dot(s)+
-      '<span class="cham-player-name">'+escapeHtml(p.name)+(s===mySeat?' (toi)':'')+(off?'<span class="imp-tag">déconnecté(e)</span>':'')+'</span>'+(extra||'')+'</div>';
+    var p=gs.players[s]||{name:'?'};
+    return CG.playerRow({name:p.name, color:pcolor(s), me:s===mySeat, off:!isConnected(s), extra:extra});
   }
   function renderLobby(){
     var html='';

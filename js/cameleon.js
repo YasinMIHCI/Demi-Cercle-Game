@@ -110,21 +110,8 @@
   });
 
   /* ----- screen management ----- */
-  function chamGoto_(name){
-    var all=document.querySelectorAll('.cham-screen');
-    for(var i=0;i<all.length;i++){ all[i].classList.remove('active'); }
-    $('cham-screen-'+name).classList.add('active');
-    window.scrollTo({top:0,behavior:'smooth'});
-  }
-  function chamSetNetStatus(cls,label){
-    var el=$('chamNetStatus');
-    el.className='net-status '+cls;
-    el.querySelector('.net-label').textContent=label;
-  }
 
-  $('chamRulesBtn').addEventListener('click',function(){ openModal('chamRulesModal'); sfxToggle(); });
-  $('chamRulesModalClose').addEventListener('click',function(){ closeModal('chamRulesModal'); });
-  $('chamRulesModal').addEventListener('click',function(e){ if(e.target===this) closeModal('chamRulesModal'); });
+  CG.wireModal('chamRulesModal', 'chamRulesBtn');
   $('chamHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   $('chamBackFromLobby').addEventListener('click',function(){ sfxToggle(); chamCleanupOnline(); chamGoto_('online'); });
 
@@ -155,7 +142,11 @@
   }
 
   /* ================= RÉSEAU ================= */
-  var net = CG.createRoomNet({
+  var ui=CG.roomUI('cham', {route:'cameleon', code:function(){ return chamCurrentRoomCode; },
+    onLostBack:function(){ chamCleanupOnline(); chamGoto_('online'); }});
+  var chamSetNetStatus=ui.setStatus, chamShowBanner=ui.showBanner, chamHideBanner=ui.hideBanner, chamShowLostModal=ui.showLost, chamGoto_=ui.goto;
+  var seats=CG.seatTools(chamState), chamIsConnected=seats.isConnected, chamActiveCount=seats.activeCount;
+  var net=CG.createRoomNet({
     prefix: CHAM_ROOM_PREFIX,
     onStatus: chamSetNetStatus,
     onJoinRequest: chamHostOnJoinRequest,
@@ -168,8 +159,7 @@
     onLost: function(){ chamShowLostModal("Impossible de rétablir la connexion avec l'hôte."); }
   });
 
-  function chamSend(msg){ net.send(msg); }
-  function chamBroadcast(msg){ chamHandleNetMessage(msg); net.sendToAll(msg); }
+  var chamSend=net.send, chamBroadcast=net.broadcast;
 
   function chamCleanupOnline(){
     net.close(chamNetRole==='host' ? {type:'room_closed'} : null);
@@ -184,11 +174,6 @@
     chamSetNetStatus('offline','HORS LIGNE');
   }
 
-  function chamShowBanner(text){
-    $('chamNetBannerText').textContent=text;
-    $('chamNetBanner').classList.add('open');
-  }
-  function chamHideBanner(){ $('chamNetBanner').classList.remove('open'); }
   function chamRefreshBanner(){
     if(!chamNetRole){ chamHideBanner(); return; }
     var missing=[];
@@ -197,29 +182,12 @@
     });
     var inRound=['cham-screen-canvas','cham-screen-voting','cham-screen-guess'].some(function(id){ return $(id).classList.contains('active'); });
     if(missing.length && inRound){
-      chamShowBanner('⚠ '+missing.join(', ')+(missing.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — la manche continue sans eux.');
+      chamShowBanner(CG.missingText(missing));
     } else {
       chamHideBanner();
     }
   }
-  function chamShowLostModal(text){
-    chamHideBanner();
-    chamSetNetStatus('offline','DÉCONNECTÉ');
-    $('chamDisconnectModalText').textContent=text;
-    openModal('chamDisconnectModal');
-  }
-  $('chamDisconnectBackBtn').addEventListener('click',function(){
-    closeModal('chamDisconnectModal');
-    chamCleanupOnline();
-    chamGoto_('online');
-  });
 
-  function chamIsConnected(seat){ return seat===0 || chamState.connected[seat]!==false; }
-  function chamActiveCount(){
-    var n=0;
-    for(var s=0;s<chamState.players.length;s++){ if(chamState.players[s] && chamIsConnected(s)) n++; }
-    return n;
-  }
 
   /* ----- room creation (host) ----- */
   $('chamCreateRoomBtn').addEventListener('click',function(){
@@ -254,9 +222,7 @@
 
   /* ----- host: seats ----- */
   function chamHostOnJoinRequest(msg){
-    for(var s=1;s<chamState.clientIds.length;s++){
-      if(msg.clientId && chamState.clientIds[s]===msg.clientId && chamState.players[s]) return s;
-    }
+    var back=seats.returningSeat(msg); if(back) return back;
     if(chamActiveCount()>=8) return 'SALLE COMPLÈTE (8/8)';
     return Math.max(1, chamState.players.length);
   }
@@ -374,11 +340,6 @@
     sfxToggle();
   });
 
-  $('chamCopyCodeBtn').addEventListener('click',function(){ copyText(chamCurrentRoomCode, $('chamCopyCodeBtn')); });
-  $('chamCopyLinkBtn').addEventListener('click',function(){
-    var url=location.origin+location.pathname+'#cameleon?room='+chamCurrentRoomCode;
-    copyText(url, $('chamCopyLinkBtn'));
-  });
 
   /* ----- lobby ----- */
   var chamRoundLiveForLobby=false;
@@ -388,8 +349,7 @@
     for(var i=0;i<chamState.players.length;i++){
       var p=chamState.players[i];
       if(!p) continue;
-      var off=!chamIsConnected(i);
-      html+='<div class="cham-player-row filled'+(off?' offline':'')+'"><span class="cham-player-dot" style="background:'+p.color+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+(i===chamMySeat?' (toi)':'')+(off?' — déconnecté(e)':'')+'</span><span class="cham-vote-count">'+(chamState.scores[i]||0)+' pts</span></div>';
+      html+=CG.playerRow({name:p.name, color:p.color, me:i===chamMySeat, off:!chamIsConnected(i), extra:'<span class="cham-vote-count">'+(chamState.scores[i]||0)+' pts</span>'});
     }
     list.innerHTML=html;
     var count=chamActiveCount();

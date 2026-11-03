@@ -137,7 +137,7 @@
   var FOG=0x3a0010;
   scene.fog=new THREE.Fog(FOG, 90, 760);
   var camera=new THREE.PerspectiveCamera(70, 1, 0.5, 3000);
-  var W=1,H=1,DPR=1,S=1,VW=1920, halftoneRed=null, halftoneBlack=null, moonSprite=null;
+  var W=1,H=1,DPR=1,S=1,VW=1920, halftoneRed=null, halftoneBlack=null;
 
   function newCanvas(wu,hu){
     var px=S*DPR, c=document.createElement('canvas');
@@ -154,26 +154,13 @@
     }
     return o.c;
   }
-  function makeMoon(){
-    var R=230, o=newCanvas(R*2+160,R*2+160), x=o.x, c=R+80;
-    x.shadowColor='rgba(255,40,60,0.9)'; x.shadowBlur=70;
-    var g=x.createRadialGradient(c-60,c-70,20,c,c,R);
-    g.addColorStop(0,'#fff6ec'); g.addColorStop(0.55,'#ffd9c9'); g.addColorStop(1,'#ff6b6b');
-    x.fillStyle=g; x.beginPath(); x.arc(c,c,R,0,TAU); x.fill(); x.shadowBlur=0;
-    x.save(); x.beginPath(); x.arc(c,c,R,0,TAU); x.clip(); x.fillStyle='rgba(200,0,30,0.55)';
-    for(var py=c-R;py<c+R;py+=12) for(var px=c-R;px<c+R;px+=12){
-      var k=(py-(c-R*0.2))/(R*1.2), r=Math.max(0,k)*5.2;
-      if(r>0.4){ x.beginPath(); x.arc(px+((py/12)%2?6:0),py,r,0,TAU); x.fill(); }
-    }
-    x.restore(); return o.c;
-  }
   function resize(){
     W=window.innerWidth; H=window.innerHeight; DPR=Math.min(window.devicePixelRatio||1, 2);
     fxC.width=Math.round(W*DPR); fxC.height=Math.round(H*DPR); fxC.style.width=W+'px'; fxC.style.height=H+'px';
     renderer.setPixelRatio(Math.min(DPR,1.75)); renderer.setSize(W,H);
     camera.aspect=W/H; camera.updateProjectionMatrix();
     S=H/1080; VW=W/S;
-    halftoneRed=makeHalftone('rgba(255,26,58,1)'); halftoneBlack=makeHalftone('rgba(0,0,0,1)'); moonSprite=makeMoon();
+    halftoneRed=makeHalftone('rgba(255,26,58,1)'); halftoneBlack=makeHalftone('rgba(0,0,0,1)');
   }
 
   /* ===================== LA VILLE 3D =====================
@@ -366,7 +353,6 @@
 
   /* ===================== RENDU 2D ===================== */
   function base(c){ c.setTransform(DPR*S,0,0,DPR*S,0,0); }
-  var MOON_W=new THREE.Vector3(140, 700, -2600);
   /* Ciel en 3D (il doit suivre la caméra quand elle se retourne pendant le salto) :
      une sphère en dégradé, la lune et ses rayons en sprites, très loin. */
   var skyDome=null, moonObj=null, raysObj=null, MOON_DIR=new THREE.Vector3(0.05, 0.4, -1).normalize();
