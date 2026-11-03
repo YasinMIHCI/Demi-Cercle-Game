@@ -363,6 +363,7 @@
       statusEl.textContent = chamNetRole==='host' ? (count+' joueurs prêts. Tu peux lancer la partie !') : (count+" joueurs prêts. En attente que l'hôte lance la partie...");
     }
     $('chamStartBtn').style.display = (chamNetRole==='host' && count>=3 && !live) ? 'inline-block' : 'none';
+    $('chamHostOpts').hidden = chamNetRole!=='host' || live;
   }
   $('chamStartBtn').addEventListener('click',function(){
     sfxValidate();
@@ -395,7 +396,11 @@
     chamState.votes={};
     chamState.lastPhaseMsg=null;
     chamLiveStrokes={};
-    chamState.turnQueue=activeSeats.slice().concat(activeSeats.slice());
+    /* réglages de l'hôte : nombre de passages et quantité d'encre */
+    var passes=parseInt($('chamPassSel').value,10)||2;
+    CHAM_INK=parseInt($('chamInkSel').value,10)||1100;
+    chamState.turnQueue=[];
+    for(var pass=0;pass<passes;pass++) chamState.turnQueue=chamState.turnQueue.concat(activeSeats);
     chamState.turnPointer=0;
     chamState.phase='drawing';
     chamState.round=(chamState.round||0)+1;
@@ -955,7 +960,23 @@
     chamBroadcastLobby();
     if(CG.partyEnd) CG.partyEnd(chamState.players, chamState.scores);
   }
+  /* le dessin final en image (fond crème de la toile + mot secret) */
+  $('chamSaveDrawingBtn').addEventListener('click',function(){
+    var src=$('chamResultCanvas'), c=document.createElement('canvas');
+    c.width=src.width; c.height=src.height+60;
+    var x=c.getContext('2d');
+    x.fillStyle='#f4f1ea'; x.fillRect(0,0,c.width,c.height);
+    x.drawImage(src,0,0);
+    x.fillStyle='#E60012'; x.fillRect(0,src.height,c.width,60);
+    x.fillStyle='#fff'; x.font='32px "Bebas Neue", Impact, sans-serif'; x.textBaseline='middle';
+    x.fillText('CRAZY GAMES · LE CAMÉLÉON · '+(chamState.lastWord||'').toUpperCase(), 20, src.height+32);
+    var a=document.createElement('a');
+    a.download='cameleon-'+((chamState.lastWord||'dessin').toLowerCase().replace(/[^a-z0-9]+/gi,'-'))+'.png';
+    a.href=c.toDataURL('image/png'); document.body.appendChild(a); a.click(); a.remove();
+    sfxValidate();
+  });
   function chamShowResult(msg){
+    chamState.lastWord=msg.word;
     chamStopBars();
     if(msg.strokes) chamState.strokes=msg.strokes.slice();
     var canvas=$('chamResultCanvas');

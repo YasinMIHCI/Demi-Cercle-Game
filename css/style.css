@@ -718,7 +718,7 @@ html.intro-playing, html.intro-playing body{overflow:hidden;}
 .cop-btn span{display:block;transform:skewX(9deg);}
 .cop-btn.crous{background:var(--blue);}
 .cop-btn.prison{background:var(--red);}
-.cop-btn:not(:disabled):hover{transform:skewX(-9deg) translate(-3px,-3px);box-shadow:9px 9px 0 #000;}
+.cop-btn:not(:disabled):hover{box-shadow:9px 9px 0 #000;filter:brightness(1.12);}
 .cop-btn:not(:disabled):active{transform:skewX(-9deg) translate(2px,2px);box-shadow:2px 2px 0 #000;}
 .cop-btn:disabled{cursor:default;opacity:0.55;}
 .cop-btn.picked{opacity:1;outline:4px solid var(--yellow);outline-offset:-10px;}
@@ -790,3 +790,13 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .party-bar[hidden]{display:none;}
 .party-bar .btn{margin:0;}
 .party-bar [hidden]{display:none;}
+
+/* réglages de l'hôte dans un lobby */
+.host-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 14px;margin:10px 0;}
+.host-opts select{width:100%;}
+
+.qae-laugh.picked{background:var(--yellow);color:#000;}
+.qae-laugh-count{font-family:var(--font-display);font-size:1.3rem;letter-spacing:1px;}
+.qae-answer-recap em{font-style:normal;color:var(--yellow);font-weight:700;margin-left:auto;}
+.qae-answer-recap.funniest{border-color:var(--yellow);}
+.host-opts[hidden]{display:none;}
