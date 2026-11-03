@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=28">
+<link rel="stylesheet" href="css/style.css?v=29">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=28"></script>
-<script src="js/intro.js?v=28"></script>
+<script src="js/audio.js?v=29"></script>
+<script src="js/intro.js?v=29"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1456,6 +1456,10 @@
           <button class="btn ghost small" id="loupCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
         </div>
         <div class="cham-player-list" id="loupPlayerList"></div>
+        <div class="host-opts" id="loupHostOpts" hidden>
+          <label for="loupThemeSel">🗂️ Thème des mots secrets</label>
+          <select id="loupThemeSel"></select>
+        </div>
         <p class="lobby-status" id="loupLobbyStatus">En attente de joueurs... (4 minimum)</p>
         <div class="btn-row center">
           <button class="btn yellow" id="loupStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
@@ -1485,6 +1489,11 @@
       <div id="loupAskBox" class="loup-ask">
         <input type="text" id="loupAskInput" maxlength="90" placeholder="Pose une question fermée… (ex : Est-ce que ça se mange ?)" autocomplete="off">
         <button class="btn yellow small" id="loupAskBtn"><span>Envoyer</span></button>
+      </div>
+      <div class="loup-suggest" id="loupSuggest" hidden>
+        <span class="loup-suggest-label">💡 Idées :</span>
+        <span id="loupSuggestList"></span>
+        <button type="button" class="loup-chip more" id="loupSuggestMoreBtn" aria-label="Autres idées">🎲</button>
       </div>
       <p class="lobby-status" id="loupGameStatus"></p>
     </section>
@@ -1523,9 +1532,9 @@
     <button class="modal-close" id="loupRulesModalClose" aria-label="Fermer">✕</button>
     <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LE LOUP DES MOTS</h2>
     <ol class="rules-list">
-      <li>Chaque manche, un joueur devient le <b>Maire</b> : il choisit un <b>mot secret</b> parmi trois propositions.</li>
+      <li>Chaque manche, un joueur devient le <b>Maire</b> : il choisit un <b>mot secret</b> parmi trois propositions, tirées du <b>thème</b> choisi par l'hôte dans le lobby (ou de tous les thèmes mélangés). Le thème est annoncé à tout le monde.</li>
       <li>Chacun reçoit aussi un <b>rôle secret</b> (le Maire compris) : <b>Loup</b> 🐺 (connaît le mot, 2 loups à partir de 7 joueurs), <b>Voyant</b> 🔮 (connaît le mot) ou <b>Villageois</b> 🧑‍🌾 (ne sait rien).</li>
-      <li>Avant la fin du chrono, tout le monde pose des <b>questions fermées</b> au Maire, qui répond honnêtement : <b>Oui</b>, <b>Non</b>, <b>Peut-être</b>, <b>Tu chauffes !</b> (une seule fois) ou <b>Loin !</b> (une seule fois). Proposez directement des mots : le Maire valide avec <b>Trouvé !</b></li>
+      <li>Avant la fin du chrono, tout le monde pose des <b>questions fermées</b> au Maire, qui répond honnêtement : <b>Oui</b>, <b>Non</b>, <b>Peut-être</b>, <b>Tu chauffes !</b> (une seule fois) ou <b>Loin !</b> (une seule fois). Proposez directement des mots : le Maire valide avec <b>Trouvé !</b> En panne d'idée ? Touche une <b>💡 idée de question</b> sous le champ pour la reprendre (🎲 pour en voir d'autres).</li>
       <li><b>Mot trouvé :</b> les Loups ont 30 secondes pour démasquer le <b>Voyant</b>. S'ils le trouvent, les Loups gagnent ; sinon, le Village gagne. Voyant, aide le groupe… sans te faire repérer !</li>
       <li><b>Mot pas trouvé à temps :</b> tout le monde vote contre un <b>Loup</b> présumé. Si un Loup est le plus accusé, le Village gagne ; sinon, les Loups gagnent.</li>
       <li>Chaque joueur du camp gagnant marque 1 point. Le rôle de Maire tourne à chaque manche.</li>
@@ -1881,21 +1890,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=28"></script>
-<script src="js/net.js?v=28"></script>
-<script src="js/demicercle.js?v=28"></script>
-<script src="js/cameleon.js?v=28"></script>
-<script src="js/imposteur.js?v=28"></script>
-<script src="js/loup.js?v=28"></script>
-<script src="js/classement.js?v=28"></script>
-<script src="js/quiaecrit.js?v=28"></script>
-<script src="js/crousprison-photos.js?v=28"></script>
-<script src="js/crousprison.js?v=28"></script>
-<script src="js/bots-maps.js?v=28"></script>
-<script src="js/bots.js?v=28"></script>
-<script src="js/pwa.js?v=28"></script>
-<script src="js/party.js?v=28"></script>
-<script src="js/account.js?v=28"></script>
-<script src="js/hub.js?v=28"></script>
+<script src="js/common.js?v=29"></script>
+<script src="js/net.js?v=29"></script>
+<script src="js/demicercle.js?v=29"></script>
+<script src="js/cameleon.js?v=29"></script>
+<script src="js/imposteur.js?v=29"></script>
+<script src="js/loup.js?v=29"></script>
+<script src="js/classement.js?v=29"></script>
+<script src="js/quiaecrit.js?v=29"></script>
+<script src="js/crousprison-photos.js?v=29"></script>
+<script src="js/crousprison.js?v=29"></script>
+<script src="js/bots-maps.js?v=29"></script>
+<script src="js/bots.js?v=29"></script>
+<script src="js/pwa.js?v=29"></script>
+<script src="js/party.js?v=29"></script>
+<script src="js/account.js?v=29"></script>
+<script src="js/hub.js?v=29"></script>
 </body>
 </html>
