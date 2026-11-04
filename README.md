@@ -188,7 +188,7 @@ js/audio.js       son commun : déblocage, instruments synthétisés, musiques
 js/intro.js       l'intro 3D (Three.js + canvas)
 js/vendor/three.min.js  Three.js r128 (licence MIT), chargé seulement pour l'intro
 js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
-js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur
+js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur, migration de l’hôte
 js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres

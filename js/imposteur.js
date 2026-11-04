@@ -340,8 +340,25 @@
     onHostMessage: impHandleNetMessage,
     onReconnecting: function(){ impShowBanner('📡 Connexion perdue — reconnexion en cours...'); },
     onReconnected: function(){ impHideBanner(); },
-    onLost: function(){ impShowLostModal("Impossible de rétablir la connexion avec l'hôte."); }
+    onLost: function(){ impShowLostModal("Impossible de rétablir la connexion avec l'hôte."); },
+    onPromote: impOnPromote
   });
+  /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
+  function impOnPromote(info){
+    impNetRole='host'; impMySeat=0; impCurrentRoomCode=net.code;
+    CG.promoteSeats(impState, info);
+    if(impImposterTimer){ clearTimeout(impImposterTimer); impImposterTimer=null; }
+    clearTimeout(impPhaseTimer); impPhaseTimer=null;
+    impAnswerBar.stop(); impVoteBar.stop();
+    impGameStarted=true; impInRound=false; impRoundLiveForLobby=false;
+    impState.phase='lobby_wait'; impState.answers={}; impState.votes={}; impState.lastPhaseMsg=null;
+    impState.pools={num:[], text:[]};
+    $('impCodeDisplay').textContent=net.code;
+    impHideBanner();
+    impBroadcastLobby();
+    impGoto_('lobby');
+    $('impLobbyStatus').textContent=CG.PROMOTED_TEXT;
+  }
   var impBroadcast=net.broadcast;
 
   function impCleanupOnline(){

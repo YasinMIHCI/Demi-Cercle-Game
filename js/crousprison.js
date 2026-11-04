@@ -82,8 +82,23 @@
     onHostMessage: handleMsg,
     onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
     onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
+    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
+    onPromote: onPromote
   });
+  /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
+  function onPromote(info){
+    netRole='host'; mySeat=0; roomCode=net.code;
+    CG.promoteSeats(gs, info);
+    clearTimeout(gs.timer); gs.timer=null;
+    stopLocalTimers();
+    gameLiveForLobby=false;
+    gs.phase='over'; gs.seats=[]; gs.answers={}; gs.picks={}; gs.good={}; gs.streak={}; gs.lastMsg=null;
+    $('copCodeDisplay').textContent=roomCode;
+    hideBanner();
+    hostBroadcastLobby();
+    gotoScreen('lobby');
+    $('copLobbyStatus').textContent=CG.PROMOTED_TEXT;
+  }
   var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
   function isHostLike(){ return netRole==='host' || netRole==='solo'; }
 

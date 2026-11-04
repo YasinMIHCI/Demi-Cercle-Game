@@ -13,7 +13,13 @@
      dont l'événement 'close' n'arrive jamais ;
    - reconnexion automatique d'un invité (même identifiant client, donc
      il récupère sa place) ;
-   - reconnexion de l'hôte au serveur de signalisation PeerJS.
+   - reconnexion de l'hôte au serveur de signalisation PeerJS ;
+   - migration de l'hôte : l'hôte envoie régulièrement la liste des places
+     (_roster : identifiant client de chaque place). S'il disparaît sans
+     fermer la salle (onglet fermé, téléphone éteint...), le premier invité de
+     la liste reprend le même code de salle et devient l'hôte (cfg.onPromote) ;
+     les autres continuent leurs tentatives de reconnexion et le rejoignent
+     tout seuls, avec le même identifiant client, donc la même place.
 
    Le jeu fournit des callbacks (voir createRoomNet) et garde toute la
    logique de places / d'état. */
@@ -46,6 +52,10 @@
   var JOIN_RETRY = 1500;        /* renvoi de join_request tant que l'hôte ne répond pas */
   var JOIN_MAX_TRIES = 8;
   var RECONNECT_DELAYS = [1000,2000,3000,4000,6000,8000,10000];
+  var ROSTER_EVERY = 4;         /* liste des places renvoyée tous les 4 battements */
+  var PROMOTE_STEP = 10000;     /* l'invité n°k de la liste attend k × 10 s avant de reprendre la salle */
+  var MIGRATE_MAX = 90000;      /* au-delà, on abandonne (la salle est perdue) */
+  var MIGRATE_RETRY = 4000;
 
   function randomRoomCode(){
     var w = ROOM_WORDS[Math.floor(Math.random()*ROOM_WORDS.length)];
@@ -126,7 +136,12 @@
      - onHostMessage(msg)
      - onReconnecting()       lien perdu, tentatives automatiques en cours
      - onReconnected()        place récupérée (seat_assigned reçu à nouveau)
-     - onLost(reason)         abandon définitif */
+     - onLost(reason)         abandon définitif
+     - onPromote(info)        (facultatif) l'hôte a disparu et c'est toi qui le
+                              remplaces : la salle est rouverte avec le même code,
+                              tu es la place 0. info = {oldSeat, ids} où ids[place]
+                              = identifiant client de chaque place (ancienne numérotation).
+                              Voir CG.promoteSeats (common.js) pour renuméroter. */
   function createRoomNet(cfg){
     var net = {role:null, code:'', mySeat:0, conns:[]};
     var clientId = getClientId(cfg.prefix);
@@ -134,6 +149,8 @@
     var intentional=false, joined=false, joinPayload=null;
     var serverTimer=null, heartbeatTimer=null, reconnectTimer=null, signalTimer=null;
     var reconnectAttempt=0, hostLastSeen=0, hostIdRetries=0;
+    var roster=null, rosterLive=null, lostAt=0, promoting=false, beats=0;
+    var seatIds=[];               /* hôte : identifiant client de chaque place (même déconnectée) */
 
     function status(cls,label){ if(cfg.onStatus) cfg.onStatus(cls,label); }
     function call(name){
@@ -196,7 +213,9 @@
         if(p!==peer) return;
         serverTimer=clearTimer(serverTimer);
         if(net.role==='host'){ status('connected','SALLE EN LIGNE'); return; } /* ré-ouverture après coupure */
-        net.role='host'; net.code=code; net.mySeat=0; net.conns=[];
+        promoting=false;
+        net.role='host'; net.code=code; net.mySeat=0; net.conns=[]; seatIds=[];
+        heartbeatTimer=clearTimer(heartbeatTimer);
         heartbeatTimer=setInterval(hostHeartbeat, PING_EVERY);
         status('connected','SALLE CRÉÉE');
         onReady(code);
@@ -205,6 +224,15 @@
       p.on('disconnected', function(){ handleSignalLost(p); });
       p.on('error',function(err){
         if(p!==peer) return;
+        /* reprise de la salle : le code est encore pris (ancien hôte pas encore
+           oublié par le serveur, ou un autre invité a été plus rapide) -> on
+           redevient invité et on continue d'essayer de se connecter */
+        if(promoting && err && err.type==='unavailable-id'){
+          promoting=false; serverTimer=clearTimer(serverTimer); destroyPeer();
+          net.role='guest'; net.mySeat=promoteInfo.oldSeat;
+          scheduleRetry(MIGRATE_RETRY);
+          return;
+        }
         if(err && err.type==='unavailable-id' && !net.role && hostIdRetries<3){
           /* code choisi : la salle qu'on vient de fermer peut occuper encore
              l'identifiant quelques secondes, on réessaie un peu avant d'abandonner */
@@ -221,7 +249,7 @@
       });
     }
     function hostAccept(c){
-      c._seat=null; c._dead=false; c._lastSeen=Date.now();
+      c._seat=null; c._dead=false; c._lastSeen=Date.now(); c._clientId=null;
       c.on('data', function(msg){ c._lastSeen=Date.now(); hostData(c,msg); });
       c.on('close', function(){ hostConnDown(c); });
       c.on('error', function(){ hostConnDown(c); });
@@ -242,9 +270,10 @@
         }
         var old=net.conns[seat];
         if(old && old!==c){ old._dead=true; try{ old.close(); }catch(e){} }
-        c._seat=seat;
+        c._seat=seat; c._clientId=msg.clientId||null; seatIds[seat]=c._clientId;
         net.conns[seat]=c;
         call('onSeatJoined', seat, msg, false);
+        sendRoster();
         return;
       }
       if(c._seat===null || net.conns[c._seat]!==c) return;
@@ -257,9 +286,22 @@
       if(s===null || net.conns[s]!==c) return;
       net.conns[s]=null;
       call('onSeatLost', s);
+      sendRoster();
+    }
+    /* liste des places (identifiant client de chacune) : sert à choisir qui
+       reprend la salle si l'hôte disparaît */
+    function sendRoster(){
+      if(net.role!=='host') return;
+      var ids=[clientId], live=[true];
+      for(var s=1;s<Math.max(net.conns.length, seatIds.length);s++){
+        var c=net.conns[s];
+        ids[s]=seatIds[s]||null; live[s]=!!(c && !c._dead);
+      }
+      net.sendToAll({type:'_roster', ids:ids, live:live});
     }
     function hostHeartbeat(){
       var now=Date.now();
+      if(++beats%ROSTER_EVERY===0) sendRoster();
       for(var s=1;s<net.conns.length;s++){
         var c=net.conns[s];
         if(!c) continue;
@@ -304,6 +346,8 @@
         serverTimer=clearTimer(serverTimer);
         if(conn && conn.open) return; /* le lien direct fonctionne encore */
         if(conn){ var c=conn; conn=null; try{ c.close(); }catch(e){} }
+        /* plus personne ne porte le code de la salle : l'hôte est parti */
+        if(err && err.type==='peer-unavailable' && tryPromote()) return;
         guestFailure(peerErrorMessage(err));
       });
     }
@@ -340,6 +384,7 @@
         if(conn!==c || !msg || !msg.type) return;
         hostLastSeen=Date.now();
         if(msg.type==='_ping'){ safeSend(c,{type:'_pong'}); return; }
+        if(msg.type==='_roster'){ if(Array.isArray(msg.ids)){ roster=msg.ids.slice(); rosterLive=(msg.live||[]).slice(); } return; }
         if(msg.type==='room_full'){
           joinTimer=clearTimer(joinTimer);
           intentional=true;
@@ -351,7 +396,7 @@
           joinTimer=clearTimer(joinTimer);
           seatedHere=true;
           var wasJoined=joined;
-          joined=true; reconnectAttempt=0;
+          joined=true; reconnectAttempt=0; lostAt=0;
           reconnectTimer=clearTimer(reconnectTimer);
           net.mySeat=msg.seat;
           status('connected', wasJoined?'RECONNECTÉ':'CONNEXION ÉTABLIE');
@@ -377,6 +422,13 @@
       if(intentional || net.role!=='guest') return;
       if(!joined){ status('error', reason); return; }
       if(reconnectTimer) return;
+      if(!lostAt) lostAt=Date.now();
+      /* une reprise de la salle reste possible : on continue d'essayer plus longtemps */
+      if(reconnectAttempt>=RECONNECT_DELAYS.length && canMigrate() && Date.now()-lostAt<MIGRATE_MAX){
+        status('error','HÔTE PERDU — RECHERCHE D’UN NOUVEL HÔTE...');
+        scheduleRetry(MIGRATE_RETRY);
+        return;
+      }
       if(reconnectAttempt>=RECONNECT_DELAYS.length){
         status('offline','DÉCONNECTÉ');
         var r=reason; net.close(); call('onLost', r);
@@ -385,10 +437,47 @@
       if(reconnectAttempt===0) call('onReconnecting');
       status('error','CONNEXION PERDUE — NOUVELLE TENTATIVE...');
       var delay=RECONNECT_DELAYS[reconnectAttempt];
+      /* une reprise de salle est possible : on réessaie vite, pour la voir tôt */
+      if(canMigrate()) delay=Math.min(delay, 2000);
       reconnectAttempt++;
       /* au-delà de la 2e tentative, on repart d'un Peer neuf */
       if(reconnectAttempt>2) destroyPeer();
       reconnectTimer=setTimeout(function(){ reconnectTimer=null; connectToHost(true); }, delay);
+    }
+    function scheduleRetry(delay){
+      reconnectTimer=clearTimer(reconnectTimer);
+      reconnectTimer=setTimeout(function(){ reconnectTimer=null; connectToHost(true); }, delay);
+    }
+    function canMigrate(){ return !!(cfg.onPromote && roster && joined); }
+    /* rang dans la liste de succession : 0 = premier invité encore là au dernier envoi */
+    function successorRank(){
+      var rank=0;
+      for(var s=1;s<roster.length;s++){
+        if(!roster[s] || rosterLive[s]===false) continue;
+        if(roster[s]===clientId) return rank;
+        rank++;
+      }
+      return -1;
+    }
+    var promoteInfo=null;
+    function tryPromote(){
+      if(!canMigrate() || promoting || net.role!=='guest') return false;
+      if(!lostAt) lostAt=Date.now();
+      var rank=successorRank();
+      if(rank<0 || Date.now()-lostAt < rank*PROMOTE_STEP) return false;
+      promoting=true;
+      promoteInfo={oldSeat:net.mySeat, ids:roster.slice()};
+      reconnectTimer=clearTimer(reconnectTimer);
+      destroyPeer();
+      status('connecting','L’HÔTE EST PARTI — TU DEVIENS L’HÔTE...');
+      net.role=null; hostIdRetries=3; wantedCode=net.code;
+      openHostPeer(function(){
+        var info=promoteInfo;
+        joined=false; lostAt=0; reconnectAttempt=0;
+        status('connected','TU ES LE NOUVEL HÔTE');
+        call('onPromote', info);
+      });
+      return true;
     }
     function guestWatchdog(){
       if(net.role!=='guest' || !joined || !conn || !conn.open) return;
@@ -449,6 +538,7 @@
       }
       if(farewell && oldConns.length) setTimeout(teardown, 400); else teardown();
       net.role=null; net.code=''; net.mySeat=0; joined=false;
+      roster=null; lostAt=0; promoting=false;
     };
     net.clientId = clientId;
     return net;
