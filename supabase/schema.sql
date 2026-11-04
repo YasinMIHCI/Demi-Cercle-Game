@@ -173,3 +173,133 @@ end $$;
 
 revoke execute on function public.record_estimate(text, integer, text, text, text, text, numeric, numeric) from public, anon;
 grant  execute on function public.record_estimate(text, integer, text, text, text, text, numeric, numeric) to authenticated;
+
+-- =====================================================================
+-- Amis et invitations dans une salle (ajout du lot 9, relançable sans risque)
+-- =====================================================================
+create table if not exists public.friendships (
+  user_id    uuid not null references public.profiles(id) on delete cascade,   -- qui a demandé
+  friend_id  uuid not null references public.profiles(id) on delete cascade,   -- qui reçoit la demande
+  status     text not null default 'pending' check (status in ('pending','accepted')),
+  created_at timestamptz not null default now(),
+  primary key (user_id, friend_id),
+  check (user_id <> friend_id)
+);
+create index if not exists friendships_friend_idx on public.friendships (friend_id);
+
+create table if not exists public.room_invites (
+  id         bigint generated always as identity primary key,
+  from_id    uuid not null references public.profiles(id) on delete cascade,
+  from_name  text not null,
+  to_id      uuid not null references public.profiles(id) on delete cascade,
+  route      text not null check (route in ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree')),
+  code       text not null check (code ~ '^[A-Z0-9-]{3,20}$'),
+  created_at timestamptz not null default now()
+);
+create index if not exists room_invites_to_idx on public.room_invites (to_id, created_at desc);
+
+alter table public.friendships  enable row level security;
+alter table public.room_invites enable row level security;
+drop policy if exists "mes amitiés" on public.friendships;
+create policy "mes amitiés" on public.friendships for select to authenticated
+  using ((select auth.uid()) in (user_id, friend_id));
+drop policy if exists "mes invitations" on public.room_invites;
+create policy "mes invitations" on public.room_invites for select to authenticated
+  using ((select auth.uid()) in (from_id, to_id));
+revoke all on public.friendships, public.room_invites from anon, authenticated;
+grant  select on public.friendships, public.room_invites to authenticated;
+
+-- demande d'ami par pseudo de connexion ; si l'autre m'avait déjà demandé, on devient amis
+create or replace function public.send_friend_request(p_username text)
+returns text language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid(); other uuid;
+begin
+  if uid is null then raise exception 'non connecté'; end if;
+  select id into other from public.profiles where username = lower(trim(p_username));
+  if other is null then return 'introuvable'; end if;
+  if other = uid then return 'soi'; end if;
+  if exists (select 1 from public.friendships where user_id = uid and friend_id = other)
+     or exists (select 1 from public.friendships where user_id = other and friend_id = uid and status = 'accepted') then
+    return 'deja';
+  end if;
+  if exists (select 1 from public.friendships where user_id = other and friend_id = uid and status = 'pending') then
+    update public.friendships set status = 'accepted' where user_id = other and friend_id = uid;
+    return 'accepte';
+  end if;
+  if (select count(*) from public.friendships where user_id = uid and status = 'pending') >= 50 then return 'trop'; end if;
+  insert into public.friendships (user_id, friend_id) values (uid, other);
+  return 'envoye';
+end $$;
+
+create or replace function public.respond_friend_request(p_from uuid, p_accept boolean)
+returns void language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'non connecté'; end if;
+  if p_accept then
+    update public.friendships set status = 'accepted' where user_id = p_from and friend_id = uid and status = 'pending';
+  else
+    delete from public.friendships where user_id = p_from and friend_id = uid and status = 'pending';
+  end if;
+end $$;
+
+-- retire un ami, ou annule une demande envoyée
+create or replace function public.remove_friend(p_other uuid)
+returns void language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid();
+begin
+  if uid is null then raise exception 'non connecté'; end if;
+  delete from public.friendships where (user_id = uid and friend_id = p_other) or (user_id = p_other and friend_id = uid);
+end $$;
+
+-- mes amis et demandes, avec un résumé de leurs stats
+create or replace function public.my_friends()
+returns table (id uuid, username text, display_name text, status text, incoming boolean,
+               played bigint, wins bigint, last_played timestamptz)
+language sql stable security definer set search_path = '' as $$
+  select p.id, p.username, p.display_name, f.status, (f.friend_id = auth.uid()) as incoming,
+         coalesce((select sum(s.played) from public.stats s where s.user_id = p.id), 0)::bigint,
+         coalesce((select sum(s.wins)   from public.stats s where s.user_id = p.id), 0)::bigint,
+         (select max(s.updated_at) from public.stats s where s.user_id = p.id)
+  from public.friendships f
+  join public.profiles p on p.id = case when f.user_id = auth.uid() then f.friend_id else f.user_id end
+  where auth.uid() in (f.user_id, f.friend_id)
+  order by f.status desc, p.display_name;
+$$;
+
+-- invitation d'un ami dans ma salle (seulement entre amis)
+create or replace function public.invite_friend(p_friend uuid, p_route text, p_code text)
+returns void language plpgsql security definer set search_path = '' as $$
+declare uid uuid := auth.uid(); me text;
+begin
+  if uid is null then raise exception 'non connecté'; end if;
+  if not exists (select 1 from public.friendships
+                 where status = 'accepted' and ((user_id = uid and friend_id = p_friend) or (user_id = p_friend and friend_id = uid))) then
+    raise exception 'pas ami';
+  end if;
+  -- anti-spam : une invitation toutes les 10 secondes par ami
+  if exists (select 1 from public.room_invites where from_id = uid and to_id = p_friend and created_at > now() - interval '10 seconds') then return; end if;
+  delete from public.room_invites where created_at < now() - interval '1 hour';
+  select display_name into me from public.profiles where id = uid;
+  insert into public.room_invites (from_id, from_name, to_id, route, code) values (uid, me, p_friend, p_route, upper(p_code));
+end $$;
+
+create or replace function public.dismiss_invite(p_id bigint)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'non connecté'; end if;
+  delete from public.room_invites where id = p_id and to_id = auth.uid();
+end $$;
+
+revoke execute on function public.send_friend_request(text) from public, anon;
+grant  execute on function public.send_friend_request(text) to authenticated;
+revoke execute on function public.respond_friend_request(uuid, boolean) from public, anon;
+grant  execute on function public.respond_friend_request(uuid, boolean) to authenticated;
+revoke execute on function public.remove_friend(uuid) from public, anon;
+grant  execute on function public.remove_friend(uuid) to authenticated;
+revoke execute on function public.my_friends() from public, anon;
+grant  execute on function public.my_friends() to authenticated;
+revoke execute on function public.invite_friend(uuid, text, text) from public, anon;
+grant  execute on function public.invite_friend(uuid, text, text) to authenticated;
+revoke execute on function public.dismiss_invite(bigint) from public, anon;
+grant  execute on function public.dismiss_invite(bigint) to authenticated;
