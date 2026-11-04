@@ -4,14 +4,6 @@
 window.CG=window.CG||{};
 CG.COP_PHOTOS=[
 {
-"f": "img/cop/2ba3f2bc.jpg",
-"a": "p",
-"t": "Cellule de prison — Allemagne",
-"by": "Anagoria",
-"lic": "CC BY 3.0",
-"url": "https://commons.wikimedia.org/wiki/File:2012-07-22_Gedenkstaette_Berlin-Hohenschoenhausen_Stasi_Untersuchungsgefaengnis_03anagoria.JPG"
-},
-{
 "f": "img/cop/c717342b.jpg",
 "a": "c",
 "t": "Chambre en résidence étudiante",
@@ -76,30 +68,6 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:Marineuntersuchungsgefaengnis-Kiel-_Erweiterungsbau_von_1937-msu-2620-.jpg"
 },
 {
-"f": "img/cop/6643f909.jpg",
-"a": "p",
-"t": "Cellule de prison — Royaume-Uni",
-"by": "Secretlondon",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:Lancaster_Castle_July_25_cf_05.jpg"
-},
-{
-"f": "img/cop/1d211dc7.jpg",
-"a": "p",
-"t": "Cellule de prison — Pologne",
-"by": "Silar",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:02021_0869_Prison_cell_in_Poland,_before_1989.jpg"
-},
-{
-"f": "img/cop/eabc2b4f.jpg",
-"a": "p",
-"t": "Cellule de prison — Royaume-Uni",
-"by": "Photograph by Mike Peel (www.mikepeel.net).",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:Fort_Perch_Rock_11.jpg"
-},
-{
 "f": "img/cop/e1f0879d.jpg",
 "a": "c",
 "t": "Résidence étudiante, IIT Bombay (Inde)",
@@ -132,28 +100,12 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:Haftraum.JPG"
 },
 {
-"f": "img/cop/bd4f2363.jpg",
-"a": "p",
-"t": "Cellule de prison — États-Unis",
-"by": "Ken Piorkowski",
-"lic": "CC BY-SA 2.0",
-"url": "https://commons.wikimedia.org/wiki/File:A_typical_cell_(11501289775).jpg"
-},
-{
 "f": "img/cop/1a765259.jpg",
 "a": "p",
 "t": "Cellule de prison — Allemagne",
 "by": "Matthias Süßen",
 "lic": "CC BY-SA 4.0",
 "url": "https://commons.wikimedia.org/wiki/File:Marineuntersuchungsgefaengnis-Kiel_Theaterrelikte-msu-2536-2543.jpg"
-},
-{
-"f": "img/cop/23db07c2.jpg",
-"a": "p",
-"t": "Cellule de prison — Allemagne",
-"by": "Dano1262",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:Jail_cell.jpg"
 },
 {
 "f": "img/cop/17acf889.jpg",
@@ -180,14 +132,6 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:Modelo_-_celda.jpg"
 },
 {
-"f": "img/cop/e6f80238.jpg",
-"a": "p",
-"t": "Cellule de prison — Russie",
-"by": "Don-vip",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:2019-08-01-3738-Peter_%26_Paul_prison_cell.jpg"
-},
-{
 "f": "img/cop/a66cdbe7.jpg",
 "a": "c",
 "t": "Studio étudiant, Marseille",
@@ -204,28 +148,12 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:Althohensch%C3%B6nhausen_Gedenkst%C3%A4tte_-_20.jpg"
 },
 {
-"f": "img/cop/0c6f63bb.jpg",
-"a": "p",
-"t": "Cellule de prison — Pologne",
-"by": "Silar",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:02021_0867_Prison_cell_in_Poland,_before_1939.jpg"
-},
-{
 "f": "img/cop/de997723.jpg",
 "a": "c",
 "t": "Chambre en résidence étudiante",
 "by": "HAF 932",
 "lic": "Public domain",
 "url": "https://commons.wikimedia.org/wiki/File:Bordel_dans_une_chambre.jpg"
-},
-{
-"f": "img/cop/48885c84.jpg",
-"a": "p",
-"t": "Cellule de prison — Chine",
-"by": "Alex Ostrovski",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:Cell_in_Pingyao_Yamen.jpg"
 },
 {
 "f": "img/cop/e86516fc.jpg",
@@ -260,14 +188,6 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:Cell_(4692413849).jpg"
 },
 {
-"f": "img/cop/a2d9efc0.jpg",
-"a": "p",
-"t": "Cellule de prison — Pays-Bas",
-"by": "Paul van Galen",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:Interieur,_binnen_in_de_cel_-_Coevorden_-_20422245_-_RCE.jpg"
-},
-{
 "f": "img/cop/7e7d574c.jpg",
 "a": "c",
 "t": "Résidence universitaire, Tsukuba (Japon)",
@@ -282,14 +202,6 @@ CG.COP_PHOTOS=[
 "by": "darthagus",
 "lic": "CC BY-SA 4.0",
 "url": "https://commons.wikimedia.org/wiki/File:Habitacion_Les_Escales.jpg"
-},
-{
-"f": "img/cop/76b87338.jpg",
-"a": "p",
-"t": "Cellule de prison — Allemagne",
-"by": "dontworry",
-"lic": "CC BY-SA 3.0",
-"url": "https://commons.wikimedia.org/wiki/File:Klapperfeldstrasse-ffm001.jpg"
 },
 {
 "f": "img/cop/b7f434cc.jpg",
@@ -316,14 +228,6 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:Liberty_University_dorm.jpg"
 },
 {
-"f": "img/cop/d41e3768.jpg",
-"a": "p",
-"t": "Cellule de prison — États-Unis",
-"by": "Tanankyo",
-"lic": "Public domain",
-"url": "https://commons.wikimedia.org/wiki/File:CB1cell.jpg"
-},
-{
 "f": "img/cop/6d549ef8.jpg",
 "a": "p",
 "t": "Cellule de prison — Allemagne",
@@ -346,14 +250,6 @@ CG.COP_PHOTOS=[
 "by": "Vincent de Groot - http://www.videgro.net",
 "lic": "CC BY-SA 4.0",
 "url": "https://commons.wikimedia.org/wiki/File:Gedenkst%C3%A4tteBerlin-Hohensch%C3%B6nhausen_u-boot-cell.jpg"
-},
-{
-"f": "img/cop/64353bdd.jpg",
-"a": "p",
-"t": "Cellule de prison — Royaume-Uni",
-"by": "Simon Burchell",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:Inveraray_New_Jail_06.jpg"
 },
 {
 "f": "img/cop/634e4b69.jpg",
@@ -404,14 +300,6 @@ CG.COP_PHOTOS=[
 "url": "https://commons.wikimedia.org/wiki/File:1971-10_Chambre_201_de_la_fondation_des_%C3%89tats-Unis_1.jpg"
 },
 {
-"f": "img/cop/8a98115a.jpg",
-"a": "p",
-"t": "Cellule de prison — Allemagne",
-"by": "Geoprofi Lars",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:2019-01-20_KZ_Sachsenhausen_11.jpg"
-},
-{
 "f": "img/cop/688593fc.jpg",
 "a": "c",
 "t": "Cité internationale universitaire de Paris",
@@ -442,14 +330,6 @@ CG.COP_PHOTOS=[
 "by": "Tangopaso",
 "lic": "Public domain",
 "url": "https://commons.wikimedia.org/wiki/File:1974-05_Chambre_201_de_la_fondation_des_%C3%89tats-Unis_4.jpg"
-},
-{
-"f": "img/cop/995d5433.jpg",
-"a": "p",
-"t": "Cellule de prison — Pologne",
-"by": "Silar",
-"lic": "CC BY-SA 4.0",
-"url": "https://commons.wikimedia.org/wiki/File:02021_0868_Prison_cell_in_Poland,_between_1939_and_1945.jpg"
 },
 {
 "f": "img/cop/fd392d63.jpg",
