@@ -679,8 +679,82 @@
     onHostMessage: handleNetMessage,
     onReconnecting: function(){ showNetBanner('📡 Connexion perdue — reconnexion en cours...', false); },
     onReconnected: function(){ hideNetBanner(); },
-    onLost: function(){ showLostModal('Impossible de rétablir la connexion avec l’hôte.'); }
+    onLost: function(){ showLostModal('Impossible de rétablir la connexion avec l’hôte.'); },
+    onPromote: onPromote
   });
+
+  /* L'hôte a disparu et c'est toi qui reprends la salle (voir net.js).
+     Le nouvel hôte doit être la place 0 : on renumérote les places sans
+     casser les équipes (en 2 VS 2 / 1 VS 1, si tu étais dans l'équipe bleue,
+     les deux équipes échangent leur numéro, avec leurs scores). La manche en
+     cours est rejouée (nouvelle cible), ou la suivante est lancée si la
+     cible venait d'être révélée. */
+  function onPromote(info){
+    var n=totalSeats, k=info.oldSeat||0, perm=[], s;
+    for(s=0;s<n;s++) perm[s]=s;
+    var teamSwap=false;
+    if(onlineFormat==='2v2' && k>=2){ teamSwap=true; perm=[2,3,0,1]; }
+    else if(onlineFormat==='1v1' && k===1){ teamSwap=true; perm=[1,0]; }
+    var mine=perm[k];
+    if(mine!==0) perm=perm.map(function(v){ return v===0 ? mine : (v===mine ? 0 : v); });
+    function remap(arr, fill){
+      var out=[];
+      for(var i=0;i<MAX_SEATS;i++) out.push(fill);
+      for(var o=0;o<n;o++) out[perm[o]] = (arr && arr[o]!==undefined) ? arr[o] : fill;
+      return out;
+    }
+    function seat(x){ return (typeof x==='number' && x>=0 && x<n) ? perm[x] : x; }
+    state.players=remap(state.players, null);
+    state.playerScores=remap(state.playerScores, 0);
+    seatClientIds=remap(info.ids||[], null);
+    state.connected=state.players.map(function(p,i){ return i===0; });
+    if(teamSwap){
+      state.teamScores=[state.teamScores[1], state.teamScores[0]];
+      state.activeTeam=1-state.activeTeam;
+    }
+    state.history.forEach(function(h){
+      if(teamSwap && !rotating) h.team=1-h.team;
+      h.giverSeat=seat(h.giverSeat); h.guesserSeat=seat(h.guesserSeat);
+    });
+    state.giverSeat=seat(state.giverSeat); state.guesserSeat=seat(state.guesserSeat);
+    /* les compteurs de l'hôte, retrouvés à partir de l'historique */
+    state.teamTurnCount=[0,0];
+    state.history.forEach(function(h){ if(!rotating) state.teamTurnCount[h.team]++; });
+    state.rotIdx=state.history.length;
+    netRole='host'; mySeat=0; currentRoomCode=net.code;
+    roundLog=[]; sharedThemes=[]; sharedCount=0;
+    state.pool=shuffle(gameThemes());
+    $('lobbyCodeDisplay').textContent=currentRoomCode;
+    if(!gameStarted){
+      renderLobbyScreen(); goto_('lobby');
+      $('lobbyStatusMsg').textContent=CG.PROMOTED_TEXT;
+      return;
+    }
+    if(gameEnded) return;
+    roundSnapshot={teamScores:state.teamScores.slice(), playerScores:state.playerScores.slice(), history:JSON.parse(JSON.stringify(state.history))};
+    showNetBanner('👑 L’hôte est parti : tu reprends la partie ! On attend que les autres reviennent...', false);
+    /* on relance quand les joueurs sont revenus (15 s au plus) : sinon le
+       duo ou l'équipe de la manche serait choisi parmi des absents */
+    var waitUntil=Date.now()+15000, oldHost=perm[0];
+    (function waitBack(){
+      if(netRole!=='host' || gameEnded) return;
+      var missing=false;
+      for(var i=1;i<n;i++){ if(i!==oldHost && state.players[i] && state.connected[i]===false) missing=true; }
+      if(missing && Date.now()<waitUntil){ setTimeout(waitBack, 500); return; }
+      relaunch();
+    })();
+  }
+  function relaunch(){
+    if(state.roundPhase==='reveal'){
+      /* la manche était finie : on enchaîne (l'équipe qui vient de jouer passe la main) */
+      if(state.roundsLimit && state.round>=state.roundsLimit){ var endMsg={type:'game_end'}; send(endMsg); handleNetMessage(endMsg); }
+      else hostGoToNextRoundOnline();
+    } else {
+      /* la manche est rejouée avec une nouvelle cible */
+      hostAdvanceRoundOnline();
+    }
+    refreshDisconnectBanner();
+  }
 
   /* Envoi d'un message de jeu. Côté hôte, les messages qui font avancer la
      manche sont journalisés pour pouvoir resynchroniser un joueur revenu. */
