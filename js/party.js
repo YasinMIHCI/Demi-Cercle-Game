@@ -47,8 +47,31 @@
     onHostMessage:handleMsg,
     onReconnecting:function(){ ui.showBanner('📡 Connexion à la soirée perdue — reconnexion en cours...'); },
     onReconnected:function(){ ui.hideBanner(); },
-    onLost:function(){ leaveGame(); ui.showLost("Impossible de rétablir la connexion avec l'hôte de la soirée."); }
+    onLost:function(){ leaveGame(); ui.showLost("Impossible de rétablir la connexion avec l'hôte de la soirée."); },
+    onPromote:onPromote
   });
+  /* L'hôte de la soirée a disparu : tu reprends la soirée (même code, mêmes
+     totaux, même programme). La manche en cours est annulée (sa salle de jeu
+     était aussi chez l'ancien hôte) et on passe à la suivante. */
+  function onPromote(info){
+    netRole='host'; mySeat=0; roomCode=net.code;
+    CG.promoteSeats(ps, info, ['totals']);
+    clearTimers();
+    ps.waiting=false;
+    $('partyCodeDisplay').textContent=roomCode;
+    leaveGame();
+    if(ps.phase==='lobby' || !ps.plan.length){
+      ps.phase='lobby'; ps.lastMsg=null;
+      hostBroadcastState(); ui.goto('lobby');
+      $('partyLobbyStatus').textContent=CG.PROMOTED_TEXT;
+      return;
+    }
+    if(ps.phase==='over'){ hostFinish(); return; }
+    ps.idx=Math.max(0, view.idx);
+    ps.phase='playing';
+    hostRoundOver([], 'L’hôte de la soirée est parti : '+myName+' prend le relais. Cette manche ne compte pas.');
+    hostBroadcastState();
+  }
   function later(fn, ms){ var t=setTimeout(fn, ms); timers.push(t); return t; }
   function clearTimers(){ timers.forEach(clearTimeout); timers=[]; }
   function connectedSeats(){ var a=[]; for(var s=0;s<ps.players.length;s++) if(ps.players[s] && isConnected(s)) a.push(s); return a; }
@@ -151,7 +174,8 @@
     hostBroadcastState();
   }
   function hostBroadcastState(){
-    net.broadcast({type:'party_state', players:ps.players.slice(), connected:ps.connected.slice(), totals:ps.totals.slice(), phase:ps.phase});
+    net.broadcast({type:'party_state', players:ps.players.slice(), connected:ps.connected.slice(), totals:ps.totals.slice(), phase:ps.phase,
+      plan:ps.plan.slice(), idx:ps.idx});
   }
   function hostSend(msg){ ps.lastMsg=msg; net.broadcast(msg); }
 
@@ -190,7 +214,7 @@
     }
     ps.phase='intro';
     ps.code='CGS-'+Math.floor(100000+Math.random()*900000);
-    hostSend({type:'round_intro', idx:ps.idx, total:ps.plan.length, game:game, totals:ps.totals.slice()});
+    hostSend({type:'round_intro', idx:ps.idx, total:ps.plan.length, game:game, totals:ps.totals.slice(), plan:ps.plan.slice()});
     later(hostLaunch, INTRO_MS);
   }
   function hostLaunch(){
@@ -293,16 +317,22 @@
         renderLobby(); ui.goto('lobby');
         break;
       case 'party_state':
-        if(netRole!=='host'){ ps.players=msg.players; ps.connected=msg.connected; ps.totals=msg.totals; }
+        if(netRole!=='host'){
+          ps.players=msg.players; ps.connected=msg.connected; ps.totals=msg.totals;
+          /* gardés pour pouvoir reprendre la soirée si l'hôte disparaît */
+          ps.phase=msg.phase||ps.phase; if(msg.plan){ ps.plan=msg.plan; ps.idx=msg.idx; }
+        }
         renderLobby();
         break;
       case 'round_intro':
         view.idx=msg.idx; view.total=msg.total; view.game=msg.game;
+        if(netRole!=='host'){ ps.phase='intro'; ps.idx=msg.idx; if(msg.plan) ps.plan=msg.plan; }
         leaveGame();
         showIntro(msg);
         break;
       case 'go':
         view.idx=msg.idx; view.total=msg.total; view.game=msg.game;
+        if(netRole!=='host') ps.phase='playing';
         if(netRole!=='host'){
           enterGame(msg.game);
           /* l'hôte a lancé la salle : on la rejoint après un court délai (le temps qu'elle soit joignable) */
@@ -311,13 +341,15 @@
         renderBar();
         break;
       case 'round_over':
+        if(netRole!=='host'){ ps.phase='standings'; ps.idx=msg.idx; }
         /* les invités partent d'abord : la salle de l'hôte se ferme juste après */
         if(netRole==='host') later(leaveGame, 1200); else leaveGame();
         showStandings(msg);
         break;
-      case 'party_over': leaveGame(); showFinal(msg); break;
+      case 'party_over': if(netRole!=='host') ps.phase='over'; leaveGame(); showFinal(msg); break;
       case 'party_lobby':
         leaveGame(); ps.totals=ps.players.map(function(){ return 0; });
+        if(netRole!=='host'){ ps.phase='lobby'; ps.plan=[]; ps.idx=-1; }
         renderLobby(); ui.goto('lobby');
         break;
       case 'room_closed':
