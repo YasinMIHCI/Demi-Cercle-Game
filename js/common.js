@@ -160,6 +160,23 @@
       }
     };
   }
+  /* Migration de l'hôte (voir createRoomNet, onPromote) : l'invité qui reprend
+     la salle devient la place 0 ; l'ancien hôte prend son ancienne place,
+     marquée déconnectée. Tout le monde est déconnecté jusqu'à ce qu'il revienne
+     (il retrouve sa place grâce à son identifiant client). fields : autres
+     tableaux indexés par place à échanger aussi. Renvoie l'ancienne place. */
+  function promoteSeats(st, info, fields){
+    var k=info.oldSeat||0, ids=(info.ids||[]).slice();
+    var n=Math.max(st.players.length, ids.length, k+1);
+    st.clientIds=ids;
+    ['players','scores','connected','clientIds'].concat(fields||[]).forEach(function(f){
+      var a=st[f]; if(!Array.isArray(a)) return;
+      while(a.length<n) a.push(f==='scores'?0:null);
+      var t=a[0]; a[0]=a[k]; a[k]=t;
+    });
+    st.connected=st.players.map(function(p,s){ return s===0; });
+    return k;
+  }
   /* « ⚠ Alice, Bob se sont déconnectés — la manche continue sans eux. » */
   function missingText(names, what){
     return '⚠ '+names.join(', ')+(names.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — '+(what||'la manche')+' continue sans eux.';
@@ -240,6 +257,8 @@
   CG.roomUI=roomUI;
   CG.seatTools=seatTools;
   CG.missingText=missingText;
+  CG.promoteSeats=promoteSeats;
+  CG.PROMOTED_TEXT="👑 L'hôte s'est déconnecté : tu es le nouvel hôte ! Les autres reviennent tout seuls, relance quand tout le monde est là.";
   CG.playerDot=playerDot;
   CG.playerRow=playerRow;
   CG.timerBar=timerBar;

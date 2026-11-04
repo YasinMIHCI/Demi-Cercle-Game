@@ -118,8 +118,24 @@
     onHostMessage: handleMsg,
     onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
     onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
+    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
+    onPromote: onPromote
   });
+  /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
+  function onPromote(info){
+    netRole='host'; mySeat=0; roomCode=net.code;
+    CG.promoteSeats(qs, info);
+    clearTimeout(qs.timer); qs.timer=null;
+    stopBars();
+    inRound=false; roundLiveForLobby=false;
+    qs.started=true; qs.phase='lobby_wait'; qs.answers={}; qs.order=[]; qs.votes={}; qs.laughs={}; qs.lastMsg=null;
+    qs.pool=shuffle(bank());
+    $('qaeCodeDisplay').textContent=roomCode;
+    hideBanner();
+    hostBroadcastLobby();
+    gotoScreen('lobby');
+    $('qaeLobbyStatus').textContent=CG.PROMOTED_TEXT;
+  }
   var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
 
   function stopBars(){ writeBar.stop(); guessBar.stop(); }

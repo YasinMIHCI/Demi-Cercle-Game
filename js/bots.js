@@ -433,8 +433,24 @@
     onHostMessage: handleMsg,
     onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
     onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
+    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
+    onPromote: onPromote
   });
+  /* l'hôte a disparu : on reprend la salle ; le combat en cours est perdu,
+     retour au lobby (mêmes tanks, mêmes réglages) */
+  function onPromote(info){
+    botsNetRole='host'; botsMySeat=0; botsRoomCode=net.code;
+    CG.promoteSeats(bs, info);
+    clearTimeout(bs.turnTimer); clearTimeout(bs.nextTimer);
+    bs.phase='lobby'; bs.match=null; bs.actions={}; bs.lastEnd=null;
+    view.replay=null; view.phase='idle';
+    /* dans le lobby, une place libérée disparaît : les absents restent affichés le temps de revenir */
+    $('botsCodeDisplay').textContent=botsRoomCode;
+    hideBanner();
+    hostBroadcastLobby();
+    gotoScreen('lobby');
+    $('botsLobbyStatus').textContent=CG.PROMOTED_TEXT;
+  }
   var broadcast=net.broadcast;
 
   function cleanupOnline(){

@@ -156,8 +156,24 @@
     onHostMessage: chamHandleNetMessage,
     onReconnecting: function(){ chamShowBanner('📡 Connexion perdue — reconnexion en cours...'); },
     onReconnected: function(){ chamHideBanner(); },
-    onLost: function(){ chamShowLostModal("Impossible de rétablir la connexion avec l'hôte."); }
+    onLost: function(){ chamShowLostModal("Impossible de rétablir la connexion avec l'hôte."); },
+    onPromote: chamOnPromote
   });
+  /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
+  function chamOnPromote(info){
+    chamNetRole='host'; chamMySeat=0; chamCurrentRoomCode=net.code;
+    CG.promoteSeats(chamState, info);
+    if(chamGuessTimer){ clearTimeout(chamGuessTimer); chamGuessTimer=null; }
+    clearTimeout(chamPhaseTimer); chamPhaseTimer=null; chamStopBars();
+    chamGameStarted=true; chamInRound=false; chamRoundLiveForLobby=false;
+    chamState.strokes=[]; chamState.votes={}; chamState.phase='lobby_wait'; chamState.lastPhaseMsg=null;
+    chamLiveStrokes={}; chamDrawing=false;
+    $('chamCodeDisplay').textContent=chamCurrentRoomCode;
+    chamHideBanner();
+    chamBroadcastLobby();
+    chamGoto_('lobby');
+    $('chamLobbyStatus').textContent=CG.PROMOTED_TEXT;
+  }
 
   var chamSend=net.send, chamBroadcast=net.broadcast;
 

@@ -100,8 +100,24 @@
     onHostMessage: handleMsg,
     onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
     onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); }
+    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
+    onPromote: onPromote
   });
+  /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
+  function onPromote(info){
+    netRole='host'; mySeat=0; roomCode=net.code;
+    CG.promoteSeats(ls, info);
+    clearTimers();
+    gameStarted=true; inRound=false; roundLiveForLobby=false; view.phase='';
+    ls.phase='lobby_wait'; ls.lastResult=null; ls.votes={};
+    /* le rôle de Maire continue de tourner à partir d'ici */
+    ls.mayorTurn=-1;
+    $('loupCodeDisplay').textContent=roomCode;
+    hideBanner();
+    hostBroadcastLobby();
+    gotoScreen('lobby');
+    $('loupLobbyStatus').textContent=CG.PROMOTED_TEXT;
+  }
   var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
 
   function clearTimers(){
