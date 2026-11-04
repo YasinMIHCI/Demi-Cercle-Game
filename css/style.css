@@ -903,3 +903,28 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .bots-weapon-card .ico{font-size:1.5rem;}
 .bots-weapon-card small{color:#aaa;font-size:0.78rem;}
 .bots-weapon-card.selected{border-color:var(--yellow);box-shadow:0 0 0 2px var(--yellow);}
+
+/* ----- amis ----- */
+.acc-friend-add{margin-top:4px;}
+.acc-friends{display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.acc-friend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:#0d0d0d;border:1px solid #2a2a2a;padding:8px 10px;}
+.acc-friend.pending{border-color:var(--yellow);}
+.acc-friend.waiting{opacity:0.7;}
+.acc-friend-name{flex:1;min-width:160px;}
+.acc-friend-name small{display:block;color:#999;font-size:0.78rem;}
+.acc-friend-btns{display:flex;gap:6px;}
+.acc-friend-btns .btn{margin:0;}
+.acc-compare{flex-basis:100%;}
+.acc-compare[hidden]{display:none;}
+.acc-cmp-row{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:6px;font-size:0.82rem;padding:3px 0;border-bottom:1px solid #222;}
+.acc-cmp-row.head{color:#999;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;}
+.acc-cmp-row .lead{color:var(--yellow);font-weight:700;}
+.acc-cmp-row small{color:#777;}
+.acc-invite-btn[hidden]{display:none;}
+.invite-toast{position:fixed;left:16px;right:16px;bottom:16px;margin:0 auto;z-index:300;max-width:560px;box-sizing:border-box;
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;background:#111;border:3px solid var(--yellow);box-shadow:6px 6px 0 var(--red);
+  padding:10px 14px;color:#fff;animation:fadeIn .3s ease;}
+.invite-toast[hidden]{display:none;}
+.invite-toast > span:first-child{flex:1;min-width:180px;}
+.invite-toast-btns{display:flex;gap:6px;}
+.invite-toast .btn{margin:0;}

@@ -3,7 +3,10 @@
    Le compte est facultatif : sans connexion, tout fonctionne comme avant.
    - CG.account.record(jeu, score, gagné) en fin de partie (ignoré si non connecté)
    - « top record » du meilleur compte affiché dans le menu de chaque jeu
-   - le pseudo est pré-rempli dans tous les jeux */
+   - le pseudo est pré-rempli dans tous les jeux
+   - amis : demande par pseudo de connexion, acceptation, comparaison des stats,
+     et invitation d'un ami dans sa salle (il reçoit une notification ici,
+     vérifiée toutes les 20 s tant que le site est ouvert) */
 (function(){
   'use strict';
   var CG=window.CG, $=CG.$, escapeHtml=CG.escapeHtml;
@@ -30,9 +33,12 @@
   var session=null;
   try{ session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null'); }catch(e){}
   function saveSession(s){
+    var was=!!session;
     session=s;
     try{ if(s) localStorage.setItem(SESSION_KEY, JSON.stringify(s)); else localStorage.removeItem(SESSION_KEY); }catch(e){}
     refreshUI();
+    /* connexion / déconnexion : boutons d'invitation et notifications */
+    if(was!==!!s && typeof startPolling==='function'){ startPolling(); refreshInviteButtons(); }
   }
   function fromAuth(res, profile){
     return {
@@ -227,7 +233,7 @@
     var p = mode==='login' ? login(user, pass) : signup(user, $('accountDisplay').value, pass);
     p.then(function(){
       CG.sfxValidate(); $('accountPass').value=''; $('accountPass2').value='';
-      fillNames(true); refreshUI(); renderProfile(); currentRecord();
+      fillNames(true); refreshUI(); renderProfile(); renderFriends(); currentRecord();
     }, function(e){ setError(frenchError(e)); CG.shake && CG.shake($('accountForm')); })
      .then(function(){ btn.disabled=false; });
   }
@@ -259,7 +265,7 @@
 
   function wire(){
     CG.wireModal('accountModal','accountBtn');
-    $('accountBtn').addEventListener('click',function(){ setError(''); if(session){ renderProfile(); syncProfile(); } });
+    $('accountBtn').addEventListener('click',function(){ setError(''); friendMsg(''); if(session){ renderProfile(); renderFriends(); syncProfile(); } });
     $('accountLoginTab').addEventListener('click',function(){ setMode('login'); });
     $('accountSignupTab').addEventListener('click',function(){ setMode('signup'); });
     $('accountForm').addEventListener('submit',function(e){ e.preventDefault(); submit(); });
@@ -290,6 +296,193 @@
     if(session) syncProfile();
   }
   wire();
+  wireFriends();
+
+  /* ===================== AMIS ===================== */
+  function rpc(name, body){ return authed('/rest/v1/rpc/'+name, {method:'POST', body:body||{}}); }
+  var JOIN={demicercle:['demicercle','joinRoomBtn'], cameleon:['cameleon','chamJoinRoomBtn'], imposteur:['imposteur','impJoinRoomBtn'],
+    loup:['loup','loupJoinRoomBtn'], classement:['classement','clsJoinRoomBtn'], quiaecrit:['quiaecrit','qaeJoinRoomBtn'],
+    crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn']};
+  function ago(iso){
+    if(!iso) return 'jamais joué';
+    var m=Math.round((Date.now()-new Date(iso).getTime())/60000);
+    if(m<2) return 'a joué à l’instant';
+    if(m<60) return 'a joué il y a '+m+' min';
+    var h=Math.round(m/60); if(h<48) return 'a joué il y a '+h+' h';
+    return 'a joué il y a '+Math.round(h/24)+' j';
+  }
+  function friendMsg(t, ok){ var e=$('accountFriendMsg'); e.textContent=t; e.hidden=!t; e.classList.toggle('ok', !!ok); }
+  var friends=[];
+  function loadFriends(){ return rpc('my_friends').then(function(rows){ friends=rows||[]; return friends; }); }
+  function renderFriends(){
+    var box=$('accountFriends');
+    if(!session){ box.innerHTML=''; return; }
+    box.innerHTML='<p class="theme-count">Chargement…</p>';
+    loadFriends().then(function(rows){
+      var html='';
+      var incoming=rows.filter(function(f){ return f.status==='pending' && f.incoming; });
+      var outgoing=rows.filter(function(f){ return f.status==='pending' && !f.incoming; });
+      var mates=rows.filter(function(f){ return f.status==='accepted'; });
+      incoming.forEach(function(f){
+        html+='<div class="acc-friend pending"><span class="acc-friend-name"><b>'+escapeHtml(f.display_name)+'</b> <small>@'+escapeHtml(f.username)+' veut être ton ami</small></span>'+
+          '<span class="acc-friend-btns"><button class="btn yellow small" data-act="accept" data-id="'+f.id+'"><span>✔ Accepter</span></button>'+
+          '<button class="btn ghost small" data-act="refuse" data-id="'+f.id+'"><span>✕</span></button></span></div>';
+      });
+      mates.forEach(function(f){
+        html+='<div class="acc-friend"><span class="acc-friend-name"><b>'+escapeHtml(f.display_name)+'</b> <small>@'+escapeHtml(f.username)+' · '+
+          f.played+' partie'+(f.played>1?'s':'')+' · '+f.wins+' victoire'+(f.wins>1?'s':'')+' · '+ago(f.last_played)+'</small></span>'+
+          '<span class="acc-friend-btns"><button class="btn ghost small" data-act="compare" data-id="'+f.id+'"><span>📊 Comparer</span></button>'+
+          '<button class="btn ghost small" data-act="remove" data-id="'+f.id+'" aria-label="Retirer"><span>🗑️</span></button></span>'+
+          '<div class="acc-compare" id="cmp-'+f.id+'" hidden></div></div>';
+      });
+      outgoing.forEach(function(f){
+        html+='<div class="acc-friend waiting"><span class="acc-friend-name"><b>'+escapeHtml(f.display_name)+'</b> <small>@'+escapeHtml(f.username)+' · demande envoyée</small></span>'+
+          '<span class="acc-friend-btns"><button class="btn ghost small" data-act="remove" data-id="'+f.id+'"><span>Annuler</span></button></span></div>';
+      });
+      box.innerHTML = html || '<p class="theme-count">Pas encore d’amis : ajoute-les avec leur pseudo de connexion.</p>';
+    }, function(){ box.innerHTML='<p class="theme-count">Amis indisponibles pour le moment.</p>'; });
+  }
+  function addFriend(){
+    var u=cleanUser($('accountFriendInput').value);
+    if(!/^[a-z0-9_]{3,20}$/.test(u)) return friendMsg('Tape le pseudo de connexion de ton ami (ex : yasin_93).');
+    rpc('send_friend_request', {p_username:u}).then(function(r){
+      var t={introuvable:'Aucun joueur avec ce pseudo.', soi:'C’est toi 😄', deja:'Déjà ami, ou demande déjà envoyée.',
+        accepte:'Vous êtes maintenant amis ! 🎉', envoye:'Demande envoyée ✔', trop:'Trop de demandes en attente.'}[r]||'Fait.';
+      friendMsg(t, r==='accepte'||r==='envoye');
+      if(r==='accepte'||r==='envoye'){ $('accountFriendInput').value=''; CG.sfxValidate(); renderFriends(); }
+    }, function(e){ friendMsg(frenchError(e)); });
+  }
+  function compare(id){
+    var el=$('cmp-'+id);
+    if(!el.hidden){ el.hidden=true; return; }
+    el.hidden=false; el.innerHTML='<p class="theme-count">Chargement…</p>';
+    Promise.all([myStats(), request('/rest/v1/stats?user_id=eq.'+id+'&select=game,played,wins,best')]).then(function(r){
+      var mine=r[0], his={}; (r[1]||[]).forEach(function(s){ his[s.game]=s; });
+      var html='<div class="acc-cmp-row head"><span></span><span>Moi</span><span>Ami</span></div>';
+      Object.keys(GAMES).forEach(function(k){
+        var a=mine[k], b=his[k]; if(!a && !b) return;
+        var g=GAMES[k];
+        function cell(s){
+          if(!s) return '—';
+          return s.wins+' 🏆'+(g.unit && s.best ? ' · '+fmt(s.best) : '')+' <small>('+s.played+')</small>';
+        }
+        var aw=(a||{}).wins||0, bw=(b||{}).wins||0;
+        html+='<div class="acc-cmp-row"><span>'+g.label+'</span><span class="'+(aw>bw?'lead':'')+'">'+cell(a)+'</span><span class="'+(bw>aw?'lead':'')+'">'+cell(b)+'</span></div>';
+      });
+      el.innerHTML=html+'<p class="theme-count" style="margin:4px 0 0;">victoires 🏆 · meilleur score · (parties)</p>';
+    }, function(){ el.innerHTML='<p class="theme-count">Stats indisponibles.</p>'; });
+  }
+
+  /* ----- inviter des amis dans sa salle ----- */
+  var inviteTarget=null;
+  function roomOf(el){
+    var view=el.closest('.view'), route=view ? view.id.replace(/^view-/,'') : '';
+    var code=(el.textContent||'').trim();
+    return (JOIN[route] && /^[A-Z0-9-]{3,20}$/.test(code)) ? {route:route, code:code} : null;
+  }
+  function addInviteButtons(){
+    var els=document.querySelectorAll('.room-code-display');
+    Array.prototype.forEach.call(els, function(el){
+      var b=document.createElement('button');
+      b.type='button'; b.className='btn ghost small acc-invite-btn'; b.hidden=true;
+      b.innerHTML='<span>👥 Inviter des amis</span>';
+      b.addEventListener('click', function(){
+        inviteTarget=roomOf(el); if(!inviteTarget) return;
+        CG.sfxToggle(); openInvite();
+      });
+      var row=el.nextElementSibling;
+      if(row && row.classList.contains('btn-row')) row.appendChild(b); else el.insertAdjacentElement('afterend', b);
+      el._inviteBtn=b;
+    });
+    refreshInviteButtons();
+  }
+  function refreshInviteButtons(){
+    Array.prototype.forEach.call(document.querySelectorAll('.room-code-display'), function(el){ if(el._inviteBtn) el._inviteBtn.hidden=!session; });
+  }
+  function openInvite(){
+    $('inviteRoomText').textContent=inviteTarget.code;
+    $('inviteList').innerHTML='<p class="theme-count">Chargement…</p>';
+    CG.openModal('friendInviteModal');
+    loadFriends().then(function(rows){
+      var mates=rows.filter(function(f){ return f.status==='accepted'; }), html='';
+      mates.forEach(function(f){
+        html+='<div class="acc-friend"><span class="acc-friend-name"><b>'+escapeHtml(f.display_name)+'</b> <small>'+ago(f.last_played)+'</small></span>'+
+          '<span class="acc-friend-btns"><button class="btn yellow small" data-invite="'+f.id+'"><span>📨 Inviter</span></button></span></div>';
+      });
+      $('inviteList').innerHTML = html || '<p class="theme-count">Ajoute d’abord des amis depuis ton compte (bouton 👤).</p>';
+    }, function(){ $('inviteList').innerHTML='<p class="theme-count">Amis indisponibles pour le moment.</p>'; });
+  }
+
+  /* ----- invitations reçues : petite notification en bas de l'écran ----- */
+  var SHOWN_KEY='cg_invites_seen', POLL_MS=20000, pollTimer=null, current=null;
+  function seenIds(){ try{ return JSON.parse(sessionStorage.getItem(SHOWN_KEY)||'[]'); }catch(e){ return []; } }
+  function markSeen(id){ var a=seenIds(); a.push(id); try{ sessionStorage.setItem(SHOWN_KEY, JSON.stringify(a.slice(-50))); }catch(e){} }
+  function pollInvites(){
+    if(!session || document.visibilityState!=='visible' || current) return;
+    var since=new Date(Date.now()-10*60000).toISOString();
+    authed('/rest/v1/room_invites?to_id=eq.'+session.id+'&created_at=gt.'+encodeURIComponent(since)+'&order=created_at.desc&select=id,from_name,route,code')
+      .then(function(rows){
+        var seen=seenIds(), inv=(rows||[]).filter(function(r){ return seen.indexOf(r.id)===-1 && JOIN[r.route]; })[0];
+        if(inv) showInvite(inv);
+      }, function(){});
+  }
+  var ROUTE_LABEL={soiree:'Soirée All in'};
+  function showInvite(inv){
+    current=inv; markSeen(inv.id);
+    var label=ROUTE_LABEL[inv.route] || (GAMES[inv.route]||{}).label || inv.route;
+    $('inviteToastText').innerHTML='🎮 <b>'+escapeHtml(inv.from_name)+'</b> t’invite : <b>'+escapeHtml(label)+'</b> <small>(salle '+escapeHtml(inv.code)+')</small>';
+    $('inviteToast').hidden=false;
+    CG.yourTurn && CG.yourTurn();
+  }
+  function closeInvite(){
+    if(current) rpc('dismiss_invite', {p_id:current.id}).catch(function(){});
+    current=null; $('inviteToast').hidden=true;
+  }
+  function joinInvite(){
+    var inv=current; closeInvite();
+    if(!inv) return;
+    var j=JOIN[inv.route];
+    location.hash=inv.route;
+    setTimeout(function(){
+      var api=CG[j[0]];
+      if(api && api.enterJoinFlow) api.enterJoinFlow(inv.code);
+      fillNames(false);
+      var b=$(j[1]); if(b && !b.disabled) b.click();
+    }, 300);
+  }
+  function startPolling(){
+    clearInterval(pollTimer); pollTimer=null;
+    if(!session) return;
+    pollTimer=setInterval(pollInvites, POLL_MS);
+    setTimeout(pollInvites, 2000);
+  }
+  function wireFriends(){
+    $('accountFriendAddBtn').addEventListener('click', addFriend);
+    $('accountFriendInput').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); addFriend(); } });
+    $('accountFriends').addEventListener('click', function(e){
+      var b=e.target.closest ? e.target.closest('button[data-act]') : null; if(!b) return;
+      var id=b.getAttribute('data-id'), act=b.getAttribute('data-act');
+      if(act==='compare'){ CG.sfxToggle(); compare(id); return; }
+      if(act==='remove' && !confirm('Retirer cet ami ?')) return;
+      var p = act==='accept' ? rpc('respond_friend_request',{p_from:id, p_accept:true})
+            : act==='refuse' ? rpc('respond_friend_request',{p_from:id, p_accept:false})
+            : rpc('remove_friend',{p_other:id});
+      p.then(function(){ CG.sfxToggle(); renderFriends(); }, function(err){ friendMsg(frenchError(err)); });
+    });
+    CG.wireModal('friendInviteModal');
+    $('inviteList').addEventListener('click', function(e){
+      var b=e.target.closest ? e.target.closest('button[data-invite]') : null; if(!b || !inviteTarget) return;
+      b.disabled=true;
+      rpc('invite_friend', {p_friend:b.getAttribute('data-invite'), p_route:inviteTarget.route, p_code:inviteTarget.code})
+        .then(function(){ b.querySelector('span').textContent='✔ Invité'; CG.sfxValidate(); },
+              function(){ b.disabled=false; b.querySelector('span').textContent='Réessayer'; });
+    });
+    $('inviteJoinBtn').addEventListener('click', joinInvite);
+    $('inviteCloseBtn').addEventListener('click', closeInvite);
+    document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') pollInvites(); });
+    addInviteButtons();
+    startPolling();
+  }
 
   /* ---------- Demi-Cercle : meilleures estimations (table dc_estimates, voir schema.sql) ---------- */
   function recordEstimate(e){

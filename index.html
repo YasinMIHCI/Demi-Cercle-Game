@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=36">
+<link rel="stylesheet" href="css/style.css?v=37">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=36"></script>
-<script src="js/intro.js?v=36"></script>
+<script src="js/audio.js?v=37"></script>
+<script src="js/intro.js?v=37"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1882,6 +1882,13 @@
       <p class="subtitle" style="margin-bottom:4px;"><span id="accountUser"></span> · <span id="accountTotals"></span></p>
       <h3 class="rules-subhead">MES STATS ET LES RECORDS</h3>
       <div class="acc-stats" id="accountStats"></div>
+      <h3 class="rules-subhead" style="margin-top:18px;">👥 MES AMIS</h3>
+      <div class="loup-ask acc-friend-add">
+        <input type="text" id="accountFriendInput" placeholder="Pseudo de connexion de ton ami" maxlength="20" autocapitalize="none" spellcheck="false" autocomplete="off">
+        <button type="button" class="btn yellow small" id="accountFriendAddBtn"><span>＋ Ajouter</span></button>
+      </div>
+      <p class="acc-error" id="accountFriendMsg" role="status" hidden></p>
+      <div class="acc-friends" id="accountFriends"></div>
       <div class="btn-row center" style="margin-top:16px;">
         <button class="btn ghost small" id="accountRenameBtn"><span>✏️ Changer de nom</span></button>
         <button class="btn ghost small" id="accountPassBtn"><span>🔑 Mot de passe</span></button>
@@ -1892,6 +1899,23 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- INVITER DES AMIS DANS SA SALLE -->
+<div class="modal-overlay" id="friendInviteModal">
+  <div class="modal-box">
+    <button class="modal-close" id="friendInviteModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">👥 INVITER DES AMIS</h2>
+    <p class="subtitle">Salle <b id="inviteRoomText"></b> — ton ami reçoit une notification s'il a le site ouvert (et peut rejoindre en un clic).</p>
+    <div class="acc-friends" id="inviteList"></div>
+  </div>
+</div>
+<div class="invite-toast" id="inviteToast" hidden role="alert">
+  <span id="inviteToastText"></span>
+  <span class="invite-toast-btns">
+    <button type="button" class="btn yellow small" id="inviteJoinBtn"><span>▶ Rejoindre</span></button>
+    <button type="button" class="btn ghost small" id="inviteCloseBtn" aria-label="Ignorer"><span>✕</span></button>
+  </span>
 </div>
 
 <!-- RÉGLAGES -->
@@ -1983,21 +2007,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=36"></script>
-<script src="js/net.js?v=36"></script>
-<script src="js/demicercle.js?v=36"></script>
-<script src="js/cameleon.js?v=36"></script>
-<script src="js/imposteur.js?v=36"></script>
-<script src="js/loup.js?v=36"></script>
-<script src="js/classement.js?v=36"></script>
-<script src="js/quiaecrit.js?v=36"></script>
-<script src="js/crousprison-photos.js?v=36"></script>
-<script src="js/crousprison.js?v=36"></script>
-<script src="js/bots-maps.js?v=36"></script>
-<script src="js/bots.js?v=36"></script>
-<script src="js/pwa.js?v=36"></script>
-<script src="js/party.js?v=36"></script>
-<script src="js/account.js?v=36"></script>
-<script src="js/hub.js?v=36"></script>
+<script src="js/common.js?v=37"></script>
+<script src="js/net.js?v=37"></script>
+<script src="js/demicercle.js?v=37"></script>
+<script src="js/cameleon.js?v=37"></script>
+<script src="js/imposteur.js?v=37"></script>
+<script src="js/loup.js?v=37"></script>
+<script src="js/classement.js?v=37"></script>
+<script src="js/quiaecrit.js?v=37"></script>
+<script src="js/crousprison-photos.js?v=37"></script>
+<script src="js/crousprison.js?v=37"></script>
+<script src="js/bots-maps.js?v=37"></script>
+<script src="js/bots.js?v=37"></script>
+<script src="js/pwa.js?v=37"></script>
+<script src="js/party.js?v=37"></script>
+<script src="js/account.js?v=37"></script>
+<script src="js/hub.js?v=37"></script>
 </body>
 </html>

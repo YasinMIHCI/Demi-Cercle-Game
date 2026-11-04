@@ -204,7 +204,7 @@ js/pwa.js         app installable : service worker, bouton « Installer l'app »
 sw.js             service worker (cache hors ligne)
 manifest.webmanifest  nom, icônes et couleurs de l'app
 js/party.js       Soirée All in : salle de la soirée, enchaînement des jeux, classement général
-js/account.js     comptes (Supabase) : connexion, statistiques, top records, pseudo pré-rempli
+js/account.js     comptes (Supabase) : connexion, statistiques, top records, pseudo pré-rempli, amis et invitations
 supabase/schema.sql  tables et droits des comptes, à exécuter dans le SQL Editor de Supabase
 js/vendor/qrcode.js  générateur de QR codes (licence MIT)
 js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison), infos, bouton son
