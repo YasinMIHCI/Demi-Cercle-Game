@@ -451,4 +451,6 @@
     enterJoinFlow:function(code){ ui.goto('menu'); $('partyJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code)); }
   };
   renderGamePicker();
+  /* réactions et petits messages dans le lobby (common.js) */
+  CG.lobbyChat(net, $('partyPlayerList'), 'partyName');
 })();

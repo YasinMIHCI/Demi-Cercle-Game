@@ -915,4 +915,6 @@
   };
 
   impRenderBankCount();
+  /* réactions et petits messages dans le lobby (common.js) */
+  CG.lobbyChat(net, $('impPlayerList'), 'impName');
 })();

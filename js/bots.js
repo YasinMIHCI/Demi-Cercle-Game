@@ -1809,4 +1809,6 @@
     /* exposé pour les tests */
     _simulate: simulateTurn, _drop: dropTank, _drawTank: drawTank, _view: function(){ return view; }, _host: function(){ return bs; }
   };
+  /* réactions et petits messages dans le lobby (common.js) */
+  CG.lobbyChat(net, $('botsPlayerList'), 'botsName');
 })();

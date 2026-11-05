@@ -812,4 +812,6 @@
     }
   };
   renderBankCount();
+  /* réactions et petits messages dans le lobby (common.js) */
+  CG.lobbyChat(net, $('qaePlayerList'), 'qaeName');
 })();
