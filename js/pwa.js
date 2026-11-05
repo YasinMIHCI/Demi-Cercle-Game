@@ -66,4 +66,48 @@
   CG.wireModal('installModal');
   if(isApp()) document.documentElement.classList.add('is-app');
   refresh();
+
+  /* ---------- écran toujours allumé pendant les jeux ----------
+     Un téléphone qui se met en veille coupe la connexion : dans un jeu (pas
+     sur le hub), on demande au navigateur de garder l'écran allumé. Le verrou
+     saute quand l'app passe en arrière-plan : on le redemande au retour. */
+  var lock=null;
+  function inGame(){ var r=(location.hash.replace(/^#/,'').split('?')[0])||'hub'; return r!=='hub'; }
+  function updateLock(){
+    if(!('wakeLock' in navigator)) return;
+    if(inGame() && document.visibilityState==='visible'){
+      if(lock) return;
+      navigator.wakeLock.request('screen').then(function(l){
+        lock=l; l.addEventListener('release', function(){ if(lock===l) lock=null; });
+      }).catch(function(){});
+    } else if(lock){ var l=lock; lock=null; l.release().catch(function(){}); }
+  }
+  window.addEventListener('hashchange', updateLock);
+  document.addEventListener('visibilitychange', updateLock);
+  /* certains navigateurs exigent un geste de l'utilisateur */
+  document.addEventListener('pointerdown', function(){ if(!lock) updateLock(); }, {passive:true});
+  updateLock();
+
+  /* ---------- « nouvelle version disponible » ----------
+     On relit index.html de temps en temps (au retour dans l'app, et toutes
+     les 30 min) : si le numéro ?v= a augmenté, on propose de recharger. */
+  function myVersion(){
+    var s=document.querySelector('script[src*="js/common.js?v="]');
+    var m=s && /\?v=(\d+)/.exec(s.getAttribute('src'));
+    return m ? +m[1] : 0;
+  }
+  var mine=myVersion(), lastCheck=0;
+  function checkUpdate(){
+    if(!mine || Date.now()-lastCheck<60000 || document.visibilityState!=='visible') return;
+    lastCheck=Date.now();
+    fetch('./', {cache:'no-store'}).then(function(r){ return r.ok ? r.text() : ''; }).then(function(html){
+      var m=/js\/common\.js\?v=(\d+)/.exec(html);
+      if(m && +m[1]>mine) $('updateBanner').hidden=false;
+    }).catch(function(){});
+  }
+  $('updateReloadBtn').addEventListener('click', function(){ location.reload(); });
+  $('updateLaterBtn').addEventListener('click', function(){ $('updateBanner').hidden=true; mine=1e9; });
+  document.addEventListener('visibilitychange', checkUpdate);
+  setInterval(checkUpdate, 30*60000);
+  setTimeout(checkUpdate, 5000);
 })();
