@@ -218,6 +218,12 @@
     for(var r=0;r<n;r++) for(var c=0;c<n;c++) if(qr.isDark(r,c)) x.fillRect((c+quiet)*cell,(r+quiet)*cell,cell,cell);
     return true;
   }
+  var QR_KEY='crazygames_qr_open';
+  function readQrPref(){
+    var v=null; try{ v=localStorage.getItem(QR_KEY); }catch(e){}
+    if(v==='1' || v==='0') return v==='1';
+    return !!(window.matchMedia && window.matchMedia('(min-width:700px)').matches);
+  }
   function enhanceRoomShare(){
     var els=document.querySelectorAll('.room-code-display');
     for(var i=0;i<els.length;i++) (function(el){
@@ -226,7 +232,23 @@
       var cv=document.createElement('canvas'); cv.setAttribute('aria-label',"QR code du lien d'invitation");
       var cap=document.createElement('small'); cap.textContent='Scanne pour rejoindre';
       box.appendChild(cv); box.appendChild(cap);
-      (row && row.classList.contains('btn-row') ? row : el).insertAdjacentElement('afterend', box);
+      /* QR repliable : ouvert d'office sur grand écran, replié sur téléphone pour
+         garder la liste des joueurs et « Lancer » à portée de pouce */
+      var qrId='qr-'+(el.id||i), qrBtn=document.createElement('button');
+      qrBtn.type='button'; qrBtn.className='btn ghost small room-qr-toggle'; qrBtn.hidden=true;
+      qrBtn.setAttribute('aria-controls', qrId); box.id=qrId;
+      var qrOpen=readQrPref();
+      function paintQrBtn(){
+        qrBtn.setAttribute('aria-expanded', qrOpen?'true':'false');
+        qrBtn.innerHTML='<span>📷 '+(qrOpen?'Masquer':'Afficher')+' le QR code</span>';
+      }
+      qrBtn.addEventListener('click',function(){
+        qrOpen=!qrOpen; sfxToggle();
+        try{ localStorage.setItem(QR_KEY, qrOpen?'1':'0'); }catch(e){}
+        refresh();
+      });
+      if(row && row.classList.contains('btn-row')){ row.insertAdjacentElement('afterend', box); row.appendChild(qrBtn); }
+      else { el.insertAdjacentElement('afterend', box); el.insertAdjacentElement('afterend', qrBtn); }
       var shareBtn=null;
       if(navigator.share && row && row.classList.contains('btn-row')){
         shareBtn=document.createElement('button');
@@ -239,14 +261,24 @@
         row.insertBefore(shareBtn, row.firstChild);
       }
       function refresh(){
-        var link=roomLink(el);
-        box.hidden=!(link && drawQR(cv, link));
+        var link=roomLink(el), ok=!!(link && drawQR(cv, link));
+        qrBtn.hidden=!ok; paintQrBtn();
+        box.hidden=!(ok && qrOpen);
       }
       new MutationObserver(refresh).observe(el, {childList:true, characterData:true, subtree:true});
       refresh();
     })(els[i]);
   }
   enhanceRoomShare();
+
+  /* Entrée dans un champ data-enter="idDuBouton" : clique le bouton (ex. « Rejoindre ») */
+  document.addEventListener('keydown', function(e){
+    if(e.key!=='Enter' || !e.target || !e.target.getAttribute) return;
+    var id=e.target.getAttribute('data-enter'), btn=id && $(id);
+    if(btn && !btn.disabled){ e.preventDefault(); btn.click(); }
+  });
+  /* iPhone : sans écouteur tactile, Safari n'applique pas l'état :active (bouton enfoncé) */
+  document.addEventListener('touchstart', function(){}, {passive:true});
 
   /* ---------- CHAT DE LOBBY : réactions en un clic + message court ----------
      lobbyChat(net, listEl, nameInputId) ajoute la boîte sous la liste des joueurs. */
@@ -256,7 +288,7 @@
     var box=document.createElement('div'); box.className='lobby-chat';
     var html='<div class="lobby-chat-log" aria-live="polite"></div><div class="lobby-chat-quick">';
     QUICK.forEach(function(q){ html+='<button type="button" class="lobby-chat-q">'+escapeHtml(q)+'</button>'; });
-    html+='</div><form class="lobby-chat-form"><input type="text" maxlength="80" placeholder="Un message pour la salle…" autocomplete="off"><button type="submit" class="btn ghost small"><span>Envoyer</span></button></form>';
+    html+='</div><form class="lobby-chat-form"><input type="text" maxlength="80" aria-label="Message pour la salle" placeholder="Un message pour la salle…" autocomplete="off"><button type="submit" class="btn ghost small"><span>Envoyer</span></button></form>';
     box.innerHTML=html;
     listEl.insertAdjacentElement('afterend', box);
     var log=box.querySelector('.lobby-chat-log'), input=box.querySelector('input'), last=0;

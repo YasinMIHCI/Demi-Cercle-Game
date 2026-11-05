@@ -360,6 +360,7 @@
     }
     list.innerHTML = html;
     $('themeCount').textContent = state.allThemes.length+' thème(s) dans la banque';
+    $('themeCountShort').textContent = state.allThemes.length+' thème'+(state.allThemes.length>1?'s':'');
   }
 
   $('themeList').addEventListener('click',function(e){
