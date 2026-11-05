@@ -200,7 +200,12 @@
   var mode='login';
   function refreshUI(){
     var btn=$('accountBtn');
-    if(btn) btn.querySelector('span').textContent = session && session.profile ? '👤 '+session.profile.display_name : '👤 Se connecter';
+    if(btn){
+      var who = session && session.profile ? session.profile.display_name : '';
+      btn.classList.toggle('logged', !!who);
+      btn.setAttribute('aria-label', who ? 'Mon compte : '+who : 'Mon compte : se connecter');
+      btn.title = who ? who : 'Se connecter';
+    }
     var inn=!!session;
     $('accountOut').hidden=inn; $('accountIn').hidden=!inn;
     if(inn && session.profile){
@@ -270,6 +275,25 @@
   function wire(){
     CG.wireModal('accountModal','accountBtn');
     $('accountBtn').addEventListener('click',function(){ setError(''); friendMsg(''); renderAch(); if(session){ renderProfile(); renderFriends(); renderPush(); syncProfile(); } });
+    /* onglets du compte : Profil / Succès / Amis (flèches gauche/droite au clavier) */
+    var accTabs=Array.prototype.slice.call(document.querySelectorAll('#accountIn .acc-tab'));
+    function showAccTab(tab, focus){
+      accTabs.forEach(function(t){
+        var on=t===tab;
+        t.classList.toggle('active', on);
+        t.setAttribute('aria-selected', on?'true':'false');
+        t.tabIndex = on ? 0 : -1;
+        $(t.getAttribute('data-pane')).hidden=!on;
+      });
+      if(focus) tab.focus();
+    }
+    accTabs.forEach(function(t, i){
+      t.addEventListener('click',function(){ CG.sfxToggle(); showAccTab(t); });
+      t.addEventListener('keydown',function(e){
+        var d = e.key==='ArrowRight' ? 1 : e.key==='ArrowLeft' ? -1 : 0;
+        if(d){ e.preventDefault(); showAccTab(accTabs[(i+d+accTabs.length)%accTabs.length], true); }
+      });
+    });
     $('accountLoginTab').addEventListener('click',function(){ setMode('login'); });
     $('accountSignupTab').addEventListener('click',function(){ setMode('signup'); });
     $('accountForm').addEventListener('submit',function(e){ e.preventDefault(); submit(); });
@@ -404,6 +428,8 @@
       var incoming=rows.filter(function(f){ return f.status==='pending' && f.incoming; });
       var outgoing=rows.filter(function(f){ return f.status==='pending' && !f.incoming; });
       var mates=rows.filter(function(f){ return f.status==='accepted'; });
+      var badge=$('accFriendsBadge');
+      badge.textContent=incoming.length; badge.hidden=!incoming.length;
       if(mates.length>=3) achieve('friends3');
       renderBoard();
       incoming.forEach(function(f){

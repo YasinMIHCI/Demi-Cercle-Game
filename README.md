@@ -36,11 +36,22 @@ Tout le son passe par `js/audio.js` (un seul contexte audio pour le site) :
 - **OST originales**, composées pour le site dans un esprit acid-jazz et jouées
   par un petit séquenceur : *lounge* (hub et menus), *heist* (jeux de soirée), *riot*
   (Battle Bots). La musique change toute seule selon l'écran, avec un fondu.
-- Boutons du hub : 🔊 Son (tout) et 🎵 Musique (seulement la musique), mémorisés.
+- Dans les **⚙️ Réglages** du hub : 🔊 Son (tout) et 🎵 Musique (seulement la musique), volumes et vibrations, mémorisés.
 - Les navigateurs gardent une page muette tant qu'on n'a rien touché : le son démarre au
   premier geste (pendant l'intro, toucher l'écran active le son sans la passer). Sur
   iPhone, le son est débloqué au relâché du doigt et une piste muette empêche le bouton
   « silencieux » de couper le son.
+
+## Ergonomie
+
+- **Hub** : cartes compactes (2 colonnes sur téléphone), nombre de joueurs en pastille (👥 3-8)
+  et filtre « On est combien ? » qui met en avant les jeux jouables (choix mémorisé).
+- **Créer / Rejoindre** : même disposition dans tous les jeux, « Rejoindre » en premier
+  (code + bouton sur une ligne, Entrée valide).
+- **Lobbies** : QR code repliable (ouvert d'office sur grand écran, replié sur téléphone),
+  bouton « Lancer » collé en bas de l'écran pour l'hôte.
+- **Compte** : onglets Profil / Succès / Amis (pastille quand une demande d'ami attend).
+- Cibles tactiles d'au moins 40 px, champs tous étiquetés, boutons qui s'enfoncent au toucher.
 
 ## Les jeux
 
@@ -147,7 +158,7 @@ Combat de tanks en 2D sur un terrain destructible (façon *Worms*), en ligne : 1
 
 ## Comptes joueurs (facultatif)
 
-Bouton **👤 Se connecter** dans le hub : un pseudo de connexion et un mot de passe, aucun
+Icône **👤** en haut à droite du hub (pastille verte une fois connecté) : un pseudo de connexion et un mot de passe, aucun
 e-mail. Avec un compte, chaque fin de partie est enregistrée (parties, victoires, meilleur
 score par jeu), le nom est pré-rempli dans tous les jeux, et le menu de chaque jeu affiche
 le **top record** : meilleur score d'une partie (Soirée, Crous ou Prison, Classement, Qui a

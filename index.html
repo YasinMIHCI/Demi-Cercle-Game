@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=44">
+<link rel="stylesheet" href="css/style.css?v=45">
 </head>
 <body>
 
@@ -29,13 +29,17 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=44"></script>
-<script src="js/intro.js?v=44"></script>
+<script src="js/audio.js?v=45"></script>
+<script src="js/intro.js?v=45"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
   <div id="hubApp">
     <header class="hub-header">
+      <div class="hub-corner">
+        <button class="hub-icon-btn" id="settingsBtn" type="button" aria-label="Réglages (son, musique, vibrations)" title="Réglages"><span aria-hidden="true">⚙️</span></button>
+        <button class="hub-icon-btn" id="accountBtn" type="button" aria-label="Mon compte : se connecter" title="Se connecter"><span aria-hidden="true">👤</span></button>
+      </div>
       <div class="hub-banner-wrap">
         <div class="hub-banner-stripe"></div>
         <h1 class="hub-title"><span>CRAZY</span><span class="hub-title-accent">GAMES</span></h1>
@@ -45,78 +49,97 @@
       <div class="btn-row center">
         <button class="btn yellow small" id="installBtn" style="display:none;"><span>📲 Installer l'app</span></button>
         <button class="btn ghost small" id="hubInfoBtn"><span>📖 Règles / Infos</span></button>
-        <button class="btn ghost small" id="muteBtn"><span>🔊 Son activé</span></button>
-        <button class="btn ghost small" id="musicBtn"><span>🎵 Musique activée</span></button>
-        <button class="btn ghost small" id="settingsBtn"><span>⚙️ Réglages</span></button>
-        <button class="btn red small" id="accountBtn"><span>👤 Se connecter</span></button>
       </div>
     </header>
 
-    <div class="game-grid">
-      <div class="game-card available party-card">
-        <div class="game-card-icon">🎉</div>
+    <div class="hub-filter" role="group" aria-labelledby="hubFilterLabel">
+      <span class="hub-filter-label" id="hubFilterLabel">👥 On est combien ?</span>
+      <div class="hub-filter-chips" id="hubFilter">
+        <button type="button" class="hub-chip active" data-n="0" aria-pressed="true">Tous</button>
+        <button type="button" class="hub-chip" data-n="1" aria-pressed="false">1</button>
+        <button type="button" class="hub-chip" data-n="2" aria-pressed="false">2</button>
+        <button type="button" class="hub-chip" data-n="3" aria-pressed="false">3</button>
+        <button type="button" class="hub-chip" data-n="4" aria-pressed="false">4</button>
+        <button type="button" class="hub-chip" data-n="5" aria-pressed="false">5</button>
+        <button type="button" class="hub-chip" data-n="6" aria-pressed="false">6</button>
+        <button type="button" class="hub-chip" data-n="7" aria-pressed="false">7</button>
+        <button type="button" class="hub-chip" data-n="8" aria-pressed="false">8</button>
+        <button type="button" class="hub-chip" data-n="9" aria-pressed="false">9</button>
+        <button type="button" class="hub-chip" data-n="10" aria-pressed="false">10</button>
+      </div>
+      <p class="hub-filter-note" id="hubFilterNote" aria-live="polite"></p>
+    </div>
+
+    <div class="game-grid" id="gameGrid">
+      <div class="game-card available party-card" data-min="2" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🎉</div>
         <h3>SOIRÉE ALL IN</h3>
-        <p>Une salle pour toute la soirée : 10 manches, un jeu différent à chaque fois, et un classement général. 2 à 10 joueurs.</p>
-        <button class="btn yellow" id="playSoireeBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
+        <p>Une salle pour toute la soirée : un jeu différent à chaque manche, et un classement général.</p>
+        <button class="btn yellow" id="playSoireeBtn" aria-label="Jouer : Soirée All in"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🌗</div>
+      <div class="game-card available" data-min="2" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🌗</div>
         <h3>LE DEMI-CERCLE</h3>
-        <p>Devine la cible secrète à partir d'un indice. Local, 1 vs 1 ou 2 vs 2 en ligne.</p>
-        <button class="btn yellow" id="playDemicercleBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
+        <p>Devine la cible secrète à partir d'un indice. Sur un seul écran, ou en ligne en équipes.</p>
+        <button class="btn yellow" id="playDemicercleBtn" aria-label="Jouer : Le Demi-Cercle"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🦎</div>
+      <div class="game-card available" data-min="3" data-max="8">
+        <div class="game-card-icon" aria-hidden="true">🦎</div>
         <h3>LE CAMÉLÉON</h3>
-        <p>Un dessin partagé, un mot secret... et un infiltré. 3 à 8 joueurs, en ligne.</p>
-        <button class="btn yellow" id="playCameleonBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 3-8</span>
+        <p>Un dessin partagé, un mot secret… et un infiltré qui ne le connaît pas.</p>
+        <button class="btn yellow" id="playCameleonBtn" aria-label="Jouer : Le Caméléon"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🤔</div>
+      <div class="game-card available" data-min="2" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🤔</div>
         <h3>EMOJI QUIZ</h3>
-        <p>Des emojis cachent un film, une série, une expression… Le plus rapide à trouver gagne. 2 à 10 joueurs, en ligne.</p>
-        <button class="btn yellow" id="playEmojiBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
+        <p>Des emojis cachent un film, une série, une expression… Le plus rapide gagne.</p>
+        <button class="btn yellow" id="playEmojiBtn" aria-label="Jouer : Emoji Quiz"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🕵️</div>
+      <div class="game-card available" data-min="3" data-max="8">
+        <div class="game-card-icon" aria-hidden="true">🕵️</div>
         <h3>L'IMPOSTEUR</h3>
-        <p>Tout le monde répond par un nombre… sauf un qui n'a pas eu la même question. 3 à 8 joueurs, en ligne.</p>
-        <button class="btn yellow" id="playImposteurBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 3-8</span>
+        <p>Tout le monde répond à la même question… sauf un, qui en a reçu une autre sans le savoir.</p>
+        <button class="btn yellow" id="playImposteurBtn" aria-label="Jouer : L'Imposteur"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🤖</div>
+      <div class="game-card available" data-min="1" data-max="6">
+        <div class="game-card-icon" aria-hidden="true">🤖</div>
         <h3>BATTLE BOTS</h3>
-        <p>Combat de tanks en 2D, actions simultanées, terrain destructible. 1 vs 1, 2 vs 2 ou chacun pour soi, en ligne.</p>
-        <button class="btn yellow" id="playBotsBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 1-6</span>
+        <p>Combat de tanks en 2D, actions simultanées, terrain destructible. En équipes, chacun pour soi ou contre des bots.</p>
+        <button class="btn yellow" id="playBotsBtn" aria-label="Jouer : Battle Bots"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🐺</div>
+      <div class="game-card available" data-min="4" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🐺</div>
         <h3>LE LOUP DES MOTS</h3>
-        <p>Trouvez le mot du Maire en questions fermées… mais un Loup qui le connaît vous sabote. 4 à 10 joueurs, en ligne.</p>
-        <button class="btn yellow" id="playLoupBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 4-10</span>
+        <p>Trouvez le mot du Maire en questions fermées… mais un Loup qui le connaît vous sabote.</p>
+        <button class="btn yellow" id="playLoupBtn" aria-label="Jouer : Le Loup des mots"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🏆</div>
+      <div class="game-card available" data-min="3" data-max="8">
+        <div class="game-card-icon" aria-hidden="true">🏆</div>
         <h3>LE CLASSEMENT</h3>
-        <p>« Qui est le plus fort au bras de fer ? » Classez-vous en secret… et découvrez ce que le groupe pense vraiment. 3 à 8 joueurs, en ligne.</p>
-        <button class="btn yellow" id="playClassementBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 3-8</span>
+        <p>« Qui est le plus fort au bras de fer ? » Classez-vous en secret, puis découvrez l'avis du groupe.</p>
+        <button class="btn yellow" id="playClassementBtn" aria-label="Jouer : Le Classement"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🎭</div>
+      <div class="game-card available" data-min="3" data-max="8">
+        <div class="game-card-icon" aria-hidden="true">🎭</div>
         <h3>QUI A ÉCRIT ÇA ?</h3>
-        <p>« Ce que tu penses vraiment des pieds ? » Réponses anonymes, puis on devine qui a écrit quoi. 3 à 8 joueurs, en ligne.</p>
-        <button class="btn yellow" id="playQuiaecritBtn"><span>▶ JOUER</span></button>
+        <span class="game-pill" title="Nombre de joueurs">👥 3-8</span>
+        <p>Réponses anonymes à des questions drôles, puis on devine qui a écrit quoi.</p>
+        <button class="btn yellow" id="playQuiaecritBtn" aria-label="Jouer : Qui a écrit ça ?"><span>▶ JOUER</span></button>
       </div>
-      <div class="game-card available">
-        <div class="game-card-icon">🛏️</div>
+      <div class="game-card available" data-min="1" data-max="8">
+        <div class="game-card-icon" aria-hidden="true">🛏️</div>
         <h3>CROUS OU PRISON ?</h3>
-        <p>Une photo de chambre, 10 secondes : chambre étudiante ou cellule de prison ? 9 photos, 1 min 30. En solo ou de 2 à 8 en ligne.</p>
-        <button class="btn yellow" id="playCrousprisonBtn"><span>▶ JOUER</span></button>
-      </div>
-      <div class="game-card locked">
-        <div class="game-card-icon">🔒</div>
-        <h3>COMING SOON</h3>
-        <p>Encore un mystère à percer...</p>
+        <span class="game-pill" title="Nombre de joueurs">👥 1-8</span>
+        <p>Une photo de chambre, 10 secondes : chambre étudiante ou cellule de prison ? En solo ou en ligne.</p>
+        <button class="btn yellow" id="playCrousprisonBtn" aria-label="Jouer : Crous ou Prison ?"><span>▶ JOUER</span></button>
       </div>
     </div>
   </div>
@@ -151,14 +174,21 @@
     <div class="panel">
       <h1 class="screen-title">LE DEMI-CERCLE</h1>
       <p class="subtitle">Devinez la cible secrète à partir d'un simple indice.</p>
-      <div class="btn-row">
+      <div class="mode-buttons">
+        <button class="btn yellow" id="chooseLocalBtn"><span>🏠 LOCAL — Même écran</span></button>
+        <button class="btn yellow" id="chooseOnlineBtn"><span>🌐 EN LIGNE — 2 À 10 JOUEURS</span></button>
+      </div>
+      <div class="btn-row" style="margin-top:16px;">
         <button class="btn ghost small" id="rulesBtn"><span>📖 Règles du jeu</span></button>
       </div>
+      <label for="roundsLimit" style="margin-top:18px;">Nombre de manches (laisser vide = illimité)</label>
+      <input type="number" id="roundsLimit" min="1" placeholder="Illimité" inputmode="numeric">
+      <p class="subtitle" style="margin-top:-8px;margin-bottom:0;">En mode « Rejoindre une salle », ces réglages sont automatiquement remplacés par ceux de l'hôte.</p>
     </div>
 
-    <div class="panel">
-      <h2 class="screen-title" style="font-size:clamp(1.2rem,4vw,1.7rem);">BANQUE DE THÈMES</h2>
-      <p class="subtitle">Un thème est tiré au hasard à chaque manche. Ajoutez ou supprimez les vôtres — ils sont sauvegardés dans ce navigateur !</p>
+    <details class="panel fold" id="themeBankFold">
+      <summary><h2 class="screen-title panel-title">🗂️ BANQUE DE THÈMES</h2><span class="theme-count fold-count" id="themeCountShort"></span></summary>
+      <p class="subtitle" style="margin-top:12px;">Un thème est tiré au hasard à chaque manche. Ajoutez ou supprimez les vôtres — ils sont sauvegardés dans ce navigateur !</p>
       <div class="theme-count" id="themeCount"></div>
       <div class="theme-list" id="themeList"></div>
       <div class="btn-row" style="margin-top:-4px;margin-bottom:10px;">
@@ -184,21 +214,10 @@
           <button class="btn ghost small" id="addThemeBtn"><span>＋ Ajouter le thème</span></button>
         </div>
       </div>
-    </div>
+    </details>
 
     <div class="panel">
-      <label for="roundsLimit">Nombre de manches (laisser vide = illimité)</label>
-      <input type="number" id="roundsLimit" min="1" placeholder="Illimité">
-      <p class="subtitle" style="margin-top:-8px;">En mode « Rejoindre une salle », ces réglages sont automatiquement remplacés par ceux de l'hôte.</p>
-
-      <div class="mode-buttons">
-        <button class="btn yellow" id="chooseLocalBtn"><span>🏠 LOCAL — Même écran</span></button>
-        <button class="btn yellow" id="chooseOnlineBtn"><span>🌐 EN LIGNE — 2 À 10 JOUEURS</span></button>
-      </div>
-    </div>
-
-    <div class="panel">
-      <h2 class="screen-title" style="font-size:clamp(1.2rem,4vw,1.7rem);">🎯 MEILLEURES ESTIMATIONS</h2>
+      <h2 class="screen-title panel-title">🎯 MEILLEURES ESTIMATIONS</h2>
       <div class="format-toggle" id="bestEstTabs">
         <button type="button" class="btn ghost small format-opt active" data-tab="mine"><span>📱 Sur cet appareil</span></button>
         <button type="button" class="btn ghost small format-opt" data-tab="all"><span>🌍 Top de tous les joueurs</span></button>
@@ -241,7 +260,17 @@
     </div>
 
     <div class="panel">
-      <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+      <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+      <label for="joinCodeInput">Code de la salle</label>
+      <div class="join-row">
+        <input type="text" id="joinCodeInput" data-enter="joinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+        <button class="btn yellow" id="joinRoomBtn"><span>▶ Rejoindre</span></button>
+      </div>
+      <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+    </div>
+
+    <div class="panel">
+      <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
       <label>Format de la partie</label>
       <div class="format-toggle">
         <button class="btn ghost small format-opt active" id="formatBtn1v1" data-format="1v1"><span>👤 1 VS 1</span></button>
@@ -254,15 +283,6 @@
         <button class="btn yellow small" id="createRoomBtn"><span>Créer la salle</span></button>
       </div>
     </div>
-
-    <div class="panel">
-      <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-      <label for="joinCodeInput">Code de la salle</label>
-      <input type="text" id="joinCodeInput" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-      <div class="btn-row">
-        <button class="btn yellow small" id="joinRoomBtn"><span>Rejoindre</span></button>
-      </div>
-    </div>
   </section>
 
   <!-- LOBBY 2v2 -->
@@ -273,7 +293,7 @@
       <div class="room-code-display" id="lobbyCodeDisplay">------</div>
       <div class="btn-row center">
         <button class="btn ghost small" id="copyCodeBtn"><span>📋 Copier le code</span></button>
-        <button class="btn ghost small" id="copyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        <button class="btn ghost small" id="copyLinkBtn"><span>🔗 Copier le lien</span></button>
       </div>
 
       <div class="rot-lobby" id="rotPlayerList" style="display:none;"></div>
@@ -293,7 +313,7 @@
       <p class="lobby-status" id="lobbyStatusMsg">En attente de joueurs...</p>
       <p class="theme-count" id="lobbySharedThemes" style="text-align:center;"></p>
       <p class="theme-count" id="lobbyWatchers" style="text-align:center;" hidden></p>
-      <div class="btn-row center">
+      <div class="btn-row center lobby-start">
         <button class="btn yellow" id="lobbyStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
       </div>
     </div>
@@ -373,7 +393,7 @@
         <div class="dial-label right" id="guessRightLabel"></div>
       </div>
       <div class="slider-row">
-        <input type="range" id="guessSlider" min="0" max="100" step="0.5" value="50">
+        <input type="range" id="guessSlider" aria-label="Position de l'aiguille (0 à 100)" min="0" max="100" step="0.5" value="50">
       </div>
 
       <div class="btn-row center" id="wagerRow" style="display:none;">
@@ -463,28 +483,35 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
-        <label for="chamCustomTheme">Thème personnalisé (optionnel)</label>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="chamJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="chamJoinCode" data-enter="chamJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="chamJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
+        <p class="subtitle" style="margin-bottom:10px;">Mot personnalisé (optionnel) : il rejoint ta banque de mots.</p>
         <div class="form-row">
-          <input type="text" id="chamCustomTheme" placeholder="Ex : Desserts" maxlength="24">
-          <input type="text" id="chamCustomWord" placeholder="Ex : Tiramisu" maxlength="24">
+          <div>
+            <label for="chamCustomTheme">Thème</label>
+            <input type="text" id="chamCustomTheme" placeholder="Ex : Desserts" maxlength="24">
+          </div>
+          <div>
+            <label for="chamCustomWord">Mot secret</label>
+            <input type="text" id="chamCustomWord" placeholder="Ex : Tiramisu" maxlength="24">
+          </div>
         </div>
         <div class="btn-row">
           <button class="btn ghost small" id="chamAddWordBtn"><span>＋ Ajouter à la banque</span></button>
         </div>
         <label for="chamHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="chamHostCode" data-room-code="chamCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn yellow small" id="chamCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="chamJoinCode">Code de la salle</label>
-        <input type="text" id="chamJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
-          <button class="btn yellow small" id="chamJoinRoomBtn"><span>Rejoindre</span></button>
+          <button class="btn yellow small" id="chamCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
       </div>
     </section>
@@ -497,7 +524,7 @@
         <div class="room-code-display" id="chamCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="chamCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="chamCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="chamCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="chamPlayerList"></div>
         <div class="host-opts" id="chamHostOpts" hidden>
@@ -515,7 +542,7 @@
           </select>
         </div>
         <p class="lobby-status" id="chamLobbyStatus">En attente de joueurs... (3 minimum)</p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="chamStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
       </div>
@@ -636,10 +663,22 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
-        <label for="impCustomQ">Paire de questions personnalisée (optionnel)</label>
-        <input type="text" id="impCustomQ" placeholder="Question de tout le monde — ex : Combien de cafés bois-tu par semaine ?" maxlength="90">
-        <input type="text" id="impCustomQImp" placeholder="Question de l'imposteur — ex : Combien de fois par semaine fais-tu du sport ?" maxlength="90">
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="impJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="impJoinCode" data-enter="impJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="impJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
+        <p class="subtitle" style="margin-bottom:10px;">Paire de questions personnalisée (optionnel) : elle rejoint ta banque.</p>
+        <label for="impCustomQ">Question de tout le monde</label>
+        <input type="text" id="impCustomQ" placeholder="Ex : Combien de cafés bois-tu par semaine ?" maxlength="90">
+        <label for="impCustomQImp">Question de l'imposteur</label>
+        <input type="text" id="impCustomQImp" placeholder="Ex : Combien de fois par semaine fais-tu du sport ?" maxlength="90">
         <label class="settings-check" for="impCustomText"><input type="checkbox" id="impCustomText"> ✍️ Réponse en texte libre (pas un nombre)</label>
         <div class="btn-row">
           <button class="btn ghost small" id="impAddQBtn"><span>＋ Ajouter à la banque</span></button>
@@ -647,17 +686,8 @@
         </div>
         <label for="impHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="impHostCode" data-room-code="impCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn yellow small" id="impCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="impJoinCode">Code de la salle</label>
-        <input type="text" id="impJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
-          <button class="btn yellow small" id="impJoinRoomBtn"><span>Rejoindre</span></button>
+          <button class="btn yellow small" id="impCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
       </div>
     </section>
@@ -670,7 +700,7 @@
         <div class="room-code-display" id="impCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="impCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="impCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="impCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="impPlayerList"></div>
         <div class="host-opts" id="impHostOpts" hidden>
@@ -683,7 +713,7 @@
           <label class="settings-check" for="impTwoImpChk"><input type="checkbox" id="impTwoImpChk" checked> 🕵️🕵️ 2 imposteurs à partir de 6 joueurs</label>
         </div>
         <p class="lobby-status" id="impLobbyStatus">En attente de joueurs... (3 minimum)</p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="impStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
       </div>
@@ -767,7 +797,16 @@
         <input type="text" id="emoName" placeholder="Ton pseudo" maxlength="18">
       </div>
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="emoJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="emoJoinCode" data-enter="emoJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="emoJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
         <label>Nombre de devinettes</label>
         <div class="format-toggle" id="emoCountToggle">
           <button class="btn ghost small format-opt" data-count="5"><span>5</span></button>
@@ -776,13 +815,7 @@
         </div>
         <label for="emoHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="emoHostCode" data-room-code="emoCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;"><button class="btn yellow small" id="emoCreateRoomBtn"><span>Créer la salle</span></button></div>
-      </div>
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="emoJoinCode">Code de la salle</label>
-        <input type="text" id="emoJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row"><button class="btn yellow small" id="emoJoinRoomBtn"><span>Rejoindre</span></button></div>
+        <div class="btn-row"><button class="btn yellow small" id="emoCreateRoomBtn"><span>Créer la salle</span></button></div>
       </div>
     </section>
 
@@ -793,11 +826,11 @@
         <div class="room-code-display" id="emoCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="emoCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="emoCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="emoCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="emoPlayerList"></div>
         <p class="lobby-status" id="emoLobbyStatus">En attente de joueurs...</p>
-        <div class="btn-row center"><button class="btn yellow" id="emoStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button></div>
+        <div class="btn-row center lobby-start"><button class="btn yellow" id="emoStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button></div>
       </div>
     </section>
 
@@ -810,7 +843,7 @@
         <div class="bots-timer" style="margin-bottom:12px;"><div class="bots-timer-fill" id="emoTimerFill"></div><span id="emoTimerText"></span></div>
         <div id="emoGuessBox">
           <div class="loup-ask">
-            <input type="text" id="emoGuessInput" maxlength="60" placeholder="Ta réponse… (autant d'essais que tu veux)" autocomplete="off" autocapitalize="none">
+            <input type="text" id="emoGuessInput" aria-label="Ta réponse" maxlength="60" placeholder="Ta réponse… (autant d'essais que tu veux)" autocomplete="off" autocapitalize="none">
             <button class="btn yellow small" id="emoGuessBtn"><span>Valider</span></button>
           </div>
           <div class="emo-wrong-list" id="emoWrong"></div>
@@ -868,7 +901,17 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="qaeJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="qaeJoinCode" data-enter="qaeJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="qaeJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
         <label for="qaeCustomQ">Question personnalisée (optionnel)</label>
         <input type="text" id="qaeCustomQ" placeholder="Ex : Ce que tu penses vraiment des pieds ?" maxlength="90">
         <div class="btn-row">
@@ -877,17 +920,8 @@
         </div>
         <label for="qaeHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="qaeHostCode" data-room-code="qaeCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn yellow small" id="qaeCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="qaeJoinCode">Code de la salle</label>
-        <input type="text" id="qaeJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
-          <button class="btn yellow small" id="qaeJoinRoomBtn"><span>Rejoindre</span></button>
+          <button class="btn yellow small" id="qaeCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
       </div>
     </section>
@@ -900,7 +934,7 @@
         <div class="room-code-display" id="qaeCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="qaeCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="qaeCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="qaeCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="qaePlayerList"></div>
         <div class="host-opts" id="qaeHostOpts" hidden>
@@ -914,7 +948,7 @@
           <label class="settings-check" for="qaeAnonChk"><input type="checkbox" id="qaeAnonChk"> 🤐 Totalement anonyme (pas de devinette, aucun nom, aucun point)</label>
         </div>
         <p class="lobby-status" id="qaeLobbyStatus">En attente de joueurs... (3 minimum)</p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="qaeStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
       </div>
@@ -1056,20 +1090,21 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER LA SOIRÉE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SOIRÉE</h2>
+        <label for="partyJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="partyJoinCode" data-enter="partyJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="partyJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER LA SOIRÉE</h2>
         <label for="partyHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="partyHostCode" data-room-code="partyCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="partyCreateRoomBtn"><span>Créer la soirée</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SOIRÉE</h2>
-        <label for="partyJoinCode">Code de la salle</label>
-        <input type="text" id="partyJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row">
-          <button class="btn yellow small" id="partyJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
       </div>
     </section>
@@ -1082,7 +1117,7 @@
         <div class="room-code-display" id="partyCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="partyCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="partyCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="partyCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="partyPlayerList"></div>
         <div id="partyHostSettings" hidden>
@@ -1098,7 +1133,7 @@
           </select>
         </div>
         <p class="lobby-status" id="partyLobbyStatus"></p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="partyStartBtn" style="display:none;"><span>🎉 Lancer la soirée</span></button>
         </div>
       </div>
@@ -1187,7 +1222,7 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🎓 SOLO</h2>
+        <h2 class="screen-title panel-title">🎓 SOLO</h2>
         <p class="subtitle" id="copBest" style="margin-bottom:6px;"></p>
         <div class="btn-row">
           <button class="btn yellow small" id="copSoloBtn"><span>▶ Jouer en solo</span></button>
@@ -1195,21 +1230,22 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="copJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="copJoinCode" data-enter="copJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="copJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
         <p class="subtitle" style="margin-bottom:6px;">2 à 8 joueurs, tout le monde voit la même photo en même temps.</p>
         <label for="copHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="copHostCode" data-room-code="copCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
           <button class="btn yellow small" id="copCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="copJoinCode">Code de la salle</label>
-        <input type="text" id="copJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row">
-          <button class="btn yellow small" id="copJoinRoomBtn"><span>Rejoindre</span></button>
         </div>
       </div>
     </section>
@@ -1222,11 +1258,11 @@
         <div class="room-code-display" id="copCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="copCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="copCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="copCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="copPlayerList"></div>
         <p class="lobby-status" id="copLobbyStatus">En attente de joueurs...</p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="copStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
       </div>
@@ -1315,7 +1351,17 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="clsJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="clsJoinCode" data-enter="clsJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="clsJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
         <label for="clsCustomQ">Question personnalisée (optionnel)</label>
         <input type="text" id="clsCustomQ" placeholder="Ex : Qui est le plus fort au bras de fer ?" maxlength="90">
         <div class="btn-row">
@@ -1324,17 +1370,8 @@
         </div>
         <label for="clsHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="clsHostCode" data-room-code="clsCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn yellow small" id="clsCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="clsJoinCode">Code de la salle</label>
-        <input type="text" id="clsJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
-          <button class="btn yellow small" id="clsJoinRoomBtn"><span>Rejoindre</span></button>
+          <button class="btn yellow small" id="clsCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
       </div>
     </section>
@@ -1347,18 +1384,18 @@
         <div class="room-code-display" id="clsCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="clsCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="clsCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="clsCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="clsPlayerList"></div>
         <p class="lobby-status" id="clsLobbyStatus">En attente de joueurs... (3 minimum)</p>
         <div class="cls-propose">
           <label>✍️ Propose une question au groupe (posée en priorité)</label>
-          <div class="loup-ask"><input type="text" maxlength="90" placeholder="Ex : Qui ronfle le plus fort ?" autocomplete="off"><button class="btn ghost small" type="button"><span>Proposer</span></button></div>
+          <div class="loup-ask"><input type="text" aria-label="Propose une question au groupe" maxlength="90" placeholder="Ex : Qui ronfle le plus fort ?" autocomplete="off"><button class="btn ghost small" type="button"><span>Proposer</span></button></div>
           <p class="cls-propose-fb"></p>
           <p class="cls-propose-count"></p>
         </div>
 
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="clsStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
       </div>
@@ -1401,7 +1438,7 @@
         </div>
         <div class="cls-propose">
           <label>✍️ Propose une question au groupe (posée en priorité)</label>
-          <div class="loup-ask"><input type="text" maxlength="90" placeholder="Ex : Qui ronfle le plus fort ?" autocomplete="off"><button class="btn ghost small" type="button"><span>Proposer</span></button></div>
+          <div class="loup-ask"><input type="text" aria-label="Propose une question au groupe" maxlength="90" placeholder="Ex : Qui ronfle le plus fort ?" autocomplete="off"><button class="btn ghost small" type="button"><span>Proposer</span></button></div>
           <p class="cls-propose-fb"></p>
           <p class="cls-propose-count"></p>
         </div>
@@ -1456,7 +1493,7 @@
     <section class="bots-screen active" id="bots-screen-online">
       <div class="panel">
         <h1 class="screen-title">BATTLE BOTS</h1>
-        <p class="subtitle">Combat de tanks au tour par tour… simultané ! Chacun choisit son action en secret, puis tout se déclenche en même temps. 1 vs 1, 2 vs 2 ou chacun pour soi, en ligne.</p>
+        <p class="subtitle">Combat de tanks au tour par tour… simultané ! Chacun choisit son action en secret, puis tout se déclenche en même temps. 1 vs 1, 2 vs 2, chacun pour soi ou survie contre des bots, en ligne.</p>
         <div class="btn-row">
           <button class="btn ghost small" id="botsRulesBtn"><span>📖 Règles du jeu</span></button>
         </div>
@@ -1465,7 +1502,17 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="botsJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="botsJoinCode" data-enter="botsJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="botsJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
         <label>Mode de jeu</label>
         <div class="format-toggle" id="botsModeToggle">
           <button class="btn ghost small format-opt active" data-mode="1v1"><span>👤 1 VS 1</span></button>
@@ -1481,17 +1528,8 @@
         </div>
         <label for="botsHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="botsHostCode" data-room-code="botsCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn yellow small" id="botsCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="botsJoinCode">Code de la salle</label>
-        <input type="text" id="botsJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
-          <button class="btn yellow small" id="botsJoinRoomBtn"><span>Rejoindre</span></button>
+          <button class="btn yellow small" id="botsCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
       </div>
     </section>
@@ -1504,7 +1542,7 @@
         <div class="room-code-display" id="botsCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="botsCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="botsCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="botsCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
 
         <h3 class="rules-subhead">CHOISIS TON TANK</h3>
@@ -1532,7 +1570,7 @@
         <h3 class="rules-subhead">JOUEURS</h3>
         <div class="cham-player-list" id="botsPlayerList"></div>
         <p class="lobby-status" id="botsLobbyStatus">En attente de joueurs...</p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="botsStartBtn" style="display:none;"><span>🎮 Lancer le combat</span></button>
         </div>
       </div>
@@ -1607,7 +1645,17 @@
       </div>
 
       <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="loupJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="loupJoinCode" data-enter="loupJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="loupJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
         <label>Durée de la chasse au mot</label>
         <div class="format-toggle" id="loupTimerToggle">
           <button class="btn ghost small format-opt" data-timer="180"><span>3 min</span></button>
@@ -1616,17 +1664,8 @@
         </div>
         <label for="loupHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
         <input type="text" id="loupHostCode" data-room-code="loupCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
-        <div class="btn-row" style="margin-top:14px;">
-          <button class="btn yellow small" id="loupCreateRoomBtn"><span>Créer la salle</span></button>
-        </div>
-      </div>
-
-      <div class="panel">
-        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
-        <label for="loupJoinCode">Code de la salle</label>
-        <input type="text" id="loupJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
         <div class="btn-row">
-          <button class="btn yellow small" id="loupJoinRoomBtn"><span>Rejoindre</span></button>
+          <button class="btn yellow small" id="loupCreateRoomBtn"><span>Créer la salle</span></button>
         </div>
       </div>
     </section>
@@ -1639,7 +1678,7 @@
         <div class="room-code-display" id="loupCodeDisplay">------</div>
         <div class="btn-row center">
           <button class="btn ghost small" id="loupCopyCodeBtn"><span>📋 Copier le code</span></button>
-          <button class="btn ghost small" id="loupCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+          <button class="btn ghost small" id="loupCopyLinkBtn"><span>🔗 Copier le lien</span></button>
         </div>
         <div class="cham-player-list" id="loupPlayerList"></div>
         <div class="host-opts" id="loupHostOpts" hidden>
@@ -1647,7 +1686,7 @@
           <select id="loupThemeSel"></select>
         </div>
         <p class="lobby-status" id="loupLobbyStatus">En attente de joueurs... (4 minimum)</p>
-        <div class="btn-row center">
+        <div class="btn-row center lobby-start">
           <button class="btn yellow" id="loupStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button>
         </div>
       </div>
@@ -1673,7 +1712,7 @@
       <div class="loup-mini-role" id="loupMiniRole"></div>
       <div class="loup-feed" id="loupFeed"></div>
       <div id="loupAskBox" class="loup-ask">
-        <input type="text" id="loupAskInput" maxlength="90" placeholder="Pose une question fermée… (ex : Est-ce que ça se mange ?)" autocomplete="off">
+        <input type="text" id="loupAskInput" aria-label="Ta question au Maire" maxlength="90" placeholder="Pose une question fermée… (ex : Est-ce que ça se mange ?)" autocomplete="off">
         <button class="btn yellow small" id="loupAskBtn"><span>Envoyer</span></button>
       </div>
       <div class="loup-suggest" id="loupSuggest" hidden>
@@ -2003,32 +2042,43 @@
     </div>
     <div id="accountIn" hidden>
       <h2 class="screen-title" style="font-size:1.6rem;">👤 <span id="accountHello"></span></h2>
-      <p class="subtitle" style="margin-bottom:4px;"><span id="accountUser"></span> · <span id="accountTotals"></span></p>
-      <h3 class="rules-subhead">MES STATS ET LES RECORDS</h3>
-      <div class="acc-stats" id="accountStats"></div>
-      <h3 class="rules-subhead" style="margin-top:18px;">🏅 SUCCÈS <small id="accountAchCount"></small></h3>
-      <div class="ach-grid" id="accountAch"></div>
-      <h3 class="rules-subhead" style="margin-top:18px;">👥 MES AMIS</h3>
-      <div class="loup-ask acc-friend-add">
-        <input type="text" id="accountFriendInput" placeholder="Pseudo de connexion de ton ami" maxlength="20" autocapitalize="none" spellcheck="false" autocomplete="off">
-        <button type="button" class="btn yellow small" id="accountFriendAddBtn"><span>＋ Ajouter</span></button>
+      <p class="subtitle" style="margin-bottom:10px;"><span id="accountUser"></span> · <span id="accountTotals"></span></p>
+      <div class="acc-tabs" role="tablist" aria-label="Sections du compte">
+        <button type="button" class="acc-tab active" role="tab" id="accTabProfile" data-pane="accPaneProfile" aria-selected="true" aria-controls="accPaneProfile">📊 Profil</button>
+        <button type="button" class="acc-tab" role="tab" id="accTabAch" data-pane="accPaneAch" aria-selected="false" aria-controls="accPaneAch" tabindex="-1">🏅 Succès</button>
+        <button type="button" class="acc-tab" role="tab" id="accTabFriends" data-pane="accPaneFriends" aria-selected="false" aria-controls="accPaneFriends" tabindex="-1">👥 Amis <span class="acc-tab-badge" id="accFriendsBadge" hidden></span></button>
       </div>
-      <p class="acc-error" id="accountFriendMsg" role="status" hidden></p>
-      <label class="settings-check" for="accountPushChk" style="margin-top:10px;"><input type="checkbox" id="accountPushChk"> 🔔 Recevoir les invitations en notification, même app fermée</label>
-      <p class="theme-count" id="accountPushNote" style="margin:4px 0 0;"></p>
-      <div class="acc-friends" id="accountFriends"></div>
-      <div id="accountBoardWrap" hidden>
-        <h3 class="rules-subhead" style="margin-top:18px;">🏆 CLASSEMENT ENTRE AMIS</h3>
-        <select id="accountBoardGame" aria-label="Jeu du classement"></select>
-        <div class="acc-board" id="accountBoard"></div>
+      <div class="acc-pane" id="accPaneProfile" role="tabpanel" aria-labelledby="accTabProfile">
+        <h3 class="rules-subhead">MES STATS ET LES RECORDS</h3>
+        <div class="acc-stats" id="accountStats"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn ghost small" id="accountRenameBtn"><span>✏️ Changer de nom</span></button>
+          <button class="btn ghost small" id="accountPassBtn"><span>🔑 Mot de passe</span></button>
+          <button class="btn ghost small" id="accountLogoutBtn"><span>🚪 Déconnexion</span></button>
+        </div>
+        <div class="btn-row center" style="margin-top:8px;">
+          <button class="btn ghost small acc-danger" id="accountDeleteBtn"><span>🗑️ Supprimer mon compte</span></button>
+        </div>
       </div>
-      <div class="btn-row center" style="margin-top:16px;">
-        <button class="btn ghost small" id="accountRenameBtn"><span>✏️ Changer de nom</span></button>
-        <button class="btn ghost small" id="accountPassBtn"><span>🔑 Mot de passe</span></button>
-        <button class="btn ghost small" id="accountLogoutBtn"><span>🚪 Déconnexion</span></button>
+      <div class="acc-pane" id="accPaneAch" role="tabpanel" aria-labelledby="accTabAch" hidden>
+        <h3 class="rules-subhead">🏅 SUCCÈS <small id="accountAchCount"></small></h3>
+        <div class="ach-grid" id="accountAch"></div>
       </div>
-      <div class="btn-row center" style="margin-top:8px;">
-        <button class="btn ghost small acc-danger" id="accountDeleteBtn"><span>🗑️ Supprimer mon compte</span></button>
+      <div class="acc-pane" id="accPaneFriends" role="tabpanel" aria-labelledby="accTabFriends" hidden>
+        <h3 class="rules-subhead">👥 MES AMIS</h3>
+        <div class="loup-ask acc-friend-add">
+          <input type="text" id="accountFriendInput" aria-label="Pseudo de connexion de ton ami" placeholder="Pseudo de connexion de ton ami" maxlength="20" autocapitalize="none" spellcheck="false" autocomplete="off">
+          <button type="button" class="btn yellow small" id="accountFriendAddBtn"><span>＋ Ajouter</span></button>
+        </div>
+        <p class="acc-error" id="accountFriendMsg" role="status" hidden></p>
+        <div class="acc-friends" id="accountFriends"></div>
+        <label class="settings-check" for="accountPushChk" style="margin-top:12px;"><input type="checkbox" id="accountPushChk"> 🔔 Recevoir les invitations en notification, même app fermée</label>
+        <p class="theme-count" id="accountPushNote" style="margin:4px 0 0;"></p>
+        <div id="accountBoardWrap" hidden>
+          <h3 class="rules-subhead" style="margin-top:18px;">🏆 CLASSEMENT ENTRE AMIS</h3>
+          <select id="accountBoardGame" aria-label="Jeu du classement"></select>
+          <div class="acc-board" id="accountBoard"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -2066,6 +2116,8 @@
     <button class="modal-close" id="settingsModalClose" aria-label="Fermer">✕</button>
     <h2 class="screen-title" style="font-size:1.6rem;">⚙️ RÉGLAGES</h2>
     <div class="settings-grid">
+      <label class="settings-check" for="setSoundOn"><input type="checkbox" id="setSoundOn"> 🔊 Son activé (tout le son du site)</label>
+      <label class="settings-check" for="setMusicOn"><input type="checkbox" id="setMusicOn"> 🎵 Musique activée</label>
       <label for="setMusicVol">🎵 Volume de la musique</label>
       <input type="range" id="setMusicVol" min="0" max="100" step="5">
       <label for="setSfxVol">🔊 Volume des bruitages</label>
@@ -2095,14 +2147,17 @@
     <h2 class="screen-title" style="font-size:1.6rem;">CRAZY GAMES</h2>
     <p class="subtitle">Un hub de mini-jeux gratuits hébergé sur GitHub Pages. Les parties passent en direct entre navigateurs ; seuls les comptes (facultatifs) sont stockés en ligne.</p>
     <ol class="rules-list">
-      <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne en 1 vs 1 / 2 vs 2 via une connexion directe entre navigateurs (WebRTC).</li>
+      <li><b>Soirée All in :</b> une seule salle pour toute la soirée, un jeu différent à chaque manche et un classement général. 2 à 10 joueurs en ligne.</li>
+      <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne de 2 à 10 joueurs : 1 vs 1, 2 vs 2 ou équipes tournantes.</li>
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
-      <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question à réponse chiffrée, un joueur qui a reçu une autre question sans le savoir.</li>
-      <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2 ou chacun pour soi (jusqu'à 6), en ligne.</li>
+      <li><b>Emoji Quiz :</b> des emojis cachent un film, une série, une expression… Le plus rapide à trouver marque le plus. 2 à 10 joueurs en ligne.</li>
+      <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question (réponse en nombre ou en texte libre), et un joueur qui a reçu une autre question sans le savoir.</li>
+      <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2, chacun pour soi (jusqu'à 6) ou survie contre des bots (1 à 4), en ligne.</li>
       <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
       <li><b>Le Classement :</b> chacun classe le groupe en secret sur une question (« Qui est le plus fort au bras de fer ? »), puis on compare. 3 à 8 joueurs en ligne.</li>
       <li><b>Qui a écrit ça ? :</b> réponses anonymes à des questions drôles, puis on devine qui a écrit quoi. 3 à 8 joueurs en ligne.</li>
       <li><b>Crous ou Prison ? :</b> une photo de chambre, 10 secondes pour deviner si c'est une chambre étudiante ou une cellule. En solo ou de 2 à 8 en ligne.</li>
+      <li><b>« On est combien ? »</b> en haut du hub : touche votre nombre de joueurs pour mettre en avant les jeux jouables.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
   </div>
@@ -2149,22 +2204,22 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=44"></script>
-<script src="js/net.js?v=44"></script>
-<script src="js/demicercle.js?v=44"></script>
-<script src="js/cameleon.js?v=44"></script>
-<script src="js/imposteur.js?v=44"></script>
-<script src="js/loup.js?v=44"></script>
-<script src="js/classement.js?v=44"></script>
-<script src="js/quiaecrit.js?v=44"></script>
-<script src="js/emoji.js?v=44"></script>
-<script src="js/crousprison-photos.js?v=44"></script>
-<script src="js/crousprison.js?v=44"></script>
-<script src="js/bots-maps.js?v=44"></script>
-<script src="js/bots.js?v=44"></script>
-<script src="js/pwa.js?v=44"></script>
-<script src="js/party.js?v=44"></script>
-<script src="js/account.js?v=44"></script>
-<script src="js/hub.js?v=44"></script>
+<script src="js/common.js?v=45"></script>
+<script src="js/net.js?v=45"></script>
+<script src="js/demicercle.js?v=45"></script>
+<script src="js/cameleon.js?v=45"></script>
+<script src="js/imposteur.js?v=45"></script>
+<script src="js/loup.js?v=45"></script>
+<script src="js/classement.js?v=45"></script>
+<script src="js/quiaecrit.js?v=45"></script>
+<script src="js/emoji.js?v=45"></script>
+<script src="js/crousprison-photos.js?v=45"></script>
+<script src="js/crousprison.js?v=45"></script>
+<script src="js/bots-maps.js?v=45"></script>
+<script src="js/bots.js?v=45"></script>
+<script src="js/pwa.js?v=45"></script>
+<script src="js/party.js?v=45"></script>
+<script src="js/account.js?v=45"></script>
+<script src="js/hub.js?v=45"></script>
 </body>
 </html>

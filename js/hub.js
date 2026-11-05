@@ -109,24 +109,56 @@
   $('playImposteurBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='imposteur'; });
   $('playCameleonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='cameleon'; });
 
-  /* ----- hub toolbar: info modal + mute ----- */
+  /* ----- hub : fenêtre d'infos ----- */
   CG.wireModal('hubInfoModal', 'hubInfoBtn');
 
-  function refreshMuteBtn(){
-    $('muteBtn').querySelector('span').textContent = CG.isMuted() ? '🔇 Son coupé' : '🔊 Son activé';
+  /* ----- son et musique : rangés dans les Réglages ----- */
+  function refreshSoundToggles(){
+    $('setSoundOn').checked = !CG.isMuted();
+    $('setMusicOn').checked = !!(window.CGAudio && CGAudio.isMusicOn());
   }
-  $('muteBtn').addEventListener('click',function(){
-    CG.setMuted(!CG.isMuted());
-    refreshMuteBtn();
-    if(!CG.isMuted()) CG.sfxToggle();
+  $('setSoundOn').addEventListener('change',function(){
+    CG.setMuted(!this.checked);
+    if(this.checked) CG.sfxToggle();
   });
-  function refreshMusicBtn(){
-    var on=window.CGAudio && CGAudio.isMusicOn();
-    $('musicBtn').querySelector('span').textContent = on ? '🎵 Musique activée' : '🎵 Musique coupée';
+  $('setMusicOn').addEventListener('change',function(){
+    if(window.CGAudio) CGAudio.setMusicOn(this.checked);
+    CG.sfxToggle();
+  });
+  $('settingsBtn').addEventListener('click', refreshSoundToggles);
+
+  /* ----- « On est combien ? » : met en avant les jeux jouables à ce nombre ----- */
+  var FILTER_KEY='crazygames_hub_players';
+  var cards=Array.prototype.slice.call(document.querySelectorAll('#gameGrid .game-card'));
+  function applyFilter(n){
+    var chips=document.querySelectorAll('#hubFilter .hub-chip'), ok=0;
+    for(var i=0;i<chips.length;i++){
+      var on=+chips[i].getAttribute('data-n')===n;
+      chips[i].classList.toggle('active', on);
+      chips[i].setAttribute('aria-pressed', on?'true':'false');
+    }
+    cards.forEach(function(c, idx){
+      var fits = !n || (n>=+c.getAttribute('data-min') && n<=+c.getAttribute('data-max'));
+      if(fits) ok++;
+      c.classList.toggle('dim', !fits);
+      /* les jeux jouables passent devant, sans changer leur ordre entre eux */
+      c.style.order = fits ? idx : 100+idx;
+    });
+    $('hubFilterNote').textContent = n ? (ok+' jeu'+(ok>1?'x':'')+' pour '+n+' joueur'+(n>1?'s':'')+(n===1?' (solo)':'')) : '';
+    try{ localStorage.setItem(FILTER_KEY, String(n)); }catch(e){}
   }
-  $('musicBtn').addEventListener('click',function(){
-    if(window.CGAudio) CGAudio.setMusicOn(!CGAudio.isMusicOn());
-    refreshMusicBtn(); CG.sfxToggle();
+  $('hubFilter').addEventListener('click',function(e){
+    var b=e.target.closest ? e.target.closest('.hub-chip') : null;
+    if(!b) return;
+    CG.sfxToggle();
+    applyFilter(+b.getAttribute('data-n'));
+  });
+  (function(){ var n=0; try{ n=+(localStorage.getItem(FILTER_KEY)||0); }catch(e){} applyFilter(n>=1 && n<=10 ? n : 0); })();
+
+  /* toute la carte est cliquable (le bouton ▶ JOUER reste la cible au clavier) */
+  cards.forEach(function(c){
+    var btn=c.querySelector('.btn');
+    c.addEventListener('click',function(e){ if(btn && !(e.target.closest && e.target.closest('.btn'))) btn.click(); });
   });
 
   /* ----- réglages : volumes, vibrations, revoir l'intro ----- */
@@ -143,8 +175,7 @@
   $('setVibrate').addEventListener('change',function(){ CG.setVibrate(this.checked); CG.buzz(60); });
   $('replayIntroBtn').addEventListener('click',function(){ location.href=location.pathname+'?intro=1'; });
 
-  refreshMuteBtn();
-  refreshMusicBtn();
+  refreshSoundToggles();
   router(true);
   (function(){ var r=parseHash(); if(r.query.room) autoJoin(r.route); })();
 })();
