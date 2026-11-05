@@ -519,7 +519,7 @@
     gs.scores=msg.scores.slice();
     var mine=msg.picks[mySeat], inGame=msg.seats.indexOf(mySeat)!==-1;
     var ok=mine===msg.truth;
-    if(inGame){ view.streak = ok ? view.streak+1 : 0; }
+    if(inGame){ view.streak = ok ? view.streak+1 : 0; if(view.streak>=5 && CG.achieve) CG.achieve('cop_streak5'); }
     view.myPick = mine===undefined ? null : mine;
     setChoices(false, view.myPick);
     $(msg.truth==='c'?'copCrousBtn':'copPrisonBtn').classList.add('truth');
@@ -580,6 +580,7 @@
     var inGame=msg.seats.indexOf(mySeat)!==-1;
     var my=gs.scores[mySeat]||0, good=(msg.good&&msg.good[mySeat])||0, n=msg.ids.length;
     $('copFinalScore').textContent = inGame ? my+' PTS' : '';
+    if(inGame && n>=9 && good===n && CG.achieve) CG.achieve('cop_perfect');
     $('copFinalGood').textContent = inGame ? good+' / '+n+' bonnes réponses' : '';
     $('copTitle').textContent = inGame ? titleFor(good, n) : '';
     if(msg.solo){

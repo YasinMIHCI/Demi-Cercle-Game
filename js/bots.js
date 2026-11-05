@@ -1382,6 +1382,10 @@
     $('botsEndWaitLabel').textContent="⏳ En attente que l'hôte relance...";
     sfxReveal(mine?100:0);
     if(CG.account && msg.tanks.some(function(t){ return t.seat===botsMySeat; })) CG.account.record('bots', (msg.stats[botsMySeat]||{}).dmg||0, mine && !msg.draw);
+    if(CG.achieve && msg.tanks.some(function(t){ return t.seat===botsMySeat; })){
+      if(mine && !msg.draw && !msg.surv) CG.achieve('bots_win');
+      if(msg.surv && msg.surv.wave>=5) CG.achieve('bots_wave5');
+    }
     gotoScreen('end');
   }
 

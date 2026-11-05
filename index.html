@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=41">
+<link rel="stylesheet" href="css/style.css?v=42">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=41"></script>
-<script src="js/intro.js?v=41"></script>
+<script src="js/audio.js?v=42"></script>
+<script src="js/intro.js?v=42"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1885,6 +1885,8 @@
       <p class="subtitle" style="margin-bottom:4px;"><span id="accountUser"></span> · <span id="accountTotals"></span></p>
       <h3 class="rules-subhead">MES STATS ET LES RECORDS</h3>
       <div class="acc-stats" id="accountStats"></div>
+      <h3 class="rules-subhead" style="margin-top:18px;">🏅 SUCCÈS <small id="accountAchCount"></small></h3>
+      <div class="ach-grid" id="accountAch"></div>
       <h3 class="rules-subhead" style="margin-top:18px;">👥 MES AMIS</h3>
       <div class="loup-ask acc-friend-add">
         <input type="text" id="accountFriendInput" placeholder="Pseudo de connexion de ton ami" maxlength="20" autocapitalize="none" spellcheck="false" autocomplete="off">
@@ -1894,6 +1896,11 @@
       <label class="settings-check" for="accountPushChk" style="margin-top:10px;"><input type="checkbox" id="accountPushChk"> 🔔 Recevoir les invitations en notification, même app fermée</label>
       <p class="theme-count" id="accountPushNote" style="margin:4px 0 0;"></p>
       <div class="acc-friends" id="accountFriends"></div>
+      <div id="accountBoardWrap" hidden>
+        <h3 class="rules-subhead" style="margin-top:18px;">🏆 CLASSEMENT ENTRE AMIS</h3>
+        <select id="accountBoardGame" aria-label="Jeu du classement"></select>
+        <div class="acc-board" id="accountBoard"></div>
+      </div>
       <div class="btn-row center" style="margin-top:16px;">
         <button class="btn ghost small" id="accountRenameBtn"><span>✏️ Changer de nom</span></button>
         <button class="btn ghost small" id="accountPassBtn"><span>🔑 Mot de passe</span></button>
@@ -1915,6 +1922,7 @@
     <div class="acc-friends" id="inviteList"></div>
   </div>
 </div>
+<div class="ach-toast" id="achToast" hidden role="status"></div>
 <div class="invite-toast" id="inviteToast" hidden role="alert">
   <span id="inviteToastText"></span>
   <span class="invite-toast-btns">
@@ -2020,21 +2028,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=41"></script>
-<script src="js/net.js?v=41"></script>
-<script src="js/demicercle.js?v=41"></script>
-<script src="js/cameleon.js?v=41"></script>
-<script src="js/imposteur.js?v=41"></script>
-<script src="js/loup.js?v=41"></script>
-<script src="js/classement.js?v=41"></script>
-<script src="js/quiaecrit.js?v=41"></script>
-<script src="js/crousprison-photos.js?v=41"></script>
-<script src="js/crousprison.js?v=41"></script>
-<script src="js/bots-maps.js?v=41"></script>
-<script src="js/bots.js?v=41"></script>
-<script src="js/pwa.js?v=41"></script>
-<script src="js/party.js?v=41"></script>
-<script src="js/account.js?v=41"></script>
-<script src="js/hub.js?v=41"></script>
+<script src="js/common.js?v=42"></script>
+<script src="js/net.js?v=42"></script>
+<script src="js/demicercle.js?v=42"></script>
+<script src="js/cameleon.js?v=42"></script>
+<script src="js/imposteur.js?v=42"></script>
+<script src="js/loup.js?v=42"></script>
+<script src="js/classement.js?v=42"></script>
+<script src="js/quiaecrit.js?v=42"></script>
+<script src="js/crousprison-photos.js?v=42"></script>
+<script src="js/crousprison.js?v=42"></script>
+<script src="js/bots-maps.js?v=42"></script>
+<script src="js/bots.js?v=42"></script>
+<script src="js/pwa.js?v=42"></script>
+<script src="js/party.js?v=42"></script>
+<script src="js/account.js?v=42"></script>
+<script src="js/hub.js?v=42"></script>
 </body>
 </html>
