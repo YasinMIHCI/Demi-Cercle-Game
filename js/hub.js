@@ -29,10 +29,10 @@
   }
 
   /* musique de fond selon l'écran (js/audio.js) */
-  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist'};
+  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist', emoji:'heist'};
   /* quitte proprement les salles en cours ; un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
   function resetGames(){
-    ['demicercle','cameleon','imposteur','bots','loup','classement','quiaecrit','crousprison'].forEach(function(k){
+    ['demicercle','cameleon','imposteur','bots','loup','classement','quiaecrit','crousprison','emoji'].forEach(function(k){
       try{ if(CG[k]) CG[k].reset(); }catch(e){}
     });
   }
@@ -65,6 +65,9 @@
     } else if(r.route==='bots'){
       showView('bots');
       if(isInitial && r.query.room) CG.bots.enterJoinFlow(r.query.room);
+    } else if(r.route==='emoji'){
+      showView('emoji');
+      if(isInitial && r.query.room) CG.emoji.enterJoinFlow(r.query.room);
     } else if(r.route==='imposteur'){
       showView('imposteur');
       if(isInitial && r.query.room) CG.imposteur.enterJoinFlow(r.query.room);
@@ -82,7 +85,7 @@
      dernière partie), on rejoint la salle directement, sans autre clic. */
   var AUTOJOIN={demicercle:['onlineName','joinRoomBtn'], cameleon:['chamName','chamJoinRoomBtn'], imposteur:['impName','impJoinRoomBtn'],
     loup:['loupName','loupJoinRoomBtn'], classement:['clsName','clsJoinRoomBtn'], quiaecrit:['qaeName','qaeJoinRoomBtn'],
-    crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn']};
+    crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn'], emoji:['emoName','emoJoinRoomBtn']};
   function autoJoin(route){
     var a=AUTOJOIN[route]; if(!a) return;
     setTimeout(function(){
@@ -102,6 +105,7 @@
   $('playClassementBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='classement'; });
   $('playLoupBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='loup'; });
   $('playBotsBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='bots'; });
+  $('playEmojiBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='emoji'; });
   $('playImposteurBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='imposteur'; });
   $('playCameleonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='cameleon'; });
 
