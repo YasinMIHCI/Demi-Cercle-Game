@@ -265,11 +265,11 @@
 
   function wire(){
     CG.wireModal('accountModal','accountBtn');
-    $('accountBtn').addEventListener('click',function(){ setError(''); friendMsg(''); if(session){ renderProfile(); renderFriends(); syncProfile(); } });
+    $('accountBtn').addEventListener('click',function(){ setError(''); friendMsg(''); if(session){ renderProfile(); renderFriends(); renderPush(); syncProfile(); } });
     $('accountLoginTab').addEventListener('click',function(){ setMode('login'); });
     $('accountSignupTab').addEventListener('click',function(){ setMode('signup'); });
     $('accountForm').addEventListener('submit',function(e){ e.preventDefault(); submit(); });
-    $('accountLogoutBtn').addEventListener('click',function(){ CG.sfxToggle(); logout(); setMode('login'); currentRecord(); });
+    $('accountLogoutBtn').addEventListener('click',function(){ CG.sfxToggle(); disablePush().catch(function(){}); logout(); setMode('login'); currentRecord(); });
     $('accountRenameBtn').addEventListener('click',function(){
       var v=prompt('Ton nom affiché dans les jeux (18 caractères max) :', session.profile ? session.profile.display_name : '');
       if(v===null) return; v=v.trim().slice(0,18); if(!v) return;
@@ -456,7 +456,69 @@
     pollTimer=setInterval(pollInvites, POLL_MS);
     setTimeout(pollInvites, 2000);
   }
+  /* ----- notifications push (app fermée) : abonnement de cet appareil ----- */
+  var VAPID_PUBLIC='BMavyCuK6hO0DDsq6jZ1v59cf9aeyQVdBElNu5klo6chq9aAGiDdnGaj2mI6-hzQQkJPhGBn7zT7u9WnWZv4T-s';
+  function pushSupported(){ return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  function b64ToBytes(s){
+    s=(s+'===='.slice((s.length+3)%4)).replace(/-/g,'+').replace(/_/g,'/');
+    var raw=atob(s), out=new Uint8Array(raw.length);
+    for(var i=0;i<raw.length;i++) out[i]=raw.charCodeAt(i);
+    return out;
+  }
+  function currentSub(){
+    if(!pushSupported()) return Promise.resolve(null);
+    return navigator.serviceWorker.ready.then(function(reg){ return reg.pushManager.getSubscription(); });
+  }
+  function renderPush(){
+    var chk=$('accountPushChk'), note=$('accountPushNote');
+    if(!pushSupported()){
+      chk.disabled=true; chk.checked=false;
+      var ios=/iPhone|iPad|iPod/.test(navigator.userAgent||'');
+      note.textContent = ios ? 'Sur iPhone, installe d’abord l’app (bouton « Installer l’app » du hub), puis active-les depuis l’app.' : 'Ce navigateur ne gère pas les notifications.';
+      return;
+    }
+    if(Notification.permission==='denied'){ chk.checked=false; chk.disabled=true; note.textContent='Notifications bloquées : autorise-les dans les réglages du site / de l’app.'; return; }
+    chk.disabled=false;
+    currentSub().then(function(s){ chk.checked=!!s && Notification.permission==='granted'; note.textContent=''; });
+  }
+  function enablePush(){
+    return Notification.requestPermission().then(function(p){
+      if(p!=='granted') throw new Error('refusé');
+      return navigator.serviceWorker.ready;
+    }).then(function(reg){
+      return reg.pushManager.getSubscription().then(function(s){
+        return s || reg.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:b64ToBytes(VAPID_PUBLIC)});
+      });
+    }).then(function(s){
+      var j=s.toJSON();
+      return rpc('save_push_subscription', {p_endpoint:j.endpoint, p_p256dh:j.keys.p256dh, p_auth:j.keys.auth});
+    });
+  }
+  function disablePush(){
+    return currentSub().then(function(s){
+      if(!s) return;
+      var ep=s.endpoint;
+      return s.unsubscribe().then(function(){ return session ? rpc('delete_push_subscription', {p_endpoint:ep}) : null; });
+    });
+  }
+  function sendPush(friendId, tgt){
+    token().then(function(t){
+      return fetch(URL_+'/functions/v1/invite-push', {method:'POST',
+        headers:{'apikey':KEY, 'Authorization':'Bearer '+t, 'Content-Type':'application/json'},
+        body:JSON.stringify({friend:friendId, route:tgt.route, code:tgt.code})});
+    }).catch(function(){});   /* la notification dans le site reste le plan B */
+  }
+
   function wireFriends(){
+    $('accountPushChk').addEventListener('change', function(){
+      var chk=this, note=$('accountPushNote');
+      chk.disabled=true;
+      (chk.checked ? enablePush() : disablePush()).then(function(){
+        note.textContent = chk.checked ? '🔔 Activées sur cet appareil.' : 'Désactivées sur cet appareil.';
+      }, function(){
+        chk.checked=false; note.textContent='Impossible d’activer les notifications ici.';
+      }).then(function(){ chk.disabled=false; });
+    });
     $('accountFriendAddBtn').addEventListener('click', addFriend);
     $('accountFriendInput').addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); addFriend(); } });
     $('accountFriends').addEventListener('click', function(e){
@@ -473,8 +535,9 @@
     $('inviteList').addEventListener('click', function(e){
       var b=e.target.closest ? e.target.closest('button[data-invite]') : null; if(!b || !inviteTarget) return;
       b.disabled=true;
-      rpc('invite_friend', {p_friend:b.getAttribute('data-invite'), p_route:inviteTarget.route, p_code:inviteTarget.code})
-        .then(function(){ b.querySelector('span').textContent='✔ Invité'; CG.sfxValidate(); },
+      var fid=b.getAttribute('data-invite'), tgt=inviteTarget;
+      rpc('invite_friend', {p_friend:fid, p_route:tgt.route, p_code:tgt.code})
+        .then(function(){ b.querySelector('span').textContent='✔ Invité'; CG.sfxValidate(); sendPush(fid, tgt); },
               function(){ b.disabled=false; b.querySelector('span').textContent='Réessayer'; });
     });
     $('inviteJoinBtn').addEventListener('click', joinInvite);

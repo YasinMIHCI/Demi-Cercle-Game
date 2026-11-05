@@ -100,3 +100,27 @@ self.addEventListener('fetch', function(e){
   }
   /* le reste (serveur PeerJS, photos...) passe directement par le réseau */
 });
+
+/* ----- notifications push (invitations d'amis, voir supabase/functions/invite-push) ----- */
+self.addEventListener('push', function(e){
+  var d = {};
+  try{ d = e.data ? e.data.json() : {}; }catch(err){ d = {title:'CRAZY GAMES', body: e.data ? e.data.text() : ''}; }
+  e.waitUntil(self.registration.showNotification(d.title || 'CRAZY GAMES', {
+    body: d.body || '', tag: d.tag || 'cg', renotify: true,
+    icon: 'icons/icon-192.png', badge: 'icons/icon-192.png',
+    data: {url: new URL(d.url || './', self.registration.scope).href}
+  }));
+});
+self.addEventListener('notificationclick', function(e){
+  e.notification.close();
+  var url = (e.notification.data && e.notification.data.url) || self.registration.scope;
+  e.waitUntil(self.clients.matchAll({type:'window', includeUncontrolled:true}).then(function(list){
+    for(var i=0;i<list.length;i++){
+      var c = list[i];
+      if(c.url.indexOf(self.registration.scope) === 0 && 'navigate' in c){
+        return c.navigate(url).then(function(w){ return (w || c).focus(); });
+      }
+    }
+    return self.clients.openWindow(url);
+  }));
+});
