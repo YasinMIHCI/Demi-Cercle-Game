@@ -21,7 +21,7 @@
   var isAndroid=/Android/.test(ua);
   var isSamsung=/SamsungBrowser/.test(ua);
   function isApp(){
-    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone===true;
+    return (window.matchMedia && (window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: fullscreen)').matches)) || navigator.standalone===true;
   }
   CG.isApp=isApp;
 
