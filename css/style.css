@@ -928,3 +928,7 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 .invite-toast > span:first-child{flex:1;min-width:180px;}
 .invite-toast-btns{display:flex;gap:6px;}
 .invite-toast .btn{margin:0;}
+
+/* app installée : plein écran sous l'encoche / la barre d'état (iPhone) */
+html.is-app body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
+#botsFullBtn[hidden]{display:none;}

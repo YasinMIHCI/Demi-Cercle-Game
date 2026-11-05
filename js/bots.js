@@ -1770,6 +1770,31 @@
   }
   requestAnimationFrame(render);
 
+  /* ----- plein écran + paysage pour le combat (Android ; l'iPhone ne le permet pas aux sites) ----- */
+  var fsEl=document.documentElement;
+  function canFull(){ return !!(fsEl.requestFullscreen || fsEl.webkitRequestFullscreen); }
+  function isFull(){ return !!(document.fullscreenElement || document.webkitFullscreenElement); }
+  function lockLandscape(){
+    if(screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function(){});
+  }
+  function enterFull(){
+    var p=fsEl.requestFullscreen ? fsEl.requestFullscreen() : (fsEl.webkitRequestFullscreen(), null);
+    Promise.resolve(p).then(lockLandscape).catch(function(){});
+  }
+  function exitFull(){
+    try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){}
+    if(isFull()){ try{ (document.exitFullscreen||document.webkitExitFullscreen).call(document); }catch(e){} }
+  }
+  $('botsFullBtn').hidden=!canFull();
+  $('botsFullBtn').addEventListener('click',function(){ sfxToggle(); if(isFull()) exitFull(); else enterFull(); });
+  document.addEventListener('fullscreenchange',function(){ $('botsFullBtn').querySelector('span').textContent=isFull()?'⛶ Quitter le plein écran':'⛶ Plein écran'; });
+  /* dans l'app installée (déjà en plein écran), on passe en paysage pendant le combat */
+  new MutationObserver(function(){
+    var on=$('bots-screen-battle').classList.contains('active');
+    if(on && CG.isApp && CG.isApp()) lockLandscape();
+    else if(!on){ try{ if(screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); }catch(e){} if(isFull() && !on) exitFull(); }
+  }).observe($('bots-screen-battle'), {attributes:true, attributeFilter:['class']});
+
   /* ---------- API pour le hub ---------- */
   CG.bots = {
     reset: function(){

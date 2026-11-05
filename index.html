@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>CRAZY GAMES</title>
 <meta name="theme-color" content="#0a0a0a">
 <!-- app installable (PWA) : manifest.webmanifest + sw.js + js/pwa.js -->
@@ -11,14 +11,14 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Crazy Games">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=39">
+<link rel="stylesheet" href="css/style.css?v=40">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=39"></script>
-<script src="js/intro.js?v=39"></script>
+<script src="js/audio.js?v=40"></script>
+<script src="js/intro.js?v=40"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -1442,6 +1442,7 @@
       <div class="bots-hud">
         <div class="bots-timer"><div class="bots-timer-fill" id="botsTimerFill"></div><span id="botsTimerText"></span></div>
         <button class="btn ghost small bots-zoom-btn" id="botsZoomBtn"><span>🔍 Zoom sur mon tank</span></button>
+        <button class="btn ghost small bots-zoom-btn" id="botsFullBtn" hidden><span>⛶ Plein écran</span></button>
       </div>
       <div class="bots-canvas-frame">
         <canvas id="botsCanvas" width="960" height="540"></canvas>
@@ -2017,21 +2018,21 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=39"></script>
-<script src="js/net.js?v=39"></script>
-<script src="js/demicercle.js?v=39"></script>
-<script src="js/cameleon.js?v=39"></script>
-<script src="js/imposteur.js?v=39"></script>
-<script src="js/loup.js?v=39"></script>
-<script src="js/classement.js?v=39"></script>
-<script src="js/quiaecrit.js?v=39"></script>
-<script src="js/crousprison-photos.js?v=39"></script>
-<script src="js/crousprison.js?v=39"></script>
-<script src="js/bots-maps.js?v=39"></script>
-<script src="js/bots.js?v=39"></script>
-<script src="js/pwa.js?v=39"></script>
-<script src="js/party.js?v=39"></script>
-<script src="js/account.js?v=39"></script>
-<script src="js/hub.js?v=39"></script>
+<script src="js/common.js?v=40"></script>
+<script src="js/net.js?v=40"></script>
+<script src="js/demicercle.js?v=40"></script>
+<script src="js/cameleon.js?v=40"></script>
+<script src="js/imposteur.js?v=40"></script>
+<script src="js/loup.js?v=40"></script>
+<script src="js/classement.js?v=40"></script>
+<script src="js/quiaecrit.js?v=40"></script>
+<script src="js/crousprison-photos.js?v=40"></script>
+<script src="js/crousprison.js?v=40"></script>
+<script src="js/bots-maps.js?v=40"></script>
+<script src="js/bots.js?v=40"></script>
+<script src="js/pwa.js?v=40"></script>
+<script src="js/party.js?v=40"></script>
+<script src="js/account.js?v=40"></script>
+<script src="js/hub.js?v=40"></script>
 </body>
 </html>
