@@ -711,6 +711,7 @@
         ' <span class="'+(bluff?'qae-bluff':(ok?'qae-ok':'qae-ko'))+'">'+(bluff?'(bluff 😏)':(ok?'✔':'✘'))+'</span></div>';
     });
     var fooled=msg.pts[msg.author]||0;
+    if(CG.achieve && msg.author===mySeat && fooled>=3) CG.achieve('qae_fool3');
     var nonAuthorVotes=Object.keys(msg.votes).filter(function(v){ return Number(v)!==msg.author; }).length;
     var verdict = !nonAuthorVotes ? '😴 Personne n’a voté.' : !msg.correct.length ? '🕵️ Personne n’a trouvé ! '+escapeHtml(pname(msg.author))+' +'+fooled
       : (fooled ? escapeHtml(pname(msg.author))+' a berné '+fooled+' joueur'+(fooled>1?'s':'')+' (+'+fooled+')' : '🎯 Tout le monde l’a reconnu(e) !');
@@ -749,6 +750,7 @@
   });
   function onRoundScores(msg){
     inRound=false; stopBars(); hideBanner();
+    if(CG.achieve && !msg.anon && (msg.funniest||[]).indexOf(mySeat)!==-1) CG.achieve('qae_funny');
     qs.scores=msg.scores.slice();
     setRound(msg.round);
     $('qaeRecapQuestion').textContent=msg.question;

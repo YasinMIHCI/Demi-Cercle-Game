@@ -1500,6 +1500,7 @@
     var list=loadEstimates(); list.push(e); list.sort(estimateSort);
     try{ localStorage.setItem(EST_KEY, JSON.stringify(list.slice(0,EST_KEEP))); }catch(err){}
     if(!who && base>=50 && CG.account && CG.account.recordEstimate) CG.account.recordEstimate(e);
+    if(!who && role==='guesser' && base>=100 && CG.achieve){ CG.achieve('dc_perfect'); CG.achieveCount('dc_perfect', 5, 'dc_perfect5'); }
     renderBestEstimates();
   }
   function estimateRow(e, name){

@@ -730,6 +730,7 @@
     $('loupWaitingHostLabel').textContent="⏳ En attente que l'hôte lance une nouvelle manche...";
     sfxReveal(inThis ? (mine?100:0) : 50);
     if(inThis && CG.account) CG.account.record('loup', 0, mine);
+    if(inThis && mine && msg.roles[mySeat]==='loup' && CG.achieve) CG.achieve('loup_wolf');
     hideBanner();
     gotoScreen('result');
   }

@@ -434,6 +434,7 @@
     ui.goto('over');
     sfxReveal(winners.indexOf(mySeat)!==-1 ? 100 : 50);
     if(CG.account) CG.account.recordRanked('soiree', msg.totals, st.order, mySeat);
+    if(CG.achieve && st.top>0 && winners.indexOf(mySeat)!==-1) CG.achieve('party_win');
   }
   /* bandeau de la soirée pendant les jeux (manche en cours, bouton « passer » pour l'hôte) */
   function renderBar(){

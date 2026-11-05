@@ -897,6 +897,10 @@
     var iWon=msg.winners.indexOf(impMySeat)!==-1;
     sfxReveal(iWon?100:0);
     if(CG.account && msg.roundSeats.indexOf(impMySeat)!==-1) CG.account.record('imposteur', 0, iWon);
+    if(CG.achieve && msg.roundSeats.indexOf(impMySeat)!==-1){
+      if(imps.indexOf(impMySeat)!==-1 && caught.indexOf(impMySeat)===-1) CG.achieve('imp_escape');
+      else if(imps.indexOf(impMySeat)===-1 && gains[impMySeat]) CG.achieveCount('imp_caught', 5, 'imp_detective5');
+    }
     impHideBanner();
     impGoto_('result');
   }

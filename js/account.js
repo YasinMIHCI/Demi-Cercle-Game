@@ -124,6 +124,9 @@
     var now=Date.now();
     if(lastRecord[game] && now-lastRecord[game]<4000) return;   /* un même écran de fin rendu deux fois */
     lastRecord[game]=now;
+    achieve('first_game');
+    var played=loadJSON('cg_games_played', {}); played[game]=1; saveJSON('cg_games_played', played);
+    if(Object.keys(GAMES).every(function(k){ return k==='soiree' || played[k]; })) achieve('all_games');
     score=Math.max(0, Math.min(1000000, Math.round(+score||0)));
     authed('/rest/v1/rpc/record_result',{method:'POST', body:{p_game:game, p_score:score, p_won:!!won}})
       .then(function(){ statsCache=null; recordsAll=null; })
@@ -233,7 +236,7 @@
     var p = mode==='login' ? login(user, pass) : signup(user, $('accountDisplay').value, pass);
     p.then(function(){
       CG.sfxValidate(); $('accountPass').value=''; $('accountPass2').value='';
-      fillNames(true); refreshUI(); renderProfile(); renderFriends(); currentRecord();
+      fillNames(true); refreshUI(); renderProfile(); renderFriends(); syncAch(); renderAch(); currentRecord();
     }, function(e){ setError(frenchError(e)); CG.shake && CG.shake($('accountForm')); })
      .then(function(){ btn.disabled=false; });
   }
@@ -265,7 +268,7 @@
 
   function wire(){
     CG.wireModal('accountModal','accountBtn');
-    $('accountBtn').addEventListener('click',function(){ setError(''); friendMsg(''); if(session){ renderProfile(); renderFriends(); renderPush(); syncProfile(); } });
+    $('accountBtn').addEventListener('click',function(){ setError(''); friendMsg(''); renderAch(); if(session){ renderProfile(); renderFriends(); renderPush(); syncProfile(); } });
     $('accountLoginTab').addEventListener('click',function(){ setMode('login'); });
     $('accountSignupTab').addEventListener('click',function(){ setMode('signup'); });
     $('accountForm').addEventListener('submit',function(e){ e.preventDefault(); submit(); });
@@ -298,6 +301,82 @@
   wire();
   wireFriends();
 
+  /* ===================== SUCCÈS =====================
+     Débloqués pendant les parties (CG.achieve('clé')), gardés dans le navigateur
+     et, si on est connecté, copiés sur le compte (table achievements) : ils
+     apparaissent alors aussi chez les amis. */
+  var ACH=[
+    ['first_game','🎮','Première partie','Terminer une partie avec un compte.'],
+    ['all_games','🌍','Touche-à-tout','Jouer à tous les jeux du hub.'],
+    ['dc_perfect','🎯','Pile poil','Demi-Cercle : viser pile dans la zone 100.'],
+    ['dc_perfect5','🏹','Tireur d’élite','Demi-Cercle : 5 « pile poil ».'],
+    ['imp_escape','🕵️','Insoupçonnable','Imposteur : s’échapper sans être démasqué.'],
+    ['imp_detective5','🔍','Détective','Imposteur : démasquer l’imposteur 5 fois.'],
+    ['cham_hidden','🦎','Maître du camouflage','Caméléon : gagner en étant le Caméléon.'],
+    ['loup_wolf','🐺','Grand méchant loup','Loup des mots : gagner en étant Loup.'],
+    ['cls_mind','🧠','Dans la tête du groupe','Classement : être le plus proche du groupe.'],
+    ['qae_fool3','🎭','Maître du bluff','Qui a écrit ça : berner 3 joueurs avec une réponse.'],
+    ['qae_funny','😂','Le plus drôle','Qui a écrit ça : réponse la plus drôle de la manche.'],
+    ['cop_perfect','🏆','Sans faute','Crous ou Prison : 9 bonnes réponses sur 9.'],
+    ['cop_streak5','🔥','En feu','Crous ou Prison : 5 bonnes réponses d’affilée.'],
+    ['bots_win','🤖','Dernier tank debout','Battle Bots : gagner un combat.'],
+    ['bots_wave5','🛡️','Survivant','Battle Bots : atteindre la vague 5 en Survie.'],
+    ['party_win','🎉','Roi de la soirée','Gagner une Soirée All in.'],
+    ['friends3','👥','Bien entouré','Avoir 3 amis.']
+  ];
+  var ACH_BY={}; ACH.forEach(function(a){ ACH_BY[a[0]]=a; });
+  var ACH_KEY='cg_ach_v1', CNT_KEY='cg_ach_counts_v1';
+  function loadJSON(k, d){ try{ var v=JSON.parse(localStorage.getItem(k)||'null'); return v||d; }catch(e){ return d; } }
+  function saveJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  function unlocked(){ return loadJSON(ACH_KEY, {}); }
+  function achieve(key){
+    if(!ACH_BY[key]) return;
+    var u=unlocked(); if(u[key]) return;
+    u[key]=Date.now(); saveJSON(ACH_KEY, u);
+    showAchToast(ACH_BY[key]);
+    if(session) authed('/rest/v1/rpc/unlock_achievement',{method:'POST', body:{p_key:key}}).catch(function(){});
+  }
+  /* compteur (ex : 5 « pile poil ») : débloque key au bout de n */
+  function achieveCount(counter, n, key){
+    var c=loadJSON(CNT_KEY, {}); c[counter]=(c[counter]||0)+1; saveJSON(CNT_KEY, c);
+    if(c[counter]>=n) achieve(key);
+  }
+  /* les succès gagnés hors connexion partent sur le compte dès qu'on se connecte */
+  function syncAch(){
+    if(!session) return;
+    Object.keys(unlocked()).forEach(function(k){
+      authed('/rest/v1/rpc/unlock_achievement',{method:'POST', body:{p_key:k}}).catch(function(){});
+    });
+  }
+  var achQueue=[], achShowing=false;
+  function showAchToast(a){
+    achQueue.push(a); if(achShowing) return;
+    (function next(){
+      var x=achQueue.shift(); if(!x){ achShowing=false; return; }
+      achShowing=true;
+      var el=$('achToast');
+      el.innerHTML='<span class="ach-ico">'+x[1]+'</span><span><small>SUCCÈS DÉBLOQUÉ</small><b>'+escapeHtml(x[2])+'</b></span>';
+      el.hidden=false; el.classList.remove('show'); void el.offsetWidth; el.classList.add('show');
+      if(CG.sfxReveal) CG.sfxReveal(100);
+      setTimeout(function(){ el.hidden=true; next(); }, 3200);
+    })();
+  }
+  function achGrid(have){
+    var html='';
+    ACH.forEach(function(a){
+      var ok=!!have[a[0]];
+      html+='<div class="ach'+(ok?' ok':'')+'" title="'+escapeHtml(a[3])+'"><span class="ach-ico">'+(ok?a[1]:'🔒')+'</span><b>'+escapeHtml(a[2])+'</b><small>'+escapeHtml(a[3])+'</small></div>';
+    });
+    return html;
+  }
+  function renderAch(){
+    var have=unlocked();
+    $('accountAchCount').textContent=Object.keys(have).filter(function(k){ return ACH_BY[k]; }).length+' / '+ACH.length;
+    $('accountAch').innerHTML=achGrid(have);
+  }
+  CG.achieve=achieve;
+  CG.achieveCount=achieveCount;
+
   /* ===================== AMIS ===================== */
   function rpc(name, body){ return authed('/rest/v1/rpc/'+name, {method:'POST', body:body||{}}); }
   var JOIN={demicercle:['demicercle','joinRoomBtn'], cameleon:['cameleon','chamJoinRoomBtn'], imposteur:['imposteur','impJoinRoomBtn'],
@@ -323,6 +402,8 @@
       var incoming=rows.filter(function(f){ return f.status==='pending' && f.incoming; });
       var outgoing=rows.filter(function(f){ return f.status==='pending' && !f.incoming; });
       var mates=rows.filter(function(f){ return f.status==='accepted'; });
+      if(mates.length>=3) achieve('friends3');
+      renderBoard();
       incoming.forEach(function(f){
         html+='<div class="acc-friend pending"><span class="acc-friend-name"><b>'+escapeHtml(f.display_name)+'</b> <small>@'+escapeHtml(f.username)+' veut être ton ami</small></span>'+
           '<span class="acc-friend-btns"><button class="btn yellow small" data-act="accept" data-id="'+f.id+'"><span>✔ Accepter</span></button>'+
@@ -352,11 +433,38 @@
       if(r==='accepte'||r==='envoye'){ $('accountFriendInput').value=''; CG.sfxValidate(); renderFriends(); }
     }, function(e){ friendMsg(frenchError(e)); });
   }
+  /* ----- classement entre amis : un jeu, toi et tes amis ----- */
+  function renderBoard(){
+    var sel=$('accountBoardGame'), box=$('accountBoard');
+    if(!sel.options.length){
+      Object.keys(GAMES).forEach(function(k){ var o=document.createElement('option'); o.value=k; o.textContent=GAMES[k].label; sel.appendChild(o); });
+    }
+    var mates=friends.filter(function(f){ return f.status==='accepted'; });
+    $('accountBoardWrap').hidden=!mates.length;
+    if(!mates.length || !session) return;
+    var g=GAMES[sel.value], m=g.metric;
+    var names={}; names[session.id]=(session.profile||{}).display_name||'Moi';
+    mates.forEach(function(f){ names[f.id]=f.display_name; });
+    box.innerHTML='<p class="theme-count">Chargement…</p>';
+    request('/rest/v1/stats?game=eq.'+sel.value+'&user_id=in.('+Object.keys(names).join(',')+')&select=user_id,played,wins,best').then(function(rows){
+      var by={}; (rows||[]).forEach(function(r){ by[r.user_id]=r; });
+      var ids=Object.keys(names).sort(function(a,b){ return (((by[b]||{})[m])||0)-(((by[a]||{})[m])||0) || (((by[b]||{}).wins)||0)-(((by[a]||{}).wins)||0); });
+      var html='';
+      ids.forEach(function(id,i){
+        var r=by[id]||{played:0,wins:0,best:0}, val = m==='best' ? fmt(r.best||0)+' '+(g.unit||'') : (r.wins||0)+' victoire'+((r.wins||0)>1?'s':'');
+        html+='<div class="acc-board-row'+(id===session.id?' me':'')+'"><span class="cls-pos">'+(i===0 && r[m]>0?'👑':(i+1))+'</span><b>'+escapeHtml(names[id])+(id===session.id?' (toi)':'')+'</b><span>'+val+'</span><small>'+(r.played||0)+' partie'+((r.played||0)>1?'s':'')+'</small></div>';
+      });
+      box.innerHTML=html;
+    }, function(){ box.innerHTML='<p class="theme-count">Classement indisponible.</p>'; });
+  }
+
   function compare(id){
     var el=$('cmp-'+id);
     if(!el.hidden){ el.hidden=true; return; }
     el.hidden=false; el.innerHTML='<p class="theme-count">Chargement…</p>';
-    Promise.all([myStats(), request('/rest/v1/stats?user_id=eq.'+id+'&select=game,played,wins,best')]).then(function(r){
+    Promise.all([myStats(), request('/rest/v1/stats?user_id=eq.'+id+'&select=game,played,wins,best'),
+                 request('/rest/v1/achievements?user_id=eq.'+id+'&select=key').catch(function(){ return []; })]).then(function(r){
+      var theirAch={}; (r[2]||[]).forEach(function(x){ theirAch[x.key]=1; });
       var mine=r[0], his={}; (r[1]||[]).forEach(function(s){ his[s.game]=s; });
       var html='<div class="acc-cmp-row head"><span></span><span>Moi</span><span>Ami</span></div>';
       Object.keys(GAMES).forEach(function(k){
@@ -369,7 +477,10 @@
         var aw=(a||{}).wins||0, bw=(b||{}).wins||0;
         html+='<div class="acc-cmp-row"><span>'+g.label+'</span><span class="'+(aw>bw?'lead':'')+'">'+cell(a)+'</span><span class="'+(bw>aw?'lead':'')+'">'+cell(b)+'</span></div>';
       });
-      el.innerHTML=html+'<p class="theme-count" style="margin:4px 0 0;">victoires 🏆 · meilleur score · (parties)</p>';
+      var mineN=Object.keys(unlocked()).filter(function(k){ return ACH_BY[k]; }).length, theirN=Object.keys(theirAch).filter(function(k){ return ACH_BY[k]; }).length;
+      html+='<div class="acc-cmp-row"><span>🏅 Succès</span><span class="'+(mineN>theirN?'lead':'')+'">'+mineN+' / '+ACH.length+'</span><span class="'+(theirN>mineN?'lead':'')+'">'+theirN+' / '+ACH.length+'</span></div>';
+      el.innerHTML=html+'<p class="theme-count" style="margin:4px 0 0;">victoires 🏆 · meilleur score · (parties)</p>'+
+        '<div class="ach-mini">'+ACH.filter(function(a){ return theirAch[a[0]]; }).map(function(a){ return '<span title="'+escapeHtml(a[2])+'">'+a[1]+'</span>'; }).join('')+'</div>';
     }, function(){ el.innerHTML='<p class="theme-count">Stats indisponibles.</p>'; });
   }
 
@@ -510,6 +621,7 @@
   }
 
   function wireFriends(){
+    $('accountBoardGame').addEventListener('change', function(){ CG.sfxToggle(); renderBoard(); });
     $('accountPushChk').addEventListener('change', function(){
       var chk=this, note=$('accountPushNote');
       chk.disabled=true;

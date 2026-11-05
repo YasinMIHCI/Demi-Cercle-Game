@@ -559,6 +559,7 @@
     gotoScreen('result');
   }
   function showResultTail(msg){
+    if(CG.achieve && msg.closest.indexOf(mySeat)!==-1) CG.achieve('cls_mind');
     var titles='';
     if(msg.ego) titles+='<div class="cls-title-card"><b>🪞 L’EGO</b><span><b>'+escapeHtml(pname(msg.ego.seat))+'</b> se met '+ordinal(msg.ego.self)+'… le groupe le met '+ordinal(msg.ego.group)+' !</span></div>';
     if(msg.modest) titles+='<div class="cls-title-card"><b>🙈 LE MODESTE</b><span><b>'+escapeHtml(pname(msg.modest.seat))+'</b> se met '+ordinal(msg.modest.self)+', le groupe le voit '+ordinal(msg.modest.group)+'.</span></div>';

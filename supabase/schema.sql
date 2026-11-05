@@ -345,3 +345,29 @@ revoke execute on function public.save_push_subscription(text, text, text) from 
 grant  execute on function public.save_push_subscription(text, text, text) to authenticated;
 revoke execute on function public.delete_push_subscription(text) from public, anon;
 grant  execute on function public.delete_push_subscription(text) to authenticated;
+
+-- =====================================================================
+-- Succès (relançable sans risque) : lisibles par tous (comme les stats), écrits par la fonction
+-- =====================================================================
+create table if not exists public.achievements (
+  user_id     uuid not null references public.profiles(id) on delete cascade,
+  key         text not null check (key ~ '^[a-z0-9_]{2,30}$'),
+  unlocked_at timestamptz not null default now(),
+  primary key (user_id, key)
+);
+alter table public.achievements enable row level security;
+drop policy if exists "succès lisibles" on public.achievements;
+create policy "succès lisibles" on public.achievements for select using (true);
+revoke all on public.achievements from anon, authenticated;
+grant  select on public.achievements to anon, authenticated;
+
+create or replace function public.unlock_achievement(p_key text)
+returns void language plpgsql security definer set search_path = '' as $$
+begin
+  if auth.uid() is null then raise exception 'non connecté'; end if;
+  if p_key !~ '^[a-z0-9_]{2,30}$' then raise exception 'clé invalide'; end if;
+  if (select count(*) from public.achievements where user_id = auth.uid()) >= 100 then return; end if;
+  insert into public.achievements (user_id, key) values (auth.uid(), p_key) on conflict do nothing;
+end $$;
+revoke execute on function public.unlock_achievement(text) from public, anon;
+grant  execute on function public.unlock_achievement(text) to authenticated;
