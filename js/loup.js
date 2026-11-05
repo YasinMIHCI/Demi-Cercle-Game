@@ -746,4 +746,6 @@
       $('loupJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code));
     }
   };
+  /* réactions et petits messages dans le lobby (common.js) */
+  CG.lobbyChat(net, $('loupPlayerList'), 'loupName');
 })();

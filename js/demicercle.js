@@ -645,6 +645,11 @@
 
   /* ---------- END SCREEN (dispatcher) ---------- */
   function renderEndScreen(){
+    var online=gameMode==='online';
+    $('rematchBtn').style.display = online && netRole==='host' ? 'inline-block' : 'none';
+    $('rematchWaitLabel').style.display = online && netRole!=='host' ? 'inline-block' : 'none';
+    $('restartBtn').querySelector('span').textContent = online ? '🚪 Quitter la salle' : '🔁 Rejouer';
+    $('restartBtn').className = online ? 'btn ghost' : 'btn yellow';
     if(gameMode==='online'){
       $('endLocalContent').style.display='none';
       $('endOnlineContent').style.display='block';
@@ -656,6 +661,15 @@
     }
   }
 
+  $('rematchBtn').addEventListener('click',function(){
+    if(netRole!=='host') return;
+    sfxValidate();
+    var m={type:'rematch'};
+    send(m); handleNetMessage(m);
+    roundLog=[];
+    state.pool=shuffle(gameThemes());
+    hostAdvanceRoundOnline();
+  });
   $('restartBtn').addEventListener('click',function(){
     sfxValidate();
     if(gameMode==='online'){ cleanupOnline(); }
@@ -1221,6 +1235,12 @@
         state.guessPercent = msg.percent;
         revealRoundOnline(!!msg.wager);
         break;
+      case 'rematch':
+        /* revanche dans la même salle : scores et historique à zéro */
+        state.teamScores=[0,0]; state.playerScores=emptySeats(0); state.history=[];
+        state.teamTurnCount=[0,0]; state.activeTeam=0; state.round=1; state.rotIdx=0;
+        gameEnded=false;
+        break;
       case 'game_end':
         gameEnded=true;
         hideNetBanner();
@@ -1532,4 +1552,6 @@
 
   renderThemeList();
   renderBestEstimates();
+  /* réactions et petits messages dans le lobby (common.js) */
+  CG.lobbyChat(net, $('lobbyStatusMsg'), 'onlineName');
 })();

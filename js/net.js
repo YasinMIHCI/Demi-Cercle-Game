@@ -277,6 +277,7 @@
         return;
       }
       if(c._seat===null || net.conns[c._seat]!==c) return;
+      if(msg.type==='_chat'){ relayChat(msg, c._seat); return; }
       call('onGuestMessage', c._seat, msg);
     }
     function hostConnDown(c){
@@ -384,6 +385,7 @@
         if(conn!==c || !msg || !msg.type) return;
         hostLastSeen=Date.now();
         if(msg.type==='_ping'){ safeSend(c,{type:'_pong'}); return; }
+        if(msg.type==='_chat'){ emitChat(msg); return; }
         if(msg.type==='_roster'){ if(Array.isArray(msg.ids)){ roster=msg.ids.slice(); rosterLive=(msg.live||[]).slice(); } return; }
         if(msg.type==='room_full'){
           joinTimer=clearTimer(joinTimer);
@@ -540,6 +542,23 @@
       net.role=null; net.code=''; net.mySeat=0; joined=false;
       roster=null; lostAt=0; promoting=false;
     };
+    /* ----- petit chat de salle (réactions, messages courts), commun à tous les jeux ----- */
+    var chatListeners=[];
+    function cleanChat(m, seat){
+      var text=String(m.text||'').replace(/\s+/g,' ').trim().slice(0,80);
+      if(!text) return null;
+      return {type:'_chat', seat:seat, name:String(m.name||'?').slice(0,18), text:text};
+    }
+    function emitChat(m){ chatListeners.forEach(function(fn){ try{ fn(m); }catch(e){} }); }
+    function relayChat(m, seat){
+      var c=cleanChat(m, seat); if(!c) return;
+      net.sendToAll(c); emitChat(c);
+    }
+    net.chat=function(text, name){
+      if(net.role==='host') relayChat({text:text, name:name}, 0);
+      else if(net.role==='guest') safeSend(conn, {type:'_chat', text:text, name:name});
+    };
+    net.onChat=function(fn){ chatListeners.push(fn); };
     net.clientId = clientId;
     return net;
   }

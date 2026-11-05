@@ -248,6 +248,36 @@
   }
   enhanceRoomShare();
 
+  /* ---------- CHAT DE LOBBY : réactions en un clic + message court ----------
+     lobbyChat(net, listEl, nameInputId) ajoute la boîte sous la liste des joueurs. */
+  var QUICK=['👋','😂','🔥','👍','😱','⏳ On attend qui ?','🚀 C’est parti !','🔁 Revanche !'];
+  function lobbyChat(net, listEl, nameId){
+    if(!listEl || !net.chat) return;
+    var box=document.createElement('div'); box.className='lobby-chat';
+    var html='<div class="lobby-chat-log" aria-live="polite"></div><div class="lobby-chat-quick">';
+    QUICK.forEach(function(q){ html+='<button type="button" class="lobby-chat-q">'+escapeHtml(q)+'</button>'; });
+    html+='</div><form class="lobby-chat-form"><input type="text" maxlength="80" placeholder="Un message pour la salle…" autocomplete="off"><button type="submit" class="btn ghost small"><span>Envoyer</span></button></form>';
+    box.innerHTML=html;
+    listEl.insertAdjacentElement('afterend', box);
+    var log=box.querySelector('.lobby-chat-log'), input=box.querySelector('input'), last=0;
+    function send(text){
+      text=String(text||'').trim(); if(!text || Date.now()-last<800) return;
+      last=Date.now();
+      var n=$(nameId); net.chat(text, (n && n.value.trim()) || 'Joueur');
+    }
+    Array.prototype.forEach.call(box.querySelectorAll('.lobby-chat-q'), function(b){ b.addEventListener('click', function(){ send(b.textContent); }); });
+    box.querySelector('form').addEventListener('submit', function(e){ e.preventDefault(); send(input.value); input.value=''; });
+    net.onChat(function(m){
+      var row=document.createElement('div'); row.className='lobby-chat-msg';
+      row.innerHTML='<b>'+escapeHtml(m.name)+'</b> '+escapeHtml(m.text);
+      log.appendChild(row);
+      while(log.children.length>6) log.removeChild(log.firstChild);
+      log.scrollTop=log.scrollHeight;
+      if(/^[^\w]{1,4}$/.test(m.text)) tone(660,0.05,'triangle',0.08,0);
+    });
+  }
+  CG.lobbyChat=lobbyChat;
+
   CG.$=$;
   CG.buzz=buzz;
   CG.yourTurn=yourTurn;

@@ -447,7 +447,7 @@
       var api=CG[j[0]];
       if(api && api.enterJoinFlow) api.enterJoinFlow(inv.code);
       fillNames(false);
-      var b=$(j[1]); if(b && !b.disabled) b.click();
+      CG.autoJoin(inv.route);
     }, 300);
   }
   function startPolling(){

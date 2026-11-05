@@ -78,6 +78,21 @@
   }
   window.addEventListener('hashchange', function(){ router(false); });
 
+  /* Lien ou QR code d'invitation : si le pseudo est déjà connu (compte ou
+     dernière partie), on rejoint la salle directement, sans autre clic. */
+  var AUTOJOIN={demicercle:['onlineName','joinRoomBtn'], cameleon:['chamName','chamJoinRoomBtn'], imposteur:['impName','impJoinRoomBtn'],
+    loup:['loupName','loupJoinRoomBtn'], classement:['clsName','clsJoinRoomBtn'], quiaecrit:['qaeName','qaeJoinRoomBtn'],
+    crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn']};
+  function autoJoin(route){
+    var a=AUTOJOIN[route]; if(!a) return;
+    setTimeout(function(){
+      var name=$(a[0]), btn=$(a[1]);
+      if(name && name.value.trim() && btn && !btn.disabled) btn.click();
+      else if(name){ try{ name.focus(); }catch(e){} }
+    }, 350);
+  }
+  CG.autoJoin=autoJoin;
+
   function goHome(){ location.hash='hub'; }
   $('hubReturnBtn').addEventListener('click',function(){ CG.sfxToggle(); goHome(); });
   $('playDemicercleBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='demicercle'; });
@@ -127,4 +142,5 @@
   refreshMuteBtn();
   refreshMusicBtn();
   router(true);
+  (function(){ var r=parseHash(); if(r.query.room) autoJoin(r.route); })();
 })();

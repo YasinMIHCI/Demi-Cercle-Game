@@ -932,3 +932,15 @@ html.is-app body{padding-bottom:env(safe-area-inset-bottom);}
 /* app installée : plein écran sous l'encoche / la barre d'état (iPhone) */
 html.is-app body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);}
 #botsFullBtn[hidden]{display:none;}
+
+/* chat de lobby */
+.lobby-chat{margin:10px 0;border:1px solid #2a2a2a;background:#0d0d0d;padding:8px;}
+.lobby-chat-log{max-height:150px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;font-size:0.88rem;}
+.lobby-chat-log:empty{display:none;}
+.lobby-chat-msg b{color:var(--yellow);margin-right:4px;}
+.lobby-chat-quick{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;}
+.lobby-chat-q{background:#1a1a1a;border:1px solid #444;color:#ddd;border-radius:14px;padding:4px 9px;font-size:0.82rem;cursor:pointer;font-family:inherit;}
+.lobby-chat-q:hover{border-color:var(--yellow);}
+.lobby-chat-form{display:flex;gap:6px;}
+.lobby-chat-form input{flex:1;margin:0;}
+.lobby-chat-form .btn{margin:0;}
