@@ -26,6 +26,7 @@
     bots:       {label:'Battle Bots',       input:'botsName',   metric:'wins', unit:'dégâts'},
     cameleon:   {label:'Le Caméléon',       input:'chamName',   metric:'wins'},
     imposteur:  {label:"L'Imposteur",       input:'impName',    metric:'wins'},
+    emoji:      {label:'Emoji Quiz',        input:'emoName',    metric:'best', unit:'pts'},
     loup:       {label:'Le Loup des mots',  input:'loupName',   metric:'wins'}
   };
 
@@ -322,6 +323,7 @@
     ['bots_win','🤖','Dernier tank debout','Battle Bots : gagner un combat.'],
     ['bots_wave5','🛡️','Survivant','Battle Bots : atteindre la vague 5 en Survie.'],
     ['party_win','🎉','Roi de la soirée','Gagner une Soirée All in.'],
+    ['emo_win','🤔','Décodeur d’emojis','Emoji Quiz : gagner une partie.'],
     ['friends3','👥','Bien entouré','Avoir 3 amis.']
   ];
   var ACH_BY={}; ACH.forEach(function(a){ ACH_BY[a[0]]=a; });
@@ -381,7 +383,7 @@
   function rpc(name, body){ return authed('/rest/v1/rpc/'+name, {method:'POST', body:body||{}}); }
   var JOIN={demicercle:['demicercle','joinRoomBtn'], cameleon:['cameleon','chamJoinRoomBtn'], imposteur:['imposteur','impJoinRoomBtn'],
     loup:['loup','loupJoinRoomBtn'], classement:['classement','clsJoinRoomBtn'], quiaecrit:['quiaecrit','qaeJoinRoomBtn'],
-    crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn']};
+    crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn'], emoji:['emoji','emoJoinRoomBtn']};
   function ago(iso){
     if(!iso) return 'jamais joué';
     var m=Math.round((Date.now()-new Date(iso).getTime())/60000);

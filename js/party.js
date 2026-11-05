@@ -19,6 +19,7 @@
     classement:  {p:'cls',  label:'Le Classement',     icon:'🏆', min:3, max:8},
     quiaecrit:   {p:'qae',  label:'Qui a écrit ça ?',  icon:'🎭', min:3, max:8},
     imposteur:   {p:'imp',  label:"L'Imposteur",       icon:'🕵️', min:3, max:8},
+    emoji:       {p:'emo',  label:'Emoji Quiz',        icon:'🤔', min:2, max:10},
     loup:        {p:'loup', label:'Le Loup des mots',  icon:'🐺', min:4, max:10},
     cameleon:    {p:'cham', label:'Le Caméléon',       icon:'🦎', min:3, max:8},
     crousprison: {p:'cop',  label:'Crous ou Prison ?', icon:'🛏️', min:2, max:8},

@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=42">
+<link rel="stylesheet" href="css/style.css?v=43">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=42"></script>
-<script src="js/intro.js?v=42"></script>
+<script src="js/audio.js?v=43"></script>
+<script src="js/intro.js?v=43"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -70,6 +70,12 @@
         <h3>LE CAMÉLÉON</h3>
         <p>Un dessin partagé, un mot secret... et un infiltré. 3 à 8 joueurs, en ligne.</p>
         <button class="btn yellow" id="playCameleonBtn"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available">
+        <div class="game-card-icon">🤔</div>
+        <h3>EMOJI QUIZ</h3>
+        <p>Des emojis cachent un film, une série, une expression… Le plus rapide à trouver gagne. 2 à 10 joueurs, en ligne.</p>
+        <button class="btn yellow" id="playEmojiBtn"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card available">
         <div class="game-card-icon">🕵️</div>
@@ -732,6 +738,98 @@
       </div>
     </section>
 
+  </div>
+</div>
+
+
+<!-- ================= EMOJI QUIZ ================= -->
+<div id="view-emoji" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="emoHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>EMOJI <em>QUIZ</em></span></div>
+        <div class="badge-round" id="emoRoundBadge" style="display:none;">DEVINETTE 1</div>
+      </div>
+      <div class="net-status offline" id="emoNetStatus"><span class="net-dot"></span><span class="net-label">HORS LIGNE</span></div>
+    </div>
+    <div class="net-banner" id="emoNetBanner" role="status"><span id="emoNetBannerText"></span></div>
+
+    <section class="emo-screen active" id="emo-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">EMOJI QUIZ</h1>
+        <p class="subtitle">2 à 10 joueurs. Une suite d'emojis cache un film, une série, une expression, un lieu… Tape ta réponse : plus tu trouves vite, plus tu marques.</p>
+        <div class="btn-row"><button class="btn ghost small" id="emoRulesBtn"><span>📖 Règles du jeu</span></button></div>
+        <label for="emoName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="emoName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🔑 CRÉER UNE SALLE</h2>
+        <label>Nombre de devinettes</label>
+        <div class="format-toggle" id="emoCountToggle">
+          <button class="btn ghost small format-opt" data-count="5"><span>5</span></button>
+          <button class="btn ghost small format-opt active" data-count="10"><span>10</span></button>
+          <button class="btn ghost small format-opt" data-count="15"><span>15</span></button>
+        </div>
+        <label for="emoHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="emoHostCode" data-room-code="emoCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row" style="margin-top:14px;"><button class="btn yellow small" id="emoCreateRoomBtn"><span>Créer la salle</span></button></div>
+      </div>
+      <div class="panel">
+        <h2 class="screen-title" style="font-size:1.4rem;">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="emoJoinCode">Code de la salle</label>
+        <input type="text" id="emoJoinCode" placeholder="Le code choisi par l'hôte" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row"><button class="btn yellow small" id="emoJoinRoomBtn"><span>Rejoindre</span></button></div>
+      </div>
+    </section>
+
+    <section class="emo-screen" id="emo-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="emoBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="emoCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="emoCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="emoCopyLinkBtn"><span>🔗 Copier le lien d'invitation</span></button>
+        </div>
+        <div class="cham-player-list" id="emoPlayerList"></div>
+        <p class="lobby-status" id="emoLobbyStatus">En attente de joueurs...</p>
+        <div class="btn-row center"><button class="btn yellow" id="emoStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button></div>
+      </div>
+    </section>
+
+    <section class="emo-screen" id="emo-screen-play">
+      <div class="panel">
+        <div class="emo-cat" id="emoCat"></div>
+        <div class="emo-emojis" id="emoEmojis"></div>
+        <p class="emo-hint" id="emoHint" hidden></p>
+        <div class="emo-answer" id="emoAnswer" hidden></div>
+        <div class="bots-timer" style="margin-bottom:12px;"><div class="bots-timer-fill" id="emoTimerFill"></div><span id="emoTimerText"></span></div>
+        <div id="emoGuessBox">
+          <div class="loup-ask">
+            <input type="text" id="emoGuessInput" maxlength="60" placeholder="Ta réponse… (autant d'essais que tu veux)" autocomplete="off" autocapitalize="none">
+            <button class="btn yellow small" id="emoGuessBtn"><span>Valider</span></button>
+          </div>
+          <div class="emo-wrong-list" id="emoWrong"></div>
+        </div>
+        <p class="emo-mine" id="emoMine"></p>
+        <div class="cham-player-list" id="emoFoundList"></div>
+      </div>
+    </section>
+
+    <section class="emo-screen" id="emo-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
+        <div class="end-winner-text" id="emoWinnerText"></div>
+        <div class="cls-podium" id="emoFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="emoReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
+          <span class="waiting-label" id="emoOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -1809,6 +1907,28 @@
   </div>
 </div>
 
+<!-- EMOJI QUIZ : règles et déconnexion -->
+<div class="modal-overlay" id="emoRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="emoRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — EMOJI QUIZ</h2>
+    <ol class="rules-list">
+      <li>Une suite d'emojis s'affiche, avec sa catégorie (film, série, expression, lieu…).</li>
+      <li>Tape ta réponse : autant d'essais que tu veux pendant 30 secondes. Pas besoin des accents ni de l'article, et une petite faute de frappe passe.</li>
+      <li>À mi-temps, un <b>indice</b> donne la première lettre et le nombre de lettres de chaque mot.</li>
+      <li><b>Points :</b> 100 pour le premier qui trouve, puis 80, 65, 55, 45… + jusqu'à 20 points de rapidité.</li>
+      <li>5, 10 ou 15 devinettes par partie (au choix de l'hôte). Le plus gros score gagne.</li>
+    </ol>
+  </div>
+</div>
+<div class="modal-overlay" id="emoDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="emoDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center"><button class="btn yellow" id="emoDisconnectBackBtn"><span>◀ Retour au menu</span></button></div>
+  </div>
+</div>
+
 <!-- IMPOSTEUR DISCONNECT MODAL -->
 <div class="modal-overlay" id="impDisconnectModal">
   <div class="modal-box" style="text-align:center;">
@@ -2028,21 +2148,22 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=42"></script>
-<script src="js/net.js?v=42"></script>
-<script src="js/demicercle.js?v=42"></script>
-<script src="js/cameleon.js?v=42"></script>
-<script src="js/imposteur.js?v=42"></script>
-<script src="js/loup.js?v=42"></script>
-<script src="js/classement.js?v=42"></script>
-<script src="js/quiaecrit.js?v=42"></script>
-<script src="js/crousprison-photos.js?v=42"></script>
-<script src="js/crousprison.js?v=42"></script>
-<script src="js/bots-maps.js?v=42"></script>
-<script src="js/bots.js?v=42"></script>
-<script src="js/pwa.js?v=42"></script>
-<script src="js/party.js?v=42"></script>
-<script src="js/account.js?v=42"></script>
-<script src="js/hub.js?v=42"></script>
+<script src="js/common.js?v=43"></script>
+<script src="js/net.js?v=43"></script>
+<script src="js/demicercle.js?v=43"></script>
+<script src="js/cameleon.js?v=43"></script>
+<script src="js/imposteur.js?v=43"></script>
+<script src="js/loup.js?v=43"></script>
+<script src="js/classement.js?v=43"></script>
+<script src="js/quiaecrit.js?v=43"></script>
+<script src="js/emoji.js?v=43"></script>
+<script src="js/crousprison-photos.js?v=43"></script>
+<script src="js/crousprison.js?v=43"></script>
+<script src="js/bots-maps.js?v=43"></script>
+<script src="js/bots.js?v=43"></script>
+<script src="js/pwa.js?v=43"></script>
+<script src="js/party.js?v=43"></script>
+<script src="js/account.js?v=43"></script>
+<script src="js/hub.js?v=43"></script>
 </body>
 </html>

@@ -967,3 +967,17 @@ html.is-app body{padding-top:env(safe-area-inset-top);padding-left:env(safe-area
 .acc-board-row{display:grid;grid-template-columns:36px 1fr auto;gap:2px 10px;align-items:center;background:#0d0d0d;border:1px solid #2a2a2a;padding:6px 10px;}
 .acc-board-row.me{border-color:#fff;}
 .acc-board-row small{grid-column:2/-1;color:#888;font-size:0.72rem;}
+
+/* Emoji Quiz */
+.emo-screen{display:none;animation:fadeIn .35s ease;}
+.emo-screen.active{display:block;}
+.emo-cat{text-align:center;font-family:var(--font-display);letter-spacing:2px;color:var(--yellow);font-size:1.1rem;}
+.emo-emojis{text-align:center;font-size:clamp(2.6rem,12vw,4.5rem);line-height:1.2;margin:8px 0 6px;letter-spacing:4px;word-break:break-word;}
+.emo-hint{text-align:center;color:#ddd;font-family:monospace;font-size:1.05rem;letter-spacing:1px;}
+.emo-hint[hidden],.emo-answer[hidden],#emoGuessBox[hidden]{display:none;}
+.emo-answer{text-align:center;font-size:1.25rem;margin:6px 0 12px;}
+.emo-answer b{color:var(--yellow);}
+.emo-wrong-list{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0;}
+.emo-wrong{font-size:0.8rem;color:#ff6b6b;text-decoration:line-through;background:#1a0b0b;padding:2px 8px;border-radius:10px;}
+.emo-mine{text-align:center;color:#7cff6e;margin:6px 0;}
+.emo-mine:empty{display:none;}

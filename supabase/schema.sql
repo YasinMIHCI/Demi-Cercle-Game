@@ -18,7 +18,7 @@ create table if not exists public.profiles (
 create table if not exists public.stats (
   user_id    uuid not null references public.profiles(id) on delete cascade,
   game       text not null check (game in
-               ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree')),
+               ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree','emoji')),
   played     integer not null default 0,
   wins       integer not null default 0,
   best       integer not null default 0,
@@ -192,7 +192,7 @@ create table if not exists public.room_invites (
   from_id    uuid not null references public.profiles(id) on delete cascade,
   from_name  text not null,
   to_id      uuid not null references public.profiles(id) on delete cascade,
-  route      text not null check (route in ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree')),
+  route      text not null check (route in ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree','emoji')),
   code       text not null check (code ~ '^[A-Z0-9-]{3,20}$'),
   created_at timestamptz not null default now()
 );
@@ -371,3 +371,13 @@ begin
 end $$;
 revoke execute on function public.unlock_achievement(text) from public, anon;
 grant  execute on function public.unlock_achievement(text) to authenticated;
+
+-- =====================================================================
+-- Emoji Quiz : ajouter le jeu aux listes autorisées (relançable sans risque)
+-- =====================================================================
+alter table public.stats drop constraint if exists stats_game_check;
+alter table public.stats add constraint stats_game_check check (game in
+  ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree','emoji'));
+alter table public.room_invites drop constraint if exists room_invites_route_check;
+alter table public.room_invites add constraint room_invites_route_check check (route in
+  ('demicercle','cameleon','imposteur','loup','classement','quiaecrit','crousprison','bots','soiree','emoji'));
