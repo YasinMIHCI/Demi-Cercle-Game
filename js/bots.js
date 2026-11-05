@@ -466,8 +466,17 @@
 
   function activeSeats(){
     var out=[];
-    for(var s=0;s<bs.players.length;s++){ if(bs.players[s] && isConnected(s)) out.push(s); }
+    for(var s=0;s<bs.players.length;s++){ if(bs.players[s] && !bs.players[s].watch && isConnected(s)) out.push(s); }
     return out;
+  }
+  /* spectateurs : arrivés pendant un combat ou salle pleine ; ils regardent
+     tout (le combat est diffusé à toute la salle) et jouent au suivant s'il y a la place */
+  function watcherCount(){ return bs.players.filter(function(p,s){ return p && p.watch && isConnected(s); }).length; }
+  function seatWatchers(){
+    for(var s=1;s<bs.players.length;s++){
+      var p=bs.players[s];
+      if(p && p.watch && isConnected(s) && activeSeats().length<MODE_CAP[bs.mode]) p.watch=false;
+    }
   }
 
   /* ----- création / connexion ----- */
@@ -520,13 +529,12 @@
   function hostOnJoinRequest(msg){
     var s, back=seats.returningSeat(msg); if(back) return back;
     if(bs.phase!=='lobby' && bs.phase!=='ended'){
-      /* en plein combat : seul un joueur déconnecté peut reprendre sa place */
+      /* en plein combat : un joueur déconnecté reprend sa place, les autres regardent */
       for(s=1;s<bs.players.length;s++){
         if(bs.players[s] && !isConnected(s) && bs.players[s].name===msg.name) return s;
       }
-      return 'COMBAT EN COURS — RÉESSAIE APRÈS';
     }
-    if(activeSeats().length>=MODE_CAP[bs.mode]) return 'SALLE COMPLÈTE ('+MODE_CAP[bs.mode]+'/'+MODE_CAP[bs.mode]+')';
+    if(watcherCount()>=10) return 'SALLE COMPLÈTE (10 SPECTATEURS)';
     for(s=1;s<bs.players.length;s++){ if(!bs.players[s]) return s; }
     return Math.max(1,bs.players.length);
   }
@@ -537,7 +545,8 @@
       var counts=[0,0];
       bs.players.forEach(function(q){ if(q) counts[q.team]++; });
       var sk=cleanSkin(msg.skin||{});
-      bs.players[seat]={name:msg.name||'Joueur', tank:'ranger', team:counts[0]<=counts[1]?0:1, paint:sk.paint, acc:sk.acc, weapon:sk.weapon};
+      var watch = (bs.phase!=='lobby' && bs.phase!=='ended') || activeSeats().length>=MODE_CAP[bs.mode];
+      bs.players[seat]={name:msg.name||'Joueur', tank:'ranger', team:counts[0]<=counts[1]?0:1, paint:sk.paint, acc:sk.acc, weapon:sk.weapon, watch:watch};
     }
     bs.clientIds[seat]=msg.clientId||null;
     bs.connected[seat]=true;
@@ -550,8 +559,9 @@
     if(!isRepeat) sfxValidate();
   }
   function hostOnSeatLost(seat){
-    if(bs.phase==='lobby'){
+    if(bs.phase==='lobby' || (bs.players[seat] && bs.players[seat].watch)){
       bs.players[seat]=null; bs.clientIds[seat]=null;
+      if(bs.phase==='lobby') seatWatchers();
     } else {
       bs.connected[seat]=false;
     }
@@ -809,6 +819,7 @@
     bs.phase='lobby'; bs.match=null; bs.lastEnd=null;
     /* les joueurs partis pendant le combat libèrent leur place */
     for(var s=1;s<bs.players.length;s++){ if(bs.players[s] && !isConnected(s)){ bs.players[s]=null; bs.clientIds[s]=null; } }
+    seatWatchers();
     hostBroadcastLobby();
     gotoScreen('lobby');
   });
@@ -1033,7 +1044,7 @@
       if(!p) continue;
       var w=WEAPONS[p.weapon]||WEAPONS.drill;
       html+=CG.playerRow({name:p.name, color:bs.mode==='2v2' ? TEAM_COLORS[p.team] : (p.paint||playerColor(s, s===0?0:1)), me:s===botsMySeat, off:!isConnected(s),
-        extra:'<span class="imp-tag">'+TANKS[p.tank].name+' · '+w.ico+(bs.mode==='2v2'?(p.team?' · BLEU':' · ROUGE'):'')+'</span>'});
+        extra:'<span class="imp-tag">'+(p.watch ? '👀 spectateur' : TANKS[p.tank].name+' · '+w.ico+(bs.mode==='2v2'?(p.team?' · BLEU':' · ROUGE'):''))+'</span>'});
     }
     $('botsPlayerList').innerHTML=html;
     var problem= botsNetRole==='host' ? lobbyProblem() : null;
@@ -1041,6 +1052,7 @@
     if(bs.phase==='ended') st.textContent='Combat terminé — en attente de la revanche...';
     else if(bs.phase!=='lobby') st.textContent='Combat en cours...';
     else if(botsNetRole==='host') st.textContent = problem || 'Tout le monde est prêt. Lance le combat !';
+    else if(me && me.watch) st.textContent='👀 Salle pleine : tu regardes. Tu joueras dès qu’une place se libère.';
     else st.textContent="Choisis ton tank. L'hôte lancera le combat.";
     $('botsStartBtn').style.display = (botsNetRole==='host' && bs.phase==='lobby' && !problem) ? 'inline-block' : 'none';
   }
@@ -1365,6 +1377,7 @@
       banner.textContent='🤖 LES BOTS ONT GAGNÉ… À LA VAGUE '+w; banner.className='cham-result-banner '+(w>=5?'b-great':w>=3?'b-ok':'b-fail');
       $('botsEndText').innerHTML='Vous avez tenu jusqu’à la <b>vague '+w+'</b> et détruit <b>'+msg.surv.kills+' bot'+(msg.surv.kills>1?'s':'')+'</b>.';
     } else if(msg.draw){ banner.textContent='💥 DESTRUCTION MUTUELLE !'; banner.className='cham-result-banner b-meh'; }
+    else if(!msg.tanks.some(function(t){ return t.seat===botsMySeat; })){ banner.textContent='🏁 COMBAT TERMINÉ'; banner.className='cham-result-banner b-ok'; }
     else { banner.textContent= mine ? '🏆 VICTOIRE !' : '💀 DÉFAITE...'; banner.className='cham-result-banner '+(mine?'b-perfect':'b-fail'); }
     if(!msg.surv) $('botsEndText').innerHTML = msg.draw ? 'Aucun survivant.' : ('Vainqueur'+(names.length>1?'s':'')+' : <b>'+names.map(escapeHtml).join(' & ')+'</b>');
     var rows=msg.tanks.slice().sort(function(a,b){ return (msg.stats[b.seat]||{}).dmg-(msg.stats[a.seat]||{}).dmg; });

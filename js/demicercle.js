@@ -941,16 +941,23 @@
     for(var s=1;s<totalSeats;s++){ if(!state.players[s]) return s; }
     return -1;
   }
+  /* spectateurs (1 VS 1 / 2 VS 2) : places au-delà des joueurs ; ils voient tout */
+  function watchSeat(){
+    if(rotating) return -1;
+    for(var s=totalSeats;s<MAX_SEATS;s++){ if(!state.players[s]) return s; }
+    return -1;
+  }
+  function isWatcher(s){ return !rotating && s>=totalSeats; }
   function hostOnJoinRequest(msg){
     var s;
     /* même onglet qui revient : il récupère sa place */
-    for(s=1;s<totalSeats;s++){ if(msg.clientId && seatClientIds[s]===msg.clientId) return s; }
+    for(s=1;s<MAX_SEATS;s++){ if(msg.clientId && seatClientIds[s]===msg.clientId && state.players[s]) return s; }
     /* équipes tournantes : on peut arriver en cours de partie (on joue dès qu'un duo nous inclut) */
     if(!gameStarted || rotating){
       if(gameStarted){ for(s=1;s<totalSeats;s++){ if(state.connected[s]===false && state.players[s]===msg.name) return s; } }
       s=nextOpenSeat();
       if(s!==-1) return s;
-      if(!gameStarted) return 'SALLE COMPLÈTE ('+totalSeats+'/'+totalSeats+')';
+      if(!gameStarted){ s=watchSeat(); return s!==-1 ? s : 'SALLE COMPLÈTE ('+totalSeats+'/'+totalSeats+')'; }
     }
     /* partie en cours : on peut reprendre la place d'un joueur déconnecté
        (de préférence celle qui porte le même nom) */
@@ -961,7 +968,9 @@
         if(free===-1) free=s;
       }
     }
-    return free!==-1 ? free : 'PARTIE DÉJÀ EN COURS';
+    if(free!==-1) return free;
+    s=watchSeat();
+    return s!==-1 ? s : 'PARTIE DÉJÀ EN COURS (SALLE PLEINE)';
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
     var isNew=!state.players[seat];
@@ -986,6 +995,11 @@
     if(!isRepeat) sfxValidate();
   }
   function hostOnSeatLost(seat){
+    if(isWatcher(seat)){
+      state.players[seat]=null; seatClientIds[seat]=null;
+      if(gameStarted) broadcastPlayerStatus(); else broadcastLobby();
+      return;
+    }
     /* équipes tournantes : un joueur qui n'a encore joué aucune manche libère simplement sa place */
     if(gameStarted && rotating && seat!==state.giverSeat && seat!==state.guesserSeat &&
        !state.history.some(function(h){ return h.giverSeat===seat || h.guesserSeat===seat; })){
@@ -1056,7 +1070,15 @@
       el.classList.remove('filled');
     }
   }
+  function renderWatchers(){
+    var names=[];
+    for(var s=totalSeats;s<MAX_SEATS && !rotating;s++){ if(state.players[s]) names.push(state.players[s]+(s===mySeat?' (toi)':'')); }
+    var el=$('lobbyWatchers');
+    el.textContent = names.length ? '👀 Spectateurs : '+names.join(', ') : '';
+    el.hidden=!names.length;
+  }
   function renderLobbyScreen(){
+    renderWatchers();
     $('lobbyTeamCols').style.display = rotating ? 'none' : '';
     $('rotPlayerList').style.display = rotating ? '' : 'none';
     $('lobbySharedThemes').textContent = sharedCount ? '🎨 '+sharedCount+' thème'+(sharedCount>1?'s':'')+' perso des invités ajouté'+(sharedCount>1?'s':'')+' à la partie' : '';
@@ -1099,6 +1121,7 @@
       statusEl.textContent = netRole==='host' ? 'Équipe au complet ! Tu peux lancer la partie.' : "Équipe au complet ! En attente que l'hôte lance la partie...";
     }
     $('lobbyStartBtn').style.display = (netRole==='host' && filled===totalSeats) ? 'inline-block' : 'none';
+    if(isWatcher(mySeat)) statusEl.textContent='👀 La salle est pleine : tu regardes la partie.';
   }
   $('lobbyStartBtn').addEventListener('click',function(){
     sfxValidate();
@@ -1272,6 +1295,7 @@
     $('passLocalContent').style.display='none';
     $('passOnlineContent').style.display='block';
     var waitingText = (mySeat===state.guesserSeat) ? state.players[state.giverSeat] : (rotating ? duoLabel()+' jouent' : teamLabel(state.activeTeam)+' joue');
+    if(isWatcher(mySeat)) waitingText='👀 '+waitingText;
     $('passOnlineGiverName').textContent = waitingText;
   }
 
@@ -1440,7 +1464,7 @@
     var s0=state.teamScores[0], s1=state.teamScores[1];
     var winnerIdx = s0===s1 ? -1 : (s0>s1?0:1);
     var myTeam = seatsPerTeam===1 ? mySeat : Math.floor(mySeat/2);
-    if(CG.account) CG.account.record('demicercle', Math.max(0, state.teamScores[myTeam]||0), winnerIdx===myTeam);
+    if(CG.account && !isWatcher(mySeat)) CG.account.record('demicercle', Math.max(0, state.teamScores[myTeam]||0), winnerIdx===myTeam);
     var prefix0 = seatsPerTeam===1 ? '' : '🔴 ';
     var prefix1 = seatsPerTeam===1 ? '' : '🔵 ';
     var html = '<div class="team-vs-final">';
