@@ -358,7 +358,7 @@ input[type=range]{width:100%;accent-color:var(--red-bright);height:6px;}
 .hub-title span{display:inline-block;transform:skewX(-8deg);}
 .hub-title .hub-title-accent{color:var(--yellow);margin-left:14px;}
 
-.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));gap:18px;margin-bottom:20px;}
+.game-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(215px,1fr));grid-auto-flow:row dense;gap:18px;margin-bottom:20px;}
 .game-card{
   background:var(--panel);
   border:3px solid var(--red);
@@ -1112,3 +1112,50 @@ button.cls-slot{-webkit-tap-highlight-color:transparent;touch-action:manipulatio
   .room-code-display + .btn-row .btn{margin:0;padding:9px 8px;font-size:0.85rem;}
   .room-code-display + .btn-row .btn[hidden]{display:none;}
 }
+
+/* ================= HUB : REJOINDRE + FAVORIS ================= */
+.hub-join{background:var(--panel);border:3px solid var(--yellow);box-shadow:6px 6px 0 #000;padding:14px 16px;margin:0 0 18px;
+  clip-path:polygon(0 12px,12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%);}
+.hub-join-title{font-family:var(--font-display);letter-spacing:1px;font-size:1.3rem;color:var(--yellow);margin:0 0 8px;}
+.hub-join .join-row input{font-size:1.1rem;letter-spacing:1px;}
+.hub-join-msg{margin:8px 0 0;}
+.hub-join-msg.error{color:#ff6b6b;}
+.game-card{position:relative;}
+.fav-btn{position:absolute;top:4px;right:4px;width:42px;height:42px;padding:0;display:flex;align-items:center;justify-content:center;
+  background:transparent;border:0;color:#777;font-size:1.6rem;line-height:1;cursor:pointer;z-index:1;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .1s,color .15s;}
+.fav-btn:hover{color:var(--yellow);}
+.fav-btn:active{transform:scale(0.85);}
+.fav-btn:focus-visible{outline:3px solid var(--yellow);outline-offset:-4px;}
+.game-card.fav .fav-btn{color:var(--yellow);text-shadow:2px 2px 0 #000;}
+.game-card.fav{border-color:var(--yellow);}
+@media (max-width:600px){ .fav-btn{top:0;right:0;font-size:1.4rem;} }
+
+/* ================= LES LOUPS-GAROUS ================= */
+.garou-screen{display:none;animation:fadeIn .35s ease;}
+.garou-screen.active{display:block;}
+#view-garou{transition:background-color .6s;}
+#view-garou.garou-night{background:linear-gradient(#050a1f,#0a0a0a 60%);}
+#view-garou.garou-night .bots-timer-fill{background:#3b5bdb;}
+.garou-role{display:flex;align-items:flex-start;gap:12px;background:#151515;border:4px solid #000;box-shadow:0 0 0 3px var(--red-bright),6px 6px 0 #000;
+  padding:12px 14px;margin:6px 0 4px;}
+.garou-role[hidden]{display:none;}
+.garou-role .ico{font-size:2.4rem;line-height:1;}
+.garou-role b{display:block;font-family:var(--font-display);font-size:1.5rem;letter-spacing:1px;color:var(--yellow);}
+.garou-role small{display:block;color:#ccc;font-size:0.85rem;line-height:1.35;}
+.garou-role p{margin:6px 0 0;font-size:0.9rem;color:#ddd;}
+.garou-role.loup{box-shadow:0 0 0 3px #ff0033,6px 6px 0 #000;background:#2a0008;}
+.garou-role.voyante{box-shadow:0 0 0 3px #b388ff,6px 6px 0 #000;background:#1a0f2e;}
+.garou-role.sorciere{box-shadow:0 0 0 3px #7cff6e,6px 6px 0 #000;background:#0d2010;}
+.garou-role.chasseur{box-shadow:0 0 0 3px #ff9d2f,6px 6px 0 #000;background:#261505;}
+.garou-role.dead{filter:grayscale(0.7);opacity:0.85;}
+.garou-news{background:#000;border-left:5px solid var(--yellow);padding:8px 12px;margin:0 0 6px;}
+.garou-news:empty{display:none;}
+.garou-news p{margin:4px 0;font-weight:600;}
+.garou-panel{margin-top:10px;}
+.garou-panel .subtitle .btn-row{margin-top:10px;}
+.garou-row.dead{opacity:0.55;}
+.garou-row.dead .cham-player-name{text-decoration:line-through;}
+.garou-dead-title{margin:14px 0 4px;}
+.garou-log{max-height:260px;overflow-y:auto;margin:10px 0 0;}
+.garou-log li{margin-bottom:4px;}

@@ -104,6 +104,40 @@
   CG.cleanRoomCode=cleanRoomCode;
   CG.readRoomCode=readRoomCode;
 
+  /* Retrouve à quel jeu appartient un code de salle (bouton « Rejoindre » du hub) :
+     on tente une connexion vers chaque jeu à la fois ; la première salle qui répond
+     gagne, les autres renvoient « peer-unavailable ». La connexion d'essai ne demande
+     pas de place : l'hôte l'oublie tout seul. cb(route) ou cb(null, message). */
+  function findRoom(code, prefixes, cb){
+    var routes=Object.keys(prefixes), left=routes.length, done=false, conns=[], peer=null, timer=null;
+    function finish(route, err){
+      if(done) return; done=true;
+      clearTimeout(timer);
+      conns.forEach(function(c){ try{ c.close(); }catch(e){} });
+      setTimeout(function(){ try{ if(peer) peer.destroy(); }catch(e){} }, 300);
+      cb(route, err);
+    }
+    if(typeof window.Peer!=='function') return finish(null, 'Connexion impossible (réseau ?)');
+    try{ peer=new Peer(PEER_OPTS); }catch(e){ return finish(null, 'Connexion impossible (réseau ?)'); }
+    timer=setTimeout(function(){ finish(null, 'Aucune salle trouvée avec ce code.'); }, 12000);
+    peer.on('open', function(){
+      routes.forEach(function(route){
+        var c=peer.connect(prefixes[route]+code.toLowerCase(), {reliable:true});
+        conns.push(c);
+        c.on('open', function(){ finish(route); });
+      });
+    });
+    peer.on('error', function(err){
+      if(err && err.type==='peer-unavailable'){
+        left--;
+        if(left<=0) finish(null, 'Aucune salle trouvée avec ce code. Vérifie-le auprès de l’hôte.');
+        return;
+      }
+      finish(null, peerErrorMessage(err));
+    });
+  }
+  CG.findRoom=findRoom;
+
   function peerErrorMessage(err){
     var t = err && err.type;
     if(t==='unavailable-id') return 'CE CODE EST DÉJÀ PRIS — CHOISIS-EN UN AUTRE';
