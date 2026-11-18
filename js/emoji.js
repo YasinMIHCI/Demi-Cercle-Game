@@ -327,7 +327,7 @@
       case 'right':
         view.me=true;
         $('emoGuessBox').hidden=true;
-        $('emoMine').innerHTML='✅ Trouvé : <b>'+escapeHtml(msg.answer)+'</b> · +'+msg.pts;
+        $('emoMine').innerHTML='✅ Trouvé : <b>'+escapeHtml(msg.answer)+'</b> · +'+(+msg.pts||0);
         sfxReveal(100); CG.buzz([40,40,90]);
         break;
       case 'found': view.found=msg.order; renderFound(); if(msg.order.length && msg.order[msg.order.length-1]!==mySeat) CG.sfxToggle(); break;

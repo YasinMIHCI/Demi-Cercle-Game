@@ -231,7 +231,7 @@
 
   function chamPickAvailableColor(preferred, exceptSeat){
     var used=chamState.players.map(function(p,i){ return (p && i!==exceptSeat)?p.color:null; });
-    if(preferred && used.indexOf(preferred)===-1) return preferred;
+    if(preferred && CHAM_PALETTE.indexOf(preferred)!==-1 && used.indexOf(preferred)===-1) return preferred;
     for(var i=0;i<CHAM_PALETTE.length;i++){ if(used.indexOf(CHAM_PALETTE[i])===-1) return CHAM_PALETTE[i]; }
     return CHAM_PALETTE[Math.floor(Math.random()*CHAM_PALETTE.length)];
   }
@@ -849,7 +849,7 @@
     chamState.roundSeats.forEach(function(i){
       var p=chamState.players[i];
       if(!p || i===chamMySeat) return;
-      html+='<div class="cham-player-row filled"><span class="cham-player-dot" style="background:'+p.color+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+'</span><button class="cham-vote-btn" data-seat="'+i+'"><span>Accuser</span></button></div>';
+      html+='<div class="cham-player-row filled"><span class="cham-player-dot" style="background:'+CG.safeColor(p.color)+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+'</span><button class="cham-vote-btn" data-seat="'+i+'"><span>Accuser</span></button></div>';
     });
     list.innerHTML=html;
     var btns=list.querySelectorAll('.cham-vote-btn');
@@ -1017,7 +1017,7 @@
     for(var i=0;i<chamState.players.length;i++){
       var p=chamState.players[i];
       if(!p) continue;
-      html+='<div class="cham-player-row filled'+(chamIsConnected(i)?'':' offline')+'"><span class="cham-player-dot" style="background:'+p.color+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+(i===msg.chameleonSeat?' 🦎':'')+'</span><span class="cham-vote-count">'+(chamState.scores[i]||0)+' pts</span></div>';
+      html+='<div class="cham-player-row filled'+(chamIsConnected(i)?'':' offline')+'"><span class="cham-player-dot" style="background:'+CG.safeColor(p.color)+';"></span><span class="cham-player-name">'+escapeHtml(p.name)+(i===msg.chameleonSeat?' 🦎':'')+'</span><span class="cham-vote-count">'+(chamState.scores[i]||0)+' pts</span></div>';
     }
     $('chamScoreList').innerHTML=html;
 

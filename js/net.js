@@ -295,6 +295,10 @@
       if(!msg || !msg.type || c._dead) return;
       if(msg.type==='_pong' || msg.type==='_ping') return;
       if(msg.type==='join_request'){
+        /* tout ce qu'envoie un invité est nettoyé ici, avant d'arriver dans les jeux */
+        msg.name = typeof msg.name==='string' ? msg.name.replace(/[\u0000-\u001f\u007f]/g,'').replace(/\s+/g,' ').trim().slice(0,18) : '';
+        msg.clientId = typeof msg.clientId==='string' ? msg.clientId.slice(0,64) : null;
+        if(msg.color!==undefined && !(typeof msg.color==='string' && /^#[0-9a-fA-F]{3,8}$/.test(msg.color))) delete msg.color;
         if(c._seat!==null){ call('onSeatJoined', c._seat, msg, true); return; } /* renvoi : l'invité n'a pas reçu la réponse */
         var seat=call('onJoinRequest', msg);
         if(typeof seat!=='number' || seat<1){

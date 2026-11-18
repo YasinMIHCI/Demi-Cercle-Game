@@ -613,7 +613,7 @@
     var order=['yes','no','maybe','hot','cold','found'], html='<div class="loup-mayor-btns">';
     order.forEach(function(k){
       var dis=(k==='hot'||k==='cold') && view.tokens[k]<=0;
-      html+='<button class="'+ANSWERS[k].cls+'" data-id="'+id+'" data-ans="'+k+'"'+(dis?' disabled':'')+'>'+ANSWERS[k].label+'</button>';
+      html+='<button class="'+ANSWERS[k].cls+'" data-id="'+(+id||0)+'" data-ans="'+k+'"'+(dis?' disabled':'')+'>'+ANSWERS[k].label+'</button>';
     });
     return html+'</div>';
   }

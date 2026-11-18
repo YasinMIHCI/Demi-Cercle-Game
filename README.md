@@ -267,8 +267,20 @@ python3 -m http.server 8000
 
 Le mode en ligne utilise le serveur public de PeerJS pour la mise en relation.
 Pour utiliser votre propre [PeerServer](https://github.com/peers/peerjs-server),
-définissez avant les scripts :
+définissez `window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/', secure:true}`
+dans un petit fichier `.js` du site chargé avant les scripts (la CSP interdit les scripts écrits
+dans la page), et ajoutez ce serveur à `connect-src` dans la CSP de `index.html`.
 
-```html
-<script>window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/', secure:true};</script>
-```
+## Sécurité
+
+- **CSP** (balise `<meta http-equiv="Content-Security-Policy">` dans `index.html`) : seuls les
+  scripts du site s'exécutent (aucun script injecté ni venu d'un autre site), et le site ne parle
+  qu'à Supabase et au serveur PeerJS. Un nouveau service externe doit y être ajouté.
+- **PeerJS** est hébergé dans le site (`js/vendor/peerjs.min.js`, copie identique au paquet npm 1.5.4),
+  comme three.js : plus de dépendance à un CDN.
+- **Tout ce qui vient du réseau est un texte non fiable** : `CG.escapeHtml` (échappe aussi `"` et `'`,
+  donc utilisable dans un attribut) pour tout texte mis dans du HTML, `CG.safeColor` pour une couleur,
+  `+x||0` pour un nombre. L'hôte nettoie les demandes d'entrée (pseudo ≤ 18 caractères, couleur
+  `#rrggbb`) dans `js/net.js` avant de les passer aux jeux.
+- Mots de passe : 8 caractères minimum à l'inscription (à régler aussi dans Supabase :
+  Authentication → Providers → Email → *Minimum password length*).
