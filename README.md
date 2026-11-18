@@ -271,6 +271,27 @@ définissez `window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/
 dans un petit fichier `.js` du site chargé avant les scripts (la CSP interdit les scripts écrits
 dans la page), et ajoutez ce serveur à `connect-src` dans la CSP de `index.html`.
 
+## Relais réseau (TURN) et test de connexion
+
+Deux joueurs derrière une box ou une 4G restrictive ne peuvent pas se joindre directement :
+il leur faut un **relais**. Le relais public de PeerJS, gratuit et partagé, est souvent saturé ;
+le site peut utiliser le tien (Cloudflare, gratuit jusqu'à 1 To par mois), et garde celui de
+PeerJS en secours. Tant que rien n'est configuré, tout marche comme avant.
+
+1. Cloudflare → **Realtime** → **TURN Server** → *Create* : note le *Key ID* et l'*API Token*.
+2. Supabase → Edge Functions → **Secrets** : `TURN_KEY_ID`, `TURN_KEY_API_TOKEN`, et
+   (conseillé, pour que ton relais ne serve qu'au site) `ALLOWED_ORIGINS` = l'adresse du site,
+   ex. `https://yasinmihci.github.io`.
+3. Déploie la fonction (appelable sans compte, comme le jeu en ligne) :
+   `supabase functions deploy turn-credentials --no-verify-jwt`
+
+Le site demande des accès temporaires (4 h) à `supabase/functions/turn-credentials` à
+l'ouverture, les garde jusqu'à expiration, et n'attend jamais plus de 3 s.
+
+**⚙️ Réglages → 📡 Tester ma connexion** vérifie le serveur de mise en relation, la connexion
+directe et le relais (perso ou public), puis explique quoi faire (4G, bloqueur, bouclier Brave…).
+Quand le réseau revient (wifi → 4G), un invité déconnecté réessaie aussitôt.
+
 ## Sécurité
 
 - **CSP** (balise `<meta http-equiv="Content-Security-Policy">` dans `index.html`) : seuls les

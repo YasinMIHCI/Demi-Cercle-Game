@@ -39,6 +39,53 @@
   /* NOTE: {secure:true} est forcé. Sinon PeerJS choisit ws:// quand la page
      est ouverte en file:// et la connexion au serveur est refusée. */
   var PEER_OPTS = {secure:true, debug:0, config:{iceServers:ICE_SERVERS}};
+
+  /* Relais perso (Cloudflare) : accès temporaires donnés par la fonction Supabase
+     « turn-credentials » (la clé reste côté serveur). Gardés en mémoire jusqu'à
+     leur expiration ; sans réponse en 3 s, ou si le relais n'est pas configuré,
+     on garde la liste ci-dessus. Les relais perso passent en premier, le relais
+     public de PeerJS reste en secours. */
+  var TURN_URL='https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials';
+  var ICE_KEY='cg_ice', ICE_WAIT=3000;
+  var ice={own:false, exp:0, pending:null};
+  function validIce(list){
+    return Array.isArray(list) && list.length<10 && list.every(function(x){
+      var u=x && (Array.isArray(x.urls)?x.urls:[x.urls]);
+      return u && u.length && u.every(function(v){ return typeof v==='string' && /^(stun|turns?):[^\s]{3,200}$/.test(v); });
+    });
+  }
+  function applyIce(list, exp){
+    PEER_OPTS.config={iceServers:list.concat(ICE_SERVERS)};
+    ice.own=true; ice.exp=exp;
+  }
+  (function(){
+    try{
+      var c=JSON.parse(localStorage.getItem(ICE_KEY)||'null');
+      if(c && validIce(c.list) && c.exp>Date.now()) applyIce(c.list, c.exp);
+    }catch(e){}
+  })();
+  /* promesse toujours tenue (jamais d'erreur) : on peut ouvrir le Peer après */
+  function iceReady(){
+    if(window.CG_PEER_OVERRIDE) return Promise.resolve();
+    if(ice.own && ice.exp-Date.now()>30*60000) return Promise.resolve();   /* encore valable au moins 30 min */
+    if(ice.pending) return ice.pending;
+    var timer, fetched=new Promise(function(res){
+      if(typeof fetch!=='function') return res();
+      fetch(TURN_URL, {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+        if(d && validIce(d.iceServers)){
+          var exp=Date.now()+Math.min(+d.ttl||3600, 12*3600)*1000-5*60000;
+          applyIce(d.iceServers, exp);
+          try{ localStorage.setItem(ICE_KEY, JSON.stringify({list:d.iceServers, exp:exp})); }catch(e){}
+        }
+        res();
+      }, function(){ res(); });
+    });
+    ice.pending=Promise.race([fetched, new Promise(function(res){ timer=setTimeout(res, ICE_WAIT); })])
+      .then(function(){ clearTimeout(timer); ice.pending=null; });
+    return ice.pending;
+  }
+  iceReady();   /* on s'y prend dès l'ouverture du site */
+  CG.iceReady=iceReady;
   /* Permet de pointer vers son propre PeerServer (tests en local, ou si le
      serveur public est saturé) : window.CG_PEER_OVERRIDE = {host, port, path, secure} */
   if(window.CG_PEER_OVERRIDE){
@@ -118,6 +165,8 @@
       cb(route, err);
     }
     if(typeof window.Peer!=='function') return finish(null, 'Connexion impossible (réseau ?)');
+    iceReady().then(function(){ if(!done) start(); });
+    function start(){
     try{ peer=new Peer(PEER_OPTS); }catch(e){ return finish(null, 'Connexion impossible (réseau ?)'); }
     timer=setTimeout(function(){ finish(null, 'Aucune salle trouvée avec ce code.'); }, 12000);
     peer.on('open', function(){
@@ -135,6 +184,7 @@
       }
       finish(null, peerErrorMessage(err));
     });
+    }
   }
   CG.findRoom=findRoom;
 
@@ -185,6 +235,7 @@
     var reconnectAttempt=0, hostLastSeen=0, hostIdRetries=0;
     var roster=null, rosterLive=null, lostAt=0, promoting=false, beats=0;
     var seatIds=[];               /* hôte : identifiant client de chaque place (même déconnectée) */
+    var openGen=0;                /* ignore une ouverture en attente des relais si on a changé d'avis entre-temps */
 
     function status(cls,label){ if(cfg.onStatus) cfg.onStatus(cls,label); }
     function call(name){
@@ -234,7 +285,9 @@
       if(typeof Peer==='undefined'){ status('error','PEERJS INDISPONIBLE (vérifie ta connexion internet)'); return; }
       hostIdRetries=0;
       wantedCode=cleanRoomCode(code);
-      openHostPeer(onReady);
+      status('connecting','CRÉATION DE LA SALLE...');
+      var gen=++openGen;
+      iceReady().then(function(){ if(gen===openGen && !intentional) openHostPeer(onReady); });
     };
     function openHostPeer(onReady){
       status('connecting','CRÉATION DE LA SALLE...');
@@ -361,7 +414,9 @@
       net.role='guest'; net.code=code; net.mySeat=0;
       joinPayload=payload||{}; joined=false; reconnectAttempt=0;
       heartbeatTimer=setInterval(guestWatchdog, 2000);
-      connectToHost(false);
+      status('connecting','CONNEXION EN COURS...');
+      var gen=++openGen;
+      iceReady().then(function(){ if(gen===openGen && !intentional) connectToHost(false); });
     };
     function connectToHost(isRetry){
       if(intentional) return;
@@ -396,7 +451,7 @@
       var openTimer=setTimeout(function(){
         if(conn!==c || c.open) return;
         conn=null; try{ c.close(); }catch(e){}
-        guestFailure('CONNEXION DIRECTE IMPOSSIBLE (réseau/pare-feu ?)');
+        guestFailure('CONNEXION DIRECTE IMPOSSIBLE — TESTE TA CONNEXION (⚙️ RÉGLAGES)');
       }, OPEN_TIMEOUT);
       function sendJoin(){
         joinTimer=null;
@@ -529,6 +584,17 @@
     document.addEventListener('visibilitychange', function(){
       if(document.visibilityState==='visible') guestWatchdog();
     });
+    /* le réseau revient (wifi -> 4G, sortie d'un tunnel…) : on réessaie tout de suite
+       au lieu d'attendre le prochain essai programmé */
+    window.addEventListener('online', function(){
+      if(intentional) return;
+      if(peer && peer.disconnected && !peer.destroyed){ try{ peer.reconnect(); }catch(e){} }
+      if(net.role==='guest' && joined && reconnectTimer && !(conn && conn.open)){
+        reconnectTimer=clearTimer(reconnectTimer);
+        destroyPeer();
+        connectToHost(true);
+      }
+    });
 
     /* ===================== ENVOI ===================== */
     net.sendTo = function(seat,msg){
@@ -559,7 +625,7 @@
     /* farewell : message envoyé à tous les invités avant de fermer (hôte).
        Les connexions sont fermées un peu plus tard pour qu'il parte bien. */
     net.close = function(farewell){
-      intentional=true;
+      intentional=true; openGen++;
       serverTimer=clearTimer(serverTimer);
       heartbeatTimer=clearTimer(heartbeatTimer);
       reconnectTimer=clearTimer(reconnectTimer);
@@ -602,5 +668,42 @@
   }
 
   CG.createRoomNet = createRoomNet;
+
+  /* ----- test de connexion (⚙️ Réglages) -----
+     1. le serveur de mise en relation PeerJS répond-il ?
+     2. quelles routes WebRTC sont possibles : adresse publique (STUN) et relais (TURN) ?
+     done({server, direct, relay, own}) : true / false pour chaque étape. */
+  function netTest(done){
+    var out={server:false, direct:false, relay:false, own:false};
+    iceReady().then(function(){
+      out.own=ice.own;
+      var left=2;
+      function step(){ if(--left===0) done(out); }
+      /* 1. serveur PeerJS */
+      var p=null, t1=setTimeout(function(){ end1(); }, 8000);
+      function end1(){ clearTimeout(t1); try{ if(p) p.destroy(); }catch(e){} p=null; step(); }
+      try{
+        p=new Peer(PEER_OPTS);
+        p.on('open', function(){ out.server=true; end1(); });
+        p.on('error', function(){ end1(); });
+      }catch(e){ end1(); }
+      /* 2. candidats ICE */
+      var pc=null, t2=setTimeout(function(){ end2(); }, 7000), ended=false;
+      function end2(){ if(ended) return; ended=true; clearTimeout(t2); try{ if(pc) pc.close(); }catch(e){} step(); }
+      try{
+        pc=new RTCPeerConnection({iceServers:PEER_OPTS.config.iceServers});
+        pc.createDataChannel('test');
+        pc.onicecandidate=function(e){
+          if(!e.candidate){ end2(); return; }
+          var c=e.candidate.candidate||'';
+          if(/ typ srflx/.test(c)) out.direct=true;
+          if(/ typ relay/.test(c)) out.relay=true;
+          if(out.direct && out.relay) end2();
+        };
+        pc.createOffer().then(function(o){ return pc.setLocalDescription(o); })['catch'](end2);
+      }catch(e){ end2(); }
+    });
+  }
+  CG.netTest = netTest;
   CG.getClientId = getClientId;
 })();

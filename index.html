@@ -21,7 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=47">
+<link rel="stylesheet" href="css/style.css?v=48">
 </head>
 <body>
 
@@ -32,8 +32,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=47"></script>
-<script src="js/intro.js?v=47"></script>
+<script src="js/audio.js?v=48"></script>
+<script src="js/intro.js?v=48"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -2292,6 +2292,11 @@
       <label class="settings-check" for="setVibrate"><input type="checkbox" id="setVibrate"> 📳 Vibrations (ton tour, résultats)</label>
       <p class="theme-count" id="setVibrateNote" style="margin:0;" hidden>Ton téléphone ou ton navigateur ne gère pas les vibrations.</p>
     </div>
+    <div class="net-test">
+      <button class="btn ghost small" id="netTestBtn" type="button"><span>📡 Tester ma connexion</span></button>
+      <ul class="net-test-list" id="netTestList" role="status" hidden></ul>
+      <p class="theme-count" id="netTestVerdict" hidden></p>
+    </div>
     <div class="btn-row center" style="margin-top:16px;">
       <button class="btn yellow small" id="replayIntroBtn"><span>▶ Revoir l'intro</span></button>
     </div>
@@ -2375,23 +2380,23 @@
 <!-- PeerJS 1.5.4, copie identique au paquet npm officiel (sha256 ad5d8870…36fe5) -->
 <script src="js/vendor/peerjs.min.js?v=1"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=47"></script>
-<script src="js/net.js?v=47"></script>
-<script src="js/demicercle.js?v=47"></script>
-<script src="js/cameleon.js?v=47"></script>
-<script src="js/imposteur.js?v=47"></script>
-<script src="js/loup.js?v=47"></script>
-<script src="js/garou.js?v=47"></script>
-<script src="js/classement.js?v=47"></script>
-<script src="js/quiaecrit.js?v=47"></script>
-<script src="js/emoji.js?v=47"></script>
-<script src="js/crousprison-photos.js?v=47"></script>
-<script src="js/crousprison.js?v=47"></script>
-<script src="js/bots-maps.js?v=47"></script>
-<script src="js/bots.js?v=47"></script>
-<script src="js/pwa.js?v=47"></script>
-<script src="js/party.js?v=47"></script>
-<script src="js/account.js?v=47"></script>
-<script src="js/hub.js?v=47"></script>
+<script src="js/common.js?v=48"></script>
+<script src="js/net.js?v=48"></script>
+<script src="js/demicercle.js?v=48"></script>
+<script src="js/cameleon.js?v=48"></script>
+<script src="js/imposteur.js?v=48"></script>
+<script src="js/loup.js?v=48"></script>
+<script src="js/garou.js?v=48"></script>
+<script src="js/classement.js?v=48"></script>
+<script src="js/quiaecrit.js?v=48"></script>
+<script src="js/emoji.js?v=48"></script>
+<script src="js/crousprison-photos.js?v=48"></script>
+<script src="js/crousprison.js?v=48"></script>
+<script src="js/bots-maps.js?v=48"></script>
+<script src="js/bots.js?v=48"></script>
+<script src="js/pwa.js?v=48"></script>
+<script src="js/party.js?v=48"></script>
+<script src="js/account.js?v=48"></script>
+<script src="js/hub.js?v=48"></script>
 </body>
 </html>
