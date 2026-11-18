@@ -18,7 +18,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=45">
+<link rel="stylesheet" href="css/style.css?v=46">
 </head>
 <body>
 
@@ -29,8 +29,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=45"></script>
-<script src="js/intro.js?v=45"></script>
+<script src="js/audio.js?v=46"></script>
+<script src="js/intro.js?v=46"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -51,6 +51,15 @@
         <button class="btn ghost small" id="hubInfoBtn"><span>📖 Règles / Infos</span></button>
       </div>
     </header>
+
+    <section class="hub-join" aria-labelledby="hubJoinTitle">
+      <h2 class="hub-join-title" id="hubJoinTitle">🚪 Rejoindre une partie</h2>
+      <div class="join-row">
+        <input type="text" id="hubJoinCode" data-enter="hubJoinBtn" aria-label="Code de la salle" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+        <button class="btn yellow" id="hubJoinBtn" type="button"><span>▶ Rejoindre</span></button>
+      </div>
+      <p class="theme-count hub-join-msg" id="hubJoinMsg" role="status">Tape le code de l'hôte : on trouve tout seul à quel jeu il joue.</p>
+    </section>
 
     <div class="hub-filter" role="group" aria-labelledby="hubFilterLabel">
       <span class="hub-filter-label" id="hubFilterLabel">👥 On est combien ?</span>
@@ -119,6 +128,13 @@
         <span class="game-pill" title="Nombre de joueurs">👥 4-10</span>
         <p>Trouvez le mot du Maire en questions fermées… mais un Loup qui le connaît vous sabote.</p>
         <button class="btn yellow" id="playLoupBtn" aria-label="Jouer : Le Loup des mots"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available" data-min="5" data-max="12">
+        <div class="game-card-icon" aria-hidden="true">🌕</div>
+        <h3>LES LOUPS-GAROUS</h3>
+        <span class="game-pill" title="Nombre de joueurs">👥 5-12</span>
+        <p>Le classique : chaque nuit les loups dévorent un villageois, chaque jour le village élimine un suspect. Sans meneur.</p>
+        <button class="btn yellow" id="playGarouBtn" aria-label="Jouer : Les Loups-Garous"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card available" data-min="3" data-max="8">
         <div class="game-card-icon" aria-hidden="true">🏆</div>
@@ -1611,6 +1627,154 @@
   </div>
 </div>
 
+<!-- ================= LES LOUPS-GAROUS ================= -->
+<div id="view-garou" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="garouHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>LOUPS-<em>GAROUS</em></span></div>
+        <div class="badge-round" id="garouDayBadge" style="display:none;">NUIT 1</div>
+      </div>
+      <div class="net-status offline" id="garouNetStatus">
+        <span class="net-dot"></span><span class="net-label">HORS LIGNE</span>
+      </div>
+    </div>
+
+    <div class="net-banner" id="garouNetBanner" role="status">
+      <span id="garouNetBannerText"></span>
+    </div>
+
+    <!-- ONLINE ENTRY -->
+    <section class="garou-screen active" id="garou-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">LES LOUPS-GAROUS</h1>
+        <p class="subtitle">5 à 12 joueurs. Chaque nuit, les loups-garous dévorent un villageois ; chaque jour, le village débat et élimine un suspect. Pas besoin de meneur : le jeu fait le narrateur. Idéal en vocal ou autour d'une table.</p>
+        <div class="btn-row">
+          <button class="btn ghost small" id="garouRulesBtn"><span>📖 Règles du jeu</span></button>
+        </div>
+        <label for="garouName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="garouName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="garouJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="garouJoinCode" data-enter="garouJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="garouJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
+        <label for="garouHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="garouHostCode" data-room-code="garouCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row">
+          <button class="btn yellow small" id="garouCreateRoomBtn"><span>Créer la salle</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY -->
+    <section class="garou-screen" id="garou-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="garouBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="garouCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="garouCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="garouCopyLinkBtn"><span>🔗 Copier le lien</span></button>
+        </div>
+        <div class="cham-player-list" id="garouPlayerList"></div>
+        <div class="host-opts" id="garouHostOpts" hidden>
+          <div>
+            <label for="garouDaySel">☀️ Durée du débat (jour)</label>
+            <select id="garouDaySel">
+              <option value="120">2 minutes</option>
+              <option value="180" selected>3 minutes</option>
+              <option value="240">4 minutes</option>
+              <option value="300">5 minutes</option>
+            </select>
+          </div>
+          <label class="settings-check" for="garouWitchChk"><input type="checkbox" id="garouWitchChk" checked> 🧪 Sorcière</label>
+          <label class="settings-check" for="garouHunterChk"><input type="checkbox" id="garouHunterChk" checked> 🏹 Chasseur (dès 6 joueurs)</label>
+        </div>
+        <p class="lobby-status" id="garouLobbyStatus">En attente de joueurs... (5 minimum)</p>
+        <div class="btn-row center lobby-start">
+          <button class="btn yellow" id="garouStartBtn" style="display:none;"><span>🌕 Lancer la partie</span></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARTIE -->
+    <section class="garou-screen" id="garou-screen-game">
+      <div class="garou-role" id="garouRoleCard" hidden></div>
+      <div class="bots-timer" style="margin:10px 0;"><div class="bots-timer-fill" id="garouTimerFill"></div><span id="garouTimerText"></span></div>
+      <div class="garou-news" id="garouNews" aria-live="polite"></div>
+      <div class="panel garou-panel">
+        <h2 class="screen-title panel-title" id="garouActionTitle"></h2>
+        <div class="subtitle" id="garouActionHint"></div>
+        <div class="cham-player-list" id="garouPlayers"></div>
+      </div>
+      <details class="panel fold garou-log-fold">
+        <summary><h2 class="screen-title panel-title">📜 JOURNAL DE LA PARTIE</h2></summary>
+        <ol class="rules-list garou-log" id="garouLog"></ol>
+      </details>
+    </section>
+
+    <!-- FIN -->
+    <section class="garou-screen" id="garou-screen-over">
+      <div class="panel">
+        <div class="cham-result-banner" id="garouWinBanner">FIN DE LA PARTIE</div>
+        <h3 class="rules-subhead" style="text-align:center;">RÔLES &amp; SCORES</h3>
+        <div class="cham-player-list" id="garouFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="garouNewGameBtn" style="display:none;"><span>🌕 Nouvelle partie</span></button>
+          <span class="waiting-label" id="garouOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+        <details class="fold" style="margin-top:18px;">
+          <summary><h3 class="screen-title panel-title">📜 Ce qui s'est passé</h3></summary>
+          <ol class="rules-list garou-log" id="garouFinalLog"></ol>
+        </details>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- LOUPS-GAROUS : RÈGLES -->
+<div class="modal-overlay" id="garouRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="garouRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LES LOUPS-GAROUS</h2>
+    <ol class="rules-list">
+      <li>Chacun reçoit un <b>rôle secret</b>. Deux camps : les <b>Loups-Garous</b> 🐺 (1 loup de 5 à 6 joueurs, 2 de 7 à 10, 3 à partir de 11) et le <b>Village</b>.</li>
+      <li><b>La nuit 🌙</b> : les loups choisissent ensemble une victime (ils voient les choix de leur meute). En même temps, la <b>Voyante</b> 🔮 découvre le rôle d'un joueur. Puis la <b>Sorcière</b> 🧪 apprend qui a été attaqué : elle peut le sauver (potion de vie) et/ou empoisonner quelqu'un (potion de mort), une seule fois chacune dans la partie.</li>
+      <li><b>Le jour ☀️</b> : on annonce les morts et leur rôle. Le village débat (à voix haute ou en vocal), puis vote pour éliminer un suspect. En cas d'égalité, personne n'est éliminé.</li>
+      <li><b>Le Chasseur</b> 🏹 (option, dès 6 joueurs) : quand il meurt, il tire une dernière balle sur le joueur de son choix.</li>
+      <li><b>Les morts</b> voient tous les rôles… et ne doivent plus rien dire !</li>
+      <li><b>Victoire</b> : le Village gagne quand tous les loups sont morts ; les Loups gagnent dès qu'ils sont aussi nombreux que les autres joueurs encore en vie. Chaque joueur du camp gagnant marque 1 point, mort ou vivant.</li>
+      <li>Pas de meneur : l'hôte de la salle fait le narrateur automatique (il joue normalement, sans rien voir de plus). L'hôte choisit la durée du débat et active ou non la Sorcière et le Chasseur.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- LOUPS-GAROUS : CONNEXION PERDUE -->
+<div class="modal-overlay" id="garouDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="garouDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center">
+      <button class="btn yellow" id="garouDisconnectBackBtn"><span>◀ Retour au menu</span></button>
+    </div>
+  </div>
+</div>
+
 <!-- ================= LE LOUP DES MOTS ================= -->
 <div id="view-loup" class="view">
   <div class="hub-return-bar">
@@ -2154,9 +2318,12 @@
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question (réponse en nombre ou en texte libre), et un joueur qui a reçu une autre question sans le savoir.</li>
       <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2, chacun pour soi (jusqu'à 6) ou survie contre des bots (1 à 4), en ligne.</li>
       <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
+      <li><b>Les Loups-Garous :</b> le jeu de rôle caché classique (Voyante, Sorcière, Chasseur), sans meneur : le jeu fait le narrateur. 5 à 12 joueurs en ligne.</li>
       <li><b>Le Classement :</b> chacun classe le groupe en secret sur une question (« Qui est le plus fort au bras de fer ? »), puis on compare. 3 à 8 joueurs en ligne.</li>
       <li><b>Qui a écrit ça ? :</b> réponses anonymes à des questions drôles, puis on devine qui a écrit quoi. 3 à 8 joueurs en ligne.</li>
       <li><b>Crous ou Prison ? :</b> une photo de chambre, 10 secondes pour deviner si c'est une chambre étudiante ou une cellule. En solo ou de 2 à 8 en ligne.</li>
+      <li><b>🚪 Rejoindre une partie</b> en haut du hub : tape juste le code de l'hôte, le jeu est trouvé tout seul.</li>
+      <li><b>☆ Favoris</b> : touche l'étoile d'un jeu pour le garder en tête de liste.</li>
       <li><b>« On est combien ? »</b> en haut du hub : touche votre nombre de joueurs pour mettre en avant les jeux jouables.</li>
       <li>D'autres jeux arriveront prochainement dans ce même hub — reviens régulièrement !</li>
     </ol>
@@ -2204,22 +2371,23 @@
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=45"></script>
-<script src="js/net.js?v=45"></script>
-<script src="js/demicercle.js?v=45"></script>
-<script src="js/cameleon.js?v=45"></script>
-<script src="js/imposteur.js?v=45"></script>
-<script src="js/loup.js?v=45"></script>
-<script src="js/classement.js?v=45"></script>
-<script src="js/quiaecrit.js?v=45"></script>
-<script src="js/emoji.js?v=45"></script>
-<script src="js/crousprison-photos.js?v=45"></script>
-<script src="js/crousprison.js?v=45"></script>
-<script src="js/bots-maps.js?v=45"></script>
-<script src="js/bots.js?v=45"></script>
-<script src="js/pwa.js?v=45"></script>
-<script src="js/party.js?v=45"></script>
-<script src="js/account.js?v=45"></script>
-<script src="js/hub.js?v=45"></script>
+<script src="js/common.js?v=46"></script>
+<script src="js/net.js?v=46"></script>
+<script src="js/demicercle.js?v=46"></script>
+<script src="js/cameleon.js?v=46"></script>
+<script src="js/imposteur.js?v=46"></script>
+<script src="js/loup.js?v=46"></script>
+<script src="js/garou.js?v=46"></script>
+<script src="js/classement.js?v=46"></script>
+<script src="js/quiaecrit.js?v=46"></script>
+<script src="js/emoji.js?v=46"></script>
+<script src="js/crousprison-photos.js?v=46"></script>
+<script src="js/crousprison.js?v=46"></script>
+<script src="js/bots-maps.js?v=46"></script>
+<script src="js/bots.js?v=46"></script>
+<script src="js/pwa.js?v=46"></script>
+<script src="js/party.js?v=46"></script>
+<script src="js/account.js?v=46"></script>
+<script src="js/hub.js?v=46"></script>
 </body>
 </html>

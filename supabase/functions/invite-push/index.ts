@@ -14,7 +14,7 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 const LABELS: Record<string, string> = {
-  demicercle: "Le Demi-Cercle", cameleon: "Le Caméléon", imposteur: "L'Imposteur", loup: "Le Loup des mots",
+  demicercle: "Le Demi-Cercle", cameleon: "Le Caméléon", imposteur: "L'Imposteur", loup: "Le Loup des mots", garou: "Les Loups-Garous", emoji: "Emoji Quiz",
   classement: "Le Classement", quiaecrit: "Qui a écrit ça ?", crousprison: "Crous ou Prison ?",
   bots: "Battle Bots", soiree: "Soirée All in",
 };

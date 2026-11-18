@@ -27,7 +27,8 @@
     cameleon:   {label:'Le Caméléon',       input:'chamName',   metric:'wins'},
     imposteur:  {label:"L'Imposteur",       input:'impName',    metric:'wins'},
     emoji:      {label:'Emoji Quiz',        input:'emoName',    metric:'best', unit:'pts'},
-    loup:       {label:'Le Loup des mots',  input:'loupName',   metric:'wins'}
+    loup:       {label:'Le Loup des mots',  input:'loupName',   metric:'wins'},
+    garou:      {label:'Les Loups-Garous',  input:'garouName',  metric:'wins'}
   };
 
   /* ---------- session ---------- */
@@ -339,6 +340,7 @@
     ['imp_detective5','🔍','Détective','Imposteur : démasquer l’imposteur 5 fois.'],
     ['cham_hidden','🦎','Maître du camouflage','Caméléon : gagner en étant le Caméléon.'],
     ['loup_wolf','🐺','Grand méchant loup','Loup des mots : gagner en étant Loup.'],
+    ['garou_wolf','🌕','Nuit de pleine lune','Loups-Garous : gagner dans le camp des loups.'],
     ['cls_mind','🧠','Dans la tête du groupe','Classement : être le plus proche du groupe.'],
     ['qae_fool3','🎭','Maître du bluff','Qui a écrit ça : berner 3 joueurs avec une réponse.'],
     ['qae_funny','😂','Le plus drôle','Qui a écrit ça : réponse la plus drôle de la manche.'],
@@ -406,7 +408,7 @@
   /* ===================== AMIS ===================== */
   function rpc(name, body){ return authed('/rest/v1/rpc/'+name, {method:'POST', body:body||{}}); }
   var JOIN={demicercle:['demicercle','joinRoomBtn'], cameleon:['cameleon','chamJoinRoomBtn'], imposteur:['imposteur','impJoinRoomBtn'],
-    loup:['loup','loupJoinRoomBtn'], classement:['classement','clsJoinRoomBtn'], quiaecrit:['quiaecrit','qaeJoinRoomBtn'],
+    loup:['loup','loupJoinRoomBtn'], garou:['garou','garouJoinRoomBtn'], classement:['classement','clsJoinRoomBtn'], quiaecrit:['quiaecrit','qaeJoinRoomBtn'],
     crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn'], emoji:['emoji','emoJoinRoomBtn']};
   function ago(iso){
     if(!iso) return 'jamais joué';

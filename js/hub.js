@@ -1,4 +1,4 @@
-/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison),
+/* CRAZY GAMES — hub : routeur par hash (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #garou, #classement, #quiaecrit, #crousprison),
    modale d'infos et bouton son. Chargé en dernier. */
 (function(){
   'use strict';
@@ -29,10 +29,10 @@
   }
 
   /* musique de fond selon l'écran (js/audio.js) */
-  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist', emoji:'heist'};
+  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', garou:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist', emoji:'heist'};
   /* quitte proprement les salles en cours ; un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
   function resetGames(){
-    ['demicercle','cameleon','imposteur','bots','loup','classement','quiaecrit','crousprison','emoji'].forEach(function(k){
+    ['demicercle','cameleon','imposteur','bots','loup','garou','classement','quiaecrit','crousprison','emoji'].forEach(function(k){
       try{ if(CG[k]) CG[k].reset(); }catch(e){}
     });
   }
@@ -59,6 +59,9 @@
     } else if(r.route==='classement'){
       showView('classement');
       if(isInitial && r.query.room) CG.classement.enterJoinFlow(r.query.room);
+    } else if(r.route==='garou'){
+      showView('garou');
+      if(isInitial && r.query.room) CG.garou.enterJoinFlow(r.query.room);
     } else if(r.route==='loup'){
       showView('loup');
       if(isInitial && r.query.room) CG.loup.enterJoinFlow(r.query.room);
@@ -84,7 +87,7 @@
   /* Lien ou QR code d'invitation : si le pseudo est déjà connu (compte ou
      dernière partie), on rejoint la salle directement, sans autre clic. */
   var AUTOJOIN={demicercle:['onlineName','joinRoomBtn'], cameleon:['chamName','chamJoinRoomBtn'], imposteur:['impName','impJoinRoomBtn'],
-    loup:['loupName','loupJoinRoomBtn'], classement:['clsName','clsJoinRoomBtn'], quiaecrit:['qaeName','qaeJoinRoomBtn'],
+    loup:['loupName','loupJoinRoomBtn'], garou:['garouName','garouJoinRoomBtn'], classement:['clsName','clsJoinRoomBtn'], quiaecrit:['qaeName','qaeJoinRoomBtn'],
     crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn'], emoji:['emoName','emoJoinRoomBtn']};
   function autoJoin(route){
     var a=AUTOJOIN[route]; if(!a) return;
@@ -103,6 +106,7 @@
   $('playCrousprisonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='crousprison'; });
   $('playQuiaecritBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='quiaecrit'; });
   $('playClassementBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='classement'; });
+  $('playGarouBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='garou'; });
   $('playLoupBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='loup'; });
   $('playBotsBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='bots'; });
   $('playEmojiBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='emoji'; });
@@ -127,10 +131,41 @@
   });
   $('settingsBtn').addEventListener('click', refreshSoundToggles);
 
+  /* ----- jeux favoris : une étoile sur chaque carte, les favoris passent en tête ----- */
+  var FAV_KEY='crazygames_favs', favs=[];
+  try{ favs=JSON.parse(localStorage.getItem(FAV_KEY)||'[]')||[]; }catch(e){ favs=[]; }
+  function cardKey(c){ var b=c.querySelector('.btn'); return b ? b.id : ''; }
+  function isFav(c){ return favs.indexOf(cardKey(c))!==-1; }
+  function paintFav(c){
+    var on=isFav(c), star=c.querySelector('.fav-btn'), name=c.querySelector('h3').textContent;
+    c.classList.toggle('fav', on);
+    star.textContent = on ? '★' : '☆';
+    star.setAttribute('aria-pressed', on?'true':'false');
+    star.setAttribute('aria-label', (on?'Retirer des favoris : ':'Ajouter aux favoris : ')+name);
+    star.title = on ? 'Retirer des favoris' : 'Ajouter aux favoris';
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#gameGrid .game-card'), function(c){
+    var star=document.createElement('button');
+    star.type='button'; star.className='fav-btn';
+    star.addEventListener('click',function(e){
+      e.stopPropagation();
+      var k=cardKey(c), i=favs.indexOf(k);
+      if(i===-1) favs.push(k); else favs.splice(i,1);
+      try{ localStorage.setItem(FAV_KEY, JSON.stringify(favs)); }catch(err){}
+      CG.sfxToggle();
+      paintFav(c);
+      applyFilter(currentFilter);
+    });
+    c.appendChild(star);
+    paintFav(c);
+  });
+
   /* ----- « On est combien ? » : met en avant les jeux jouables à ce nombre ----- */
   var FILTER_KEY='crazygames_hub_players';
   var cards=Array.prototype.slice.call(document.querySelectorAll('#gameGrid .game-card'));
+  var currentFilter=0;
   function applyFilter(n){
+    currentFilter=n;
     var chips=document.querySelectorAll('#hubFilter .hub-chip'), ok=0;
     for(var i=0;i<chips.length;i++){
       var on=+chips[i].getAttribute('data-n')===n;
@@ -142,7 +177,7 @@
       if(fits) ok++;
       c.classList.toggle('dim', !fits);
       /* les jeux jouables passent devant, sans changer leur ordre entre eux */
-      c.style.order = fits ? idx : 100+idx;
+      c.style.order = (fits ? 0 : 200) + (isFav(c) ? 0 : 100) + idx;
     });
     $('hubFilterNote').textContent = n ? (ok+' jeu'+(ok>1?'x':'')+' pour '+n+' joueur'+(n>1?'s':'')+(n===1?' (solo)':'')) : '';
     try{ localStorage.setItem(FILTER_KEY, String(n)); }catch(e){}
@@ -155,10 +190,38 @@
   });
   (function(){ var n=0; try{ n=+(localStorage.getItem(FILTER_KEY)||0); }catch(e){} applyFilter(n>=1 && n<=10 ? n : 0); })();
 
+  /* ----- « Rejoindre une partie » : un code suffit, on cherche le jeu tout seul ----- */
+  var ROOM_PREFIXES={soiree:'cgparty-', demicercle:'cgdemicercle-', cameleon:'cgcameleon-', imposteur:'cgimposteur-', emoji:'cgemoji-',
+    bots:'cgbots-', loup:'cgloup-', garou:'cggarou-', classement:'cgclassement-', quiaecrit:'cgquiaecrit-', crousprison:'cgcrousprison-'};
+  var GAME_OBJ={soiree:'party'};
+  var joining=false;
+  function hubJoinMsg(t, err){ var m=$('hubJoinMsg'); m.textContent=t; m.classList.toggle('error', !!err); }
+  $('hubJoinBtn').addEventListener('click',function(){
+    if(joining) return;
+    var inp=$('hubJoinCode'), code=CG.cleanRoomCode(inp.value);
+    if(code.length<3){ CG.shake(inp); hubJoinMsg('Tape le code de la salle (3 caractères minimum).', true); return; }
+    inp.value=code; joining=true; CG.sfxToggle();
+    var btn=$('hubJoinBtn'); btn.disabled=true;
+    hubJoinMsg('🔎 Recherche de la salle '+code+'…');
+    CG.findRoom(code, ROOM_PREFIXES, function(route, err){
+      joining=false; btn.disabled=false;
+      if(!route){ CG.shake(inp); hubJoinMsg('❌ '+(err||'Aucune salle trouvée.'), true); return; }
+      hubJoinMsg('Tape le code de l\'hôte : on trouve tout seul à quel jeu il joue.');
+      inp.value='';
+      location.hash=route+'?room='+code;
+      /* le routeur affiche le jeu ; on remplit le code et on rejoint (pseudo connu) */
+      setTimeout(function(){
+        var g=CG[GAME_OBJ[route]||route];
+        if(g && g.enterJoinFlow) g.enterJoinFlow(code);
+        autoJoin(route);
+      }, 0);
+    });
+  });
+
   /* toute la carte est cliquable (le bouton ▶ JOUER reste la cible au clavier) */
   cards.forEach(function(c){
     var btn=c.querySelector('.btn');
-    c.addEventListener('click',function(e){ if(btn && !(e.target.closest && e.target.closest('.btn'))) btn.click(); });
+    c.addEventListener('click',function(e){ if(btn && !(e.target.closest && e.target.closest('.btn, .fav-btn'))) btn.click(); });
   });
 
   /* ----- réglages : volumes, vibrations, revoir l'intro ----- */

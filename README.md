@@ -44,6 +44,10 @@ Tout le son passe par `js/audio.js` (un seul contexte audio pour le site) :
 
 ## Ergonomie
 
+- **Rejoindre une partie** (en haut du hub) : on tape juste le code de l'hôte ; le site essaie
+  le code dans tous les jeux à la fois (`CG.findRoom`, `js/net.js`) et ouvre le bon, puis rejoint
+  directement si le pseudo est déjà connu.
+- **Favoris** : une étoile ☆ sur chaque carte ; les favoris passent en tête (mémorisés sur l'appareil).
 - **Hub** : cartes compactes (2 colonnes sur téléphone), nombre de joueurs en pastille (👥 3-8)
   et filtre « On est combien ? » qui met en avant les jeux jouables (choix mémorisé).
 - **Créer / Rejoindre** : même disposition dans tous les jeux, « Rejoindre » en premier
@@ -97,6 +101,23 @@ puis tout le monde vote. Si l'Imposteur est le seul plus accusé, ceux qui ont v
 contre lui gagnent 1 point ; sinon il s'échappe et gagne 2 points. Banque de plus de 150 paires
 de questions, complétable avec les vôtres. Limites de temps : 90 s pour répondre, 60 s
 pour voter.
+
+### 🌕 Les Loups-Garous
+Le jeu de rôle caché classique, de 5 à 12 joueurs en ligne, **sans meneur** : l'hôte de la
+salle fait le narrateur automatique (il joue normalement, sans rien voir de plus).
+- Rôles : Loups-Garous (1 de 5 à 6 joueurs, 2 de 7 à 10, 3 dès 11), Voyante, Sorcière (option),
+  Chasseur (option, dès 6 joueurs) et Villageois.
+- **Nuit** : les loups choisissent ensemble une victime (ils voient les choix de la meute) pendant
+  que la Voyante découvre le rôle d'un joueur ; puis la Sorcière peut sauver la victime et/ou
+  empoisonner quelqu'un (une potion de chaque par partie). Même sans Sorcière en vie, la nuit
+  dure un peu, pour que sa durée ne trahisse rien.
+- **Jour** : les morts sont annoncés avec leur rôle, le village débat (à voix haute ou en vocal)
+  puis vote ; égalité = personne n'est éliminé. Le Chasseur qui meurt tire une dernière balle.
+- Victoire du village quand tous les loups sont morts, des loups quand ils sont aussi nombreux
+  que les autres joueurs encore en vie ; +1 point à chaque joueur du camp gagnant.
+- Les morts voient tous les rôles. Chaque joueur ne reçoit que ce qu'il a le droit de savoir.
+- Fichier : `js/garou.js`. Pour les statistiques des comptes, relancer la fin de
+  `supabase/schema.sql` (ajout de `garou` aux listes autorisées).
 
 ### 🐺 Le Loup des mots
 Déduction et bluff, de 4 à 10 joueurs en ligne (dans l'esprit de *Werewords*).
