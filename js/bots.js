@@ -1151,12 +1151,13 @@
       var s=TANKS[t.type], col=tankColor(t);
       var st = !t.alive ? '💀' : (!isConnected(t.seat) ? '📡' : (view.phase==='aiming' ? (lockedSeats.indexOf(t.seat)!==-1?'✅':'⏳') : ''));
       html+='<div class="bots-roster-item'+(t.alive?'':' dead')+'"><span class="st">'+st+'</span>'+
-        '<b style="color:'+col+'">'+escapeHtml(t.name)+'</b>'+(t.seat===botsMySeat?' (toi)':'')+'<br><span class="imp-tag" style="margin:0">'+s.name+' · '+t.hp+' / '+s.hp+' PV</span>'+
-        '<div class="hp"><i style="width:'+Math.round(t.hp/s.hp*100)+'%;background:'+col+'"></i></div></div>';
+        '<b style="color:'+col+'">'+escapeHtml(t.name)+'</b>'+(t.seat===botsMySeat?' (toi)':'')+'<br><span class="imp-tag" style="margin:0">'+s.name+' · '+(+t.hp||0)+' / '+s.hp+' PV</span>'+
+        '<div class="hp"><i style="width:'+Math.round((+t.hp||0)/s.hp*100)+'%;background:'+col+'"></i></div></div>';
     });
     $('botsRoster').innerHTML=html;
   }
-  function tankColor(t){
+  function tankColor(t){ return CG.safeColor(tankColorRaw(t)); }
+  function tankColorRaw(t){
     if(t.ai) return AI_COLOR;
     if(view.mode==='2v2') return TEAM_COLORS[t.team%2];
     if(t.paint) return t.paint;
@@ -1375,7 +1376,7 @@
     if(msg.surv){
       var w=msg.surv.wave;
       banner.textContent='🤖 LES BOTS ONT GAGNÉ… À LA VAGUE '+w; banner.className='cham-result-banner '+(w>=5?'b-great':w>=3?'b-ok':'b-fail');
-      $('botsEndText').innerHTML='Vous avez tenu jusqu’à la <b>vague '+w+'</b> et détruit <b>'+msg.surv.kills+' bot'+(msg.surv.kills>1?'s':'')+'</b>.';
+      $('botsEndText').innerHTML='Vous avez tenu jusqu’à la <b>vague '+(+w||0)+'</b> et détruit <b>'+(+msg.surv.kills||0)+' bot'+(msg.surv.kills>1?'s':'')+'</b>.';
     } else if(msg.draw){ banner.textContent='💥 DESTRUCTION MUTUELLE !'; banner.className='cham-result-banner b-meh'; }
     else if(!msg.tanks.some(function(t){ return t.seat===botsMySeat; })){ banner.textContent='🏁 COMBAT TERMINÉ'; banner.className='cham-result-banner b-ok'; }
     else { banner.textContent= mine ? '🏆 VICTOIRE !' : '💀 DÉFAITE...'; banner.className='cham-result-banner '+(mine?'b-perfect':'b-fail'); }

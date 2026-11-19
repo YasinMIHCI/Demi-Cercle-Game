@@ -3,12 +3,12 @@
    - La page (index.html) : réseau d'abord, copie en cache pour ouvrir l'app
      sans connexion. C'est elle qui donne les numéros ?v= à jour : dès qu'on
      ouvre l'app avec internet, la nouvelle version est prise.
-   - Les fichiers versionnés (?v=N), PeerJS (version fixe) et les icônes : cache
+   - Les fichiers versionnés (?v=N, PeerJS compris) et les icônes : cache
      d'abord (un même ?v= ne change jamais de contenu).
    - Les polices Google : cache, mises à jour en arrière-plan.
    Ce fichier n'a pas besoin d'être modifié à chaque mise à jour du site. */
 'use strict';
-var CACHE = 'cg-app-v1';
+var CACHE = 'cg-app-v2';   /* v2 : efface les anciennes copies de PeerJS venues d'unpkg */
 
 function isPage(req){ return req.mode === 'navigate'; }
 
@@ -80,11 +80,11 @@ self.addEventListener('fetch', function(e){
   }
 
   var versioned = url.origin === self.location.origin && /[?&]v=\d+/.test(url.search);
-  var pinned = url.hostname === 'unpkg.com' || (url.origin === self.location.origin && /\/icons\/|manifest\.webmanifest$/.test(url.pathname));
+  var pinned = url.origin === self.location.origin && /\/icons\/|manifest\.webmanifest$/.test(url.pathname);
   if(versioned || pinned){
     e.respondWith(caches.match(req).then(function(hit){
       return hit || fetch(req).then(function(res){
-        if(res.ok || res.type === 'opaque'){ var copy = res.clone(); caches.open(CACHE).then(function(c){ c.put(req, copy); }); }
+        if(res.ok){ var copy = res.clone(); caches.open(CACHE).then(function(c){ c.put(req, copy); }); }
         return res;
       });
     }));
@@ -101,6 +101,11 @@ self.addEventListener('fetch', function(e){
   /* le reste (serveur PeerJS, photos...) passe directement par le réseau */
 });
 
+/* une notification n'ouvre jamais autre chose que le site */
+function inScope(u){
+  var scope = self.registration.scope;
+  try{ var h = new URL(u || './', scope).href; return h.indexOf(scope) === 0 ? h : scope; }catch(e){ return scope; }
+}
 /* ----- notifications push (invitations d'amis, voir supabase/functions/invite-push) ----- */
 self.addEventListener('push', function(e){
   var d = {};
@@ -108,12 +113,12 @@ self.addEventListener('push', function(e){
   e.waitUntil(self.registration.showNotification(d.title || 'CRAZY GAMES', {
     body: d.body || '', tag: d.tag || 'cg', renotify: true,
     icon: 'icons/icon-192.png', badge: 'icons/icon-192.png',
-    data: {url: new URL(d.url || './', self.registration.scope).href}
+    data: {url: inScope(d.url)}
   }));
 });
 self.addEventListener('notificationclick', function(e){
   e.notification.close();
-  var url = (e.notification.data && e.notification.data.url) || self.registration.scope;
+  var url = inScope(e.notification.data && e.notification.data.url);
   e.waitUntil(self.clients.matchAll({type:'window', includeUncontrolled:true}).then(function(list){
     for(var i=0;i<list.length;i++){
       var c = list[i];

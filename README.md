@@ -267,8 +267,103 @@ python3 -m http.server 8000
 
 Le mode en ligne utilise le serveur public de PeerJS pour la mise en relation.
 Pour utiliser votre propre [PeerServer](https://github.com/peers/peerjs-server),
-définissez avant les scripts :
+définissez `window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/', secure:true}`
+dans un petit fichier `.js` du site chargé avant les scripts (la CSP interdit les scripts écrits
+dans la page), et ajoutez ce serveur à `connect-src` dans la CSP de `index.html`.
 
-```html
-<script>window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/', secure:true};</script>
-```
+## Quand la connexion directe ne passe pas : le relais Supabase
+
+Les jeux relient directement les téléphones (WebRTC). Ça échoue souvent quand les deux joueurs
+sont en 4G/5G (des milliers de téléphones derrière la même adresse chez l'opérateur), sur un
+réseau d'université ou d'entreprise (serveur de mise en relation ou WebRTC bloqués), ou sur un
+partage de connexion (téléphones isolés les uns des autres).
+
+Dans ces cas, les messages du jeu passent tout seuls par **Supabase Realtime**, une connexion web
+ordinaire (port 443) qui passe partout. Rien à installer, rien à payer ; `js/net.js` :
+- l'**hôte** écoute toujours des deux côtés : en direct (PeerJS) et sur le relais. Si le serveur
+  PeerJS ne répond pas en 5 s (réseau de fac…), la salle s'ouvre sur le relais seul ;
+- l'**invité** tente le direct ; s'il n'est pas ouvert au bout de 3,5 s, ou s'il échoue, il tente
+  aussi le relais, et le premier qui répond gagne. Le lobby affiche « CONNEXION ÉTABLIE (RELAIS) » ;
+- « Rejoindre une partie » du hub cherche le code des deux côtés ;
+- canaux « cg:<jeu><code> » (messages pour tous) et un canal privé par invité, au nom tiré au hasard
+  (messages secrets : rôles, mots…). Les messages sont regroupés toutes les 80 ms.
+
+À vérifier une fois dans Supabase : **Realtime → Settings → « Allow public access »** doit être
+activé (canaux publics). Offre gratuite : 200 connexions simultanées, 2 millions de messages par
+mois ; le relais ne sert que quand le direct échoue, et seul l'hôte s'y connecte sinon.
+Limite : quelqu'un qui connaît le code d'une salle peut lire ce qui y est envoyé à tout le monde
+(il pourrait de toute façon rejoindre la salle).
+
+## Relais réseau (TURN) et test de connexion
+
+*Facultatif depuis le relais Supabase* : un relais TURN perso (Cloudflare) garde la connexion
+directe (un peu plus rapide) sur plus de réseaux, mais demande une carte bancaire.
+
+Deux joueurs derrière une box ou une 4G restrictive ne peuvent pas se joindre directement :
+il leur faut un **relais**. Le relais public de PeerJS, gratuit et partagé, est souvent saturé ;
+le site peut utiliser le tien (Cloudflare, gratuit jusqu'à 1 To par mois), et garde celui de
+PeerJS en secours. Tant que rien n'est configuré, tout marche comme avant.
+
+1. Cloudflare → **Realtime** → **TURN Server** → *Create* : note le *Key ID* et l'*API Token*.
+   Cloudflare demande une carte bancaire, mais ne facture qu'au-delà de 1 000 Go par mois, et la
+   fonction coupe le relais bien avant (voir « Protections » ci-dessous).
+2. Cloudflare → **My Profile → API Tokens → Create Token → Custom token**, permission
+   *Account → Account Analytics → Read* : c'est le jeton qui sert à relever la consommation.
+   Note aussi l'*Account ID* (colonne de droite de la page d'accueil du compte).
+3. Supabase → SQL Editor : relance `supabase/schema.sql` (tables des limites et blocages).
+4. Supabase → Edge Functions → **Secrets** :
+   - `TURN_KEY_ID`, `TURN_KEY_API_TOKEN` (étape 1) ;
+   - `CF_ACCOUNT_ID`, `CF_ANALYTICS_TOKEN` (étape 2) ;
+   - `TURN_CRON_SECRET` : un mot de passe au hasard (ex. 32 caractères) ;
+   - `ALLOWED_ORIGINS` : l'adresse du site, ex. `https://yasinmihci.github.io` ;
+   - facultatif : `TURN_MONTHLY_GB` (plafond du mois, **100** par défaut).
+5. Déploie la fonction (appelable sans compte, comme le jeu en ligne) :
+   `supabase functions deploy turn-credentials --no-verify-jwt`
+6. Supabase → SQL Editor : relevé automatique toutes les 10 min (remplace `TON_SECRET`) :
+   ```sql
+   create extension if not exists pg_cron;
+   create extension if not exists pg_net;
+   select cron.schedule('turn-check', '*/10 * * * *', $$
+     select net.http_get(
+       url := 'https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials?check=1',
+       headers := '{"x-cron-secret":"TON_SECRET"}'::jsonb)
+   $$);
+   ```
+7. Vérifie l'état (consommation du mois, plafond, erreur éventuelle) :
+   `curl -H "x-cron-secret: TON_SECRET" "https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials?check=1"`
+   → `"last_error": null` et `"used_gb"` : tout va bien. Si `last_error` n'est pas vide, le relais
+   reste coupé par prudence (le site utilise le relais public).
+
+**Protections** (dans `supabase/functions/turn-credentials`) :
+- **par adresse IP** : 30 demandes par heure et 100 par jour (une soirée à 10 sur le même wifi en
+  fait une dizaine) ; au-delà, refus pendant une heure ;
+- **blocage automatique** : plus de 300 demandes dans la journée → adresse bloquée 7 jours, et ses
+  accès en cours sont annulés. Bloquer à la main : table `turn_bans` (SQL Editor) ;
+- **pour tout le site** : 300 accès par heure et 2 000 par jour au plus ;
+- **plafond du mois** : la consommation réelle est relevée chez Cloudflare toutes les 10 min ;
+  au-delà de 100 Go (10 % de l'offre gratuite), plus aucun accès n'est donné et ceux en cours sont
+  annulés, jusqu'au mois suivant. Si le relevé échoue, le relais est coupé par prudence ;
+- côté site, après un refus, le téléphone ne redemande pas avant l'heure indiquée.
+Dans tous les cas de refus, le jeu continue avec le relais public de PeerJS.
+En plus, active une alerte de facturation dans Cloudflare (Notifications → Billing).
+
+Le site demande des accès temporaires (4 h) à `supabase/functions/turn-credentials` à
+l'ouverture, les garde jusqu'à expiration, et n'attend jamais plus de 3 s.
+
+**⚙️ Réglages → 📡 Tester ma connexion** vérifie le serveur de mise en relation, la connexion
+directe, le relais WebRTC (perso ou public) et le relais Supabase, puis explique quoi faire.
+Quand le réseau revient (wifi → 4G), un invité déconnecté réessaie aussitôt.
+
+## Sécurité
+
+- **CSP** (balise `<meta http-equiv="Content-Security-Policy">` dans `index.html`) : seuls les
+  scripts du site s'exécutent (aucun script injecté ni venu d'un autre site), et le site ne parle
+  qu'à Supabase (https et wss) et au serveur PeerJS. Un nouveau service externe doit y être ajouté.
+- **PeerJS** est hébergé dans le site (`js/vendor/peerjs.min.js`, copie identique au paquet npm 1.5.4),
+  comme three.js : plus de dépendance à un CDN.
+- **Tout ce qui vient du réseau est un texte non fiable** : `CG.escapeHtml` (échappe aussi `"` et `'`,
+  donc utilisable dans un attribut) pour tout texte mis dans du HTML, `CG.safeColor` pour une couleur,
+  `+x||0` pour un nombre. L'hôte nettoie les demandes d'entrée (pseudo ≤ 18 caractères, couleur
+  `#rrggbb`) dans `js/net.js` avant de les passer aux jeux.
+- Mots de passe : 8 caractères minimum à l'inscription (à régler aussi dans Supabase :
+  Authentication → Providers → Email → *Minimum password length*).

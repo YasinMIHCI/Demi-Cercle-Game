@@ -7,9 +7,13 @@
 
   /* ---------- DOM ---------- */
   function $(id){ return document.getElementById(id); }
+  /* échappe aussi les guillemets : le résultat peut aller dans un attribut (title="…") */
+  var ESC={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
   function escapeHtml(s){
-    var d=document.createElement('div'); d.textContent=s; return d.innerHTML;
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return ESC[c]; });
   }
+  /* couleur reçue du réseau : seulement « #rgb » à « #rrggbbaa », sinon gris */
+  function safeColor(c){ return (typeof c==='string' && /^#[0-9a-fA-F]{3,8}$/.test(c)) ? c : '#888888'; }
   function shuffle(arr){
     for(var i=arr.length-1;i>0;i--){
       var j=Math.floor(Math.random()*(i+1));
@@ -181,7 +185,7 @@
   function missingText(names, what){
     return '⚠ '+names.join(', ')+(names.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — '+(what||'la manche')+' continue sans eux.';
   }
-  function playerDot(color){ return '<span class="cham-player-dot" style="background:'+color+';"></span>'; }
+  function playerDot(color){ return '<span class="cham-player-dot" style="background:'+safeColor(color)+';"></span>'; }
   /* ligne de joueur des listes (lobby, scores…) */
   function playerRow(o){
     return '<div class="cham-player-row filled'+(o.off?' offline':'')+'">'+playerDot(o.color)+
@@ -325,6 +329,7 @@
   CG.playerRow=playerRow;
   CG.timerBar=timerBar;
   CG.escapeHtml=escapeHtml;
+  CG.safeColor=safeColor;
   CG.shuffle=shuffle;
   CG.shake=shake;
   CG.openModal=openModal;

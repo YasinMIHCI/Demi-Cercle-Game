@@ -229,7 +229,7 @@
     var c=e && e.code, m=(e && e.message)||'';
     if(c==='invalid_credentials' || /invalid login/i.test(m)) return 'Pseudo ou mot de passe incorrect.';
     if(c==='user_already_exists' || /already registered/i.test(m)) return 'Ce pseudo est déjà pris.';
-    if(c==='weak_password' || /password/i.test(m) && /least|short|weak/i.test(m)) return 'Mot de passe trop faible (6 caractères minimum).';
+    if(c==='weak_password' || /password/i.test(m) && /least|short|weak/i.test(m)) return 'Mot de passe trop faible (8 caractères minimum).';
     if(c==='over_request_rate_limit' || c==='over_email_send_rate_limit' || e.status===429) return 'Trop d’essais, réessaie dans une minute.';
     if(e instanceof TypeError) return 'Pas de connexion au serveur. Vérifie ton réseau.';
     return 'Erreur : '+m;
@@ -237,7 +237,8 @@
   function submit(){
     var user=cleanUser($('accountUserInput').value), pass=$('accountPass').value;
     if(!/^[a-z0-9_]{3,20}$/.test(user)) return setError('Pseudo de connexion : 3 à 20 caractères, lettres, chiffres ou _ (sans accent ni espace).');
-    if(pass.length<6) return setError('Mot de passe : 6 caractères minimum.');
+    /* 8 minimum pour un nouveau mot de passe (les anciens comptes à 6 se connectent toujours) */
+    if(pass.length<(mode==='signup'?8:6)) return setError('Mot de passe : '+(mode==='signup'?8:6)+' caractères minimum.');
     if(mode==='signup' && pass!==$('accountPass2').value) return setError('Les deux mots de passe ne sont pas identiques.');
     var btn=$('accountSubmitBtn'); btn.disabled=true; setError('');
     var p = mode==='login' ? login(user, pass) : signup(user, $('accountDisplay').value, pass);
@@ -307,9 +308,9 @@
         .catch(function(e){ alert(frenchError(e)); });
     });
     $('accountPassBtn').addEventListener('click',function(){
-      var v=prompt('Nouveau mot de passe (6 caractères minimum) :');
+      var v=prompt('Nouveau mot de passe (8 caractères minimum) :');
       if(v===null) return;
-      if(v.length<6) return alert('Mot de passe trop court (6 caractères minimum).');
+      if(v.length<8) return alert('Mot de passe trop court (8 caractères minimum).');
       authed('/auth/v1/user',{method:'PUT', body:{password:v}})
         .then(function(){ alert('Mot de passe modifié ✔'); })
         .catch(function(e){ alert(frenchError(e)); });

@@ -131,6 +131,40 @@
   });
   $('settingsBtn').addEventListener('click', refreshSoundToggles);
 
+  /* ----- test de connexion : explique pourquoi on n'arrive pas à se rejoindre ----- */
+  var testing=false;
+  $('netTestBtn').addEventListener('click', function(){
+    if(testing || !CG.netTest) return;
+    testing=true; CG.sfxToggle();
+    var btn=this, list=$('netTestList'), verdict=$('netTestVerdict');
+    btn.disabled=true; list.hidden=false; verdict.hidden=true;
+    list.innerHTML='<li>⏳ Test en cours (10 s max)…</li>';
+    if(typeof window.Peer!=='function'){
+      list.innerHTML='<li>❌ Le module en ligne ne s’est pas chargé.</li>';
+      verdict.textContent='Recharge la page avec internet.'; verdict.hidden=false;
+      testing=false; btn.disabled=false; return;
+    }
+    CG.netTest(function(r){
+      function li(ok, text){ return '<li><span aria-hidden="true">'+(ok?'✅':'❌')+'</span><span>'+text+'</span></li>'; }
+      list.innerHTML=
+        li(r.server, 'Serveur de mise en relation')+
+        li(r.direct, 'Connexion directe entre téléphones')+
+        li(r.relay, 'Relais WebRTC'+(r.own?' (perso)':' (public)'))+
+        li(r.backup, 'Relais Supabase (passe partout : 4G, fac, partage de co)');
+      var v;
+      if(!navigator.onLine) v='Pas d’internet : active le wifi ou les données mobiles.';
+      else if(r.backup && !(r.server && (r.direct || r.relay))) v='Tu peux jouer : la connexion directe ne passe pas sur ce réseau, le jeu passera tout seul par le relais Supabase.';
+      else if(!r.server && !r.backup) v='Le serveur de mise en relation ne répond pas : réseau qui bloque (wifi d’école, d’entreprise…), bloqueur de pubs ou bouclier Brave. Essaie en 4G, ou désactive le bloqueur pour ce site.';
+      else if(r.direct && r.relay) v='Tout est bon : tu peux jouer en ligne.';
+      else if(r.relay) v='Ça passera par le relais : tu peux jouer, avec parfois un peu plus de latence.';
+      else if(r.direct) v= r.backup ? 'Tu peux jouer : si la connexion directe ne passe pas avec un joueur, le jeu passera par le relais Supabase.'
+        : 'Ça marchera avec la plupart des joueurs, mais pas avec ceux dont le réseau est très fermé (relais injoignable).';
+      else v='Ton réseau bloque les connexions entre téléphones. Essaie un autre réseau (4G ↔ wifi).';
+      verdict.textContent=v; verdict.hidden=false;
+      testing=false; btn.disabled=false;
+    });
+  });
+
   /* ----- jeux favoris : une étoile sur chaque carte, les favoris passent en tête ----- */
   var FAV_KEY='crazygames_favs', favs=[];
   try{ favs=JSON.parse(localStorage.getItem(FAV_KEY)||'[]')||[]; }catch(e){ favs=[]; }

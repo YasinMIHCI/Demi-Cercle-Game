@@ -806,9 +806,9 @@
     vals.forEach(function(s,i){
       var p=impState.players[s]||{name:'?',color:'#888'};
       var left=(max===min)?50:((answers[s]-min)/span*100);
-      html+='<div class="imp-line-dot" style="left:'+left+'%;background:'+p.color+';'+(highlights.indexOf(s)!==-1?'box-shadow:0 0 0 3px var(--red-bright);':'')+'"></div>';
+      html+='<div class="imp-line-dot" style="left:'+left+'%;background:'+CG.safeColor(p.color)+';'+(highlights.indexOf(s)!==-1?'box-shadow:0 0 0 3px var(--red-bright);':'')+'"></div>';
       /* seulement la valeur : la liste en dessous associe couleur, nom et réponse */
-      html+='<div class="imp-line-label'+(i%2?' low':'')+'" style="left:'+left+'%;color:'+p.color+';" title="'+escapeHtml(p.name)+'">'+impFormat(answers[s])+'</div>';
+      html+='<div class="imp-line-label'+(i%2?' low':'')+'" style="left:'+left+'%;color:'+CG.safeColor(p.color)+';" title="'+escapeHtml(p.name)+'">'+impFormat(answers[s])+'</div>';
     });
     el.innerHTML=html;
   }
