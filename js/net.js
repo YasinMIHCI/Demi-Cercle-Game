@@ -46,7 +46,7 @@
      on garde la liste ci-dessus. Les relais perso passent en premier, le relais
      public de PeerJS reste en secours. */
   var TURN_URL='https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials';
-  var ICE_KEY='cg_ice', ICE_WAIT=3000;
+  var ICE_KEY='cg_ice', ICE_WAIT_KEY='cg_ice_wait', ICE_WAIT=3000;
   var ice={own:false, exp:0, pending:null};
   function validIce(list){
     return Array.isArray(list) && list.length<10 && list.every(function(x){
@@ -68,10 +68,22 @@
   function iceReady(){
     if(window.CG_PEER_OVERRIDE) return Promise.resolve();
     if(ice.own && ice.exp-Date.now()>30*60000) return Promise.resolve();   /* encore valable au moins 30 min */
+    if(ice.own && ice.exp<=Date.now()){ PEER_OPTS.config={iceServers:ICE_SERVERS}; ice.own=false; }  /* accès expirés : relais public */
     if(ice.pending) return ice.pending;
+    /* refusé récemment (limite, plafond du mois, relais coupé) : on ne redemande pas avant l'heure,
+       pour ne pas se faire bloquer à force de réessayer */
+    var wait=0; try{ wait=+localStorage.getItem(ICE_WAIT_KEY)||0; }catch(e){}
+    if(wait>Date.now()) return Promise.resolve();
     var timer, fetched=new Promise(function(res){
       if(typeof fetch!=='function') return res();
-      fetch(TURN_URL, {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(d){
+      fetch(TURN_URL, {cache:'no-store'}).then(function(r){
+        if(r.ok) return r.json();
+        if(r.status===429 || r.status===403 || r.status===503){
+          var sec=Math.min(Math.max(parseInt(r.headers.get('Retry-After'),10)||3600, 300), 86400);
+          try{ localStorage.setItem(ICE_WAIT_KEY, String(Date.now()+sec*1000)); }catch(e){}
+        }
+        return null;
+      }).then(function(d){
         if(d && validIce(d.iceServers)){
           var exp=Date.now()+Math.min(+d.ttl||3600, 12*3600)*1000-5*60000;
           applyIce(d.iceServers, exp);

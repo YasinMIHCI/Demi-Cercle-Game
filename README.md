@@ -279,11 +279,47 @@ le site peut utiliser le tien (Cloudflare, gratuit jusqu'à 1 To par mois), et g
 PeerJS en secours. Tant que rien n'est configuré, tout marche comme avant.
 
 1. Cloudflare → **Realtime** → **TURN Server** → *Create* : note le *Key ID* et l'*API Token*.
-2. Supabase → Edge Functions → **Secrets** : `TURN_KEY_ID`, `TURN_KEY_API_TOKEN`, et
-   (conseillé, pour que ton relais ne serve qu'au site) `ALLOWED_ORIGINS` = l'adresse du site,
-   ex. `https://yasinmihci.github.io`.
-3. Déploie la fonction (appelable sans compte, comme le jeu en ligne) :
+   Cloudflare demande une carte bancaire, mais ne facture qu'au-delà de 1 000 Go par mois, et la
+   fonction coupe le relais bien avant (voir « Protections » ci-dessous).
+2. Cloudflare → **My Profile → API Tokens → Create Token → Custom token**, permission
+   *Account → Account Analytics → Read* : c'est le jeton qui sert à relever la consommation.
+   Note aussi l'*Account ID* (colonne de droite de la page d'accueil du compte).
+3. Supabase → SQL Editor : relance `supabase/schema.sql` (tables des limites et blocages).
+4. Supabase → Edge Functions → **Secrets** :
+   - `TURN_KEY_ID`, `TURN_KEY_API_TOKEN` (étape 1) ;
+   - `CF_ACCOUNT_ID`, `CF_ANALYTICS_TOKEN` (étape 2) ;
+   - `TURN_CRON_SECRET` : un mot de passe au hasard (ex. 32 caractères) ;
+   - `ALLOWED_ORIGINS` : l'adresse du site, ex. `https://yasinmihci.github.io` ;
+   - facultatif : `TURN_MONTHLY_GB` (plafond du mois, **100** par défaut).
+5. Déploie la fonction (appelable sans compte, comme le jeu en ligne) :
    `supabase functions deploy turn-credentials --no-verify-jwt`
+6. Supabase → SQL Editor : relevé automatique toutes les 10 min (remplace `TON_SECRET`) :
+   ```sql
+   create extension if not exists pg_cron;
+   create extension if not exists pg_net;
+   select cron.schedule('turn-check', '*/10 * * * *', $$
+     select net.http_get(
+       url := 'https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials?check=1',
+       headers := '{"x-cron-secret":"TON_SECRET"}'::jsonb)
+   $$);
+   ```
+7. Vérifie l'état (consommation du mois, plafond, erreur éventuelle) :
+   `curl -H "x-cron-secret: TON_SECRET" "https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials?check=1"`
+   → `"last_error": null` et `"used_gb"` : tout va bien. Si `last_error` n'est pas vide, le relais
+   reste coupé par prudence (le site utilise le relais public).
+
+**Protections** (dans `supabase/functions/turn-credentials`) :
+- **par adresse IP** : 30 demandes par heure et 100 par jour (une soirée à 10 sur le même wifi en
+  fait une dizaine) ; au-delà, refus pendant une heure ;
+- **blocage automatique** : plus de 300 demandes dans la journée → adresse bloquée 7 jours, et ses
+  accès en cours sont annulés. Bloquer à la main : table `turn_bans` (SQL Editor) ;
+- **pour tout le site** : 300 accès par heure et 2 000 par jour au plus ;
+- **plafond du mois** : la consommation réelle est relevée chez Cloudflare toutes les 10 min ;
+  au-delà de 100 Go (10 % de l'offre gratuite), plus aucun accès n'est donné et ceux en cours sont
+  annulés, jusqu'au mois suivant. Si le relevé échoue, le relais est coupé par prudence ;
+- côté site, après un refus, le téléphone ne redemande pas avant l'heure indiquée.
+Dans tous les cas de refus, le jeu continue avec le relais public de PeerJS.
+En plus, active une alerte de facturation dans Cloudflare (Notifications → Billing).
 
 Le site demande des accès temporaires (4 h) à `supabase/functions/turn-credentials` à
 l'ouverture, les garde jusqu'à expiration, et n'attend jamais plus de 3 s.
