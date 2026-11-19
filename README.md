@@ -285,6 +285,14 @@ ordinaire (port 443) qui passe partout. Rien à installer, rien à payer ; `js/n
 - l'**invité** tente le direct ; s'il n'est pas ouvert au bout de 3,5 s, ou s'il échoue, il tente
   aussi le relais, et le premier qui répond gagne. Le lobby affiche « CONNEXION ÉTABLIE (RELAIS) » ;
 - « Rejoindre une partie » du hub cherche le code des deux côtés ;
+- l'appareil **retient** (6 h, par type de réseau : wifi, 4G…) que le relais a été nécessaire ou
+  que le serveur PeerJS ne répondait pas : la fois suivante, il passe au relais presque tout de suite ;
+- connexion au relais **vérifiée** par un battement toutes les 25 s, et dès le retour dans l'app
+  ou du réseau : une connexion morte (veille, changement de réseau) est refaite aussitôt ;
+- un invité qui arrive avant l'hôte, ou pendant que l'hôte est sorti de l'app (pour envoyer le code
+  par message…), **attend** et réessaie ~30 s avant d'afficher « salle introuvable » ;
+- un invité du relais qui quitte (retour au hub, onglet fermé) **prévient l'hôte**, qui libère sa
+  place aussitôt au lieu d'attendre 12 s de silence ;
 - canaux « cg:<jeu><code> » (messages pour tous) et un canal privé par invité, au nom tiré au hasard
   (messages secrets : rôles, mots…). Les messages sont regroupés toutes les 80 ms.
 
