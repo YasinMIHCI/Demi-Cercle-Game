@@ -163,24 +163,278 @@
   CG.cleanRoomCode=cleanRoomCode;
   CG.readRoomCode=readRoomCode;
 
+  /* ===================== RELAIS PAR SUPABASE (secours) =====================
+     Quand la connexion directe entre téléphones échoue (4G des deux côtés,
+     réseau d'université, partage de connexion…), les messages du jeu passent
+     par Supabase Realtime : une connexion web ordinaire (port 443) qui passe
+     partout. Client minimal du protocole Phoenix, sans librairie.
+     - « cg:<préfixe><code> » (salle) : l'hôte écoute les « _hello » des invités
+       et y envoie ce qui va à tout le monde (avec la liste des destinataires) ;
+     - « cg:<préfixe><code>:<jeton> » (un par invité, jeton au hasard) : messages
+       privés dans les deux sens (rôles secrets…).
+     Les messages sont regroupés toutes les 80 ms (quota de messages Supabase). */
+  var SB_URL='https://pjcmpgqektxaidjkjylp.supabase.co';
+  var SB_KEY='sb_publishable_FhjSCVlZUKrsh3KX231q3w_vj5PGQN5';   /* clé publique */
+  var RT_FLUSH=80, RT_HEARTBEAT=25000;
+  var rt={ws:null, open:false, ref:0, topics:{}, hb:null, backoff:1000, retry:null, idle:null};
+  function rtUrl(){
+    return window.CG_RT_URL || (SB_URL.replace(/^http/,'ws')+'/realtime/v1/websocket?apikey='+encodeURIComponent(SB_KEY)+'&vsn=1.0.0');
+  }
+  function rtRaw(frame){
+    if(!rt.ws || !rt.open) return false;
+    try{ rt.ws.send(JSON.stringify(frame)); return true; }catch(e){ return false; }
+  }
+  function rtJoinFrame(name, t){
+    t.joinRef=String(++rt.ref); t.joined=false;
+    rtRaw({topic:'realtime:'+name, event:'phx_join', ref:t.joinRef, join_ref:t.joinRef,
+      payload:{config:{broadcast:{ack:false, self:false}, presence:{key:''}, private:false}}});
+  }
+  function rtConnect(){
+    clearTimeout(rt.idle); rt.idle=null;
+    if(rt.ws || typeof WebSocket!=='function') return;
+    var ws;
+    try{ ws=rt.ws=new WebSocket(rtUrl()); }catch(e){ rt.ws=null; return rtScheduleRetry(); }
+    ws.onopen=function(){
+      if(rt.ws!==ws) return;
+      rt.open=true; rt.backoff=1000;
+      clearInterval(rt.hb);
+      rt.hb=setInterval(function(){ rtRaw({topic:'phoenix', event:'heartbeat', payload:{}, ref:String(++rt.ref)}); }, RT_HEARTBEAT);
+      Object.keys(rt.topics).forEach(function(n){ rtJoinFrame(n, rt.topics[n]); });
+    };
+    ws.onmessage=function(ev){
+      var f; try{ f=JSON.parse(ev.data); }catch(e){ return; }
+      if(!f || typeof f.topic!=='string' || f.topic.indexOf('realtime:')!==0) return;
+      var t=rt.topics[f.topic.slice(9)]; if(!t) return;
+      if(f.event==='phx_reply' && f.ref===t.joinRef){
+        if(f.payload && f.payload.status==='ok'){ t.joined=true; rtFlush(t); t.onJoin.forEach(function(fn){ try{ fn(); }catch(e){} }); }
+        return;
+      }
+      if(f.event==='phx_error' || f.event==='phx_close'){
+        t.joined=false;
+        var name=f.topic.slice(9);
+        setTimeout(function(){ if(rt.topics[name]===t && rt.open && !t.joined) rtJoinFrame(name, t); }, 1000);
+        return;
+      }
+      if(f.event==='broadcast' && f.payload && f.payload.event==='m'){
+        var p=f.payload.payload;
+        if(!p || !Array.isArray(p.b)) return;
+        t.handlers.slice().forEach(function(fn){ try{ fn(p); }catch(e){ if(window.console) console.error(e); } });
+      }
+    };
+    ws.onclose=ws.onerror=function(){
+      if(rt.ws!==ws) return;
+      rt.ws=null; rt.open=false; clearInterval(rt.hb);
+      Object.keys(rt.topics).forEach(function(n){ rt.topics[n].joined=false; });
+      if(Object.keys(rt.topics).length) rtScheduleRetry();
+    };
+  }
+  function rtScheduleRetry(){
+    if(rt.retry) return;
+    rt.retry=setTimeout(function(){ rt.retry=null; if(Object.keys(rt.topics).length) rtConnect(); }, rt.backoff);
+    rt.backoff=Math.min(rt.backoff*2, 10000);
+  }
+  /* envoi groupé : un message par sujet et par sens toutes les 80 ms */
+  function rtFlush(t){
+    clearTimeout(t.timer); t.timer=null;
+    if(!t.joined || !t.out.length) return;
+    ['h','g'].forEach(function(d){
+      var list=t.out.filter(function(o){ return o.d===d; });
+      if(!list.length) return;
+      var groups=[], byKey={};
+      list.forEach(function(o){
+        var k=o.s;
+        if(o.to===null){ groups.push({t:null, m:o.m}); return; }
+        if(byKey[k] && byKey[k].t){ byKey[k].t.push(o.to); return; }
+        byKey[k]={t:[o.to], m:o.m}; groups.push(byKey[k]);
+      });
+      /* les gros messages (dessins) partent seuls, sous la limite de taille de Supabase */
+      var batch=[], size=0;
+      function send(){ if(batch.length) rtRaw({topic:'realtime:'+t.name, event:'broadcast', ref:String(++rt.ref), join_ref:t.joinRef,
+        payload:{type:'broadcast', event:'m', payload:{d:d, b:batch}}}); batch=[]; size=0; }
+      groups.forEach(function(g){
+        var s=JSON.stringify(g.m).length;
+        if(size+s>120000) send();
+        batch.push(g); size+=s;
+      });
+      send();
+    });
+    t.out=[];
+  }
+  function rtJoin(name, onMsg, onJoin){
+    var t=rt.topics[name];
+    if(!t){
+      t=rt.topics[name]={name:name, handlers:[], onJoin:[], out:[], joined:false, joinRef:null, timer:null};
+      if(rt.open) rtJoinFrame(name, t);
+    }
+    t.handlers.push(onMsg);
+    if(onJoin){ t.onJoin.push(onJoin); if(t.joined) setTimeout(onJoin, 0); }
+    rtConnect();
+    var left=false;
+    return {
+      /* d : 'h' (de l'hôte) ou 'g' (d'un invité) ; to : identifiant du destinataire, ou null = tous */
+      send:function(d, m, to){
+        if(left) return;
+        if(t.out.length>500) t.out.shift();   /* lien coupé : on ne garde que les derniers */
+        t.out.push({d:d, m:m, to:(to===undefined?null:to), s:JSON.stringify(m)});
+        if(!t.timer) t.timer=setTimeout(function(){ rtFlush(t); }, RT_FLUSH);
+      },
+      joined:function(){ return t.joined; },
+      leave:function(){
+        if(left) return; left=true;
+        rtFlush(t);
+        t.handlers=t.handlers.filter(function(f){ return f!==onMsg; });
+        if(onJoin) t.onJoin=t.onJoin.filter(function(f){ return f!==onJoin; });
+        if(!t.handlers.length && rt.topics[name]===t){
+          delete rt.topics[name];
+          if(t.joined) rtRaw({topic:'realtime:'+name, event:'phx_leave', payload:{}, ref:String(++rt.ref), join_ref:t.joinRef});
+          /* plus aucun sujet : on ferme la connexion un peu plus tard */
+          if(!Object.keys(rt.topics).length){
+            clearTimeout(rt.idle);
+            rt.idle=setTimeout(function(){
+              if(Object.keys(rt.topics).length || !rt.ws) return;
+              var w=rt.ws; rt.ws=null; rt.open=false; clearInterval(rt.hb);
+              try{ w.close(); }catch(e){}
+            }, 5000);
+          }
+        }
+      }
+    };
+  }
+  function roomTopic(prefix, code){ return 'cg:'+prefix+String(code).toLowerCase(); }
+  function randToken(){
+    var a=new Uint8Array(12);
+    if(window.crypto && crypto.getRandomValues) crypto.getRandomValues(a); else for(var i=0;i<a.length;i++) a[i]=Math.random()*256|0;
+    return Array.prototype.map.call(a, function(x){ return ('0'+x.toString(16)).slice(-2); }).join('');
+  }
+  var TOKEN_RE=/^[0-9a-f]{24}$/;
+
+  /* Connexion qui imite une DataConnection de PeerJS (open, send, close, on) */
+  function RelayConn(){ this.open=false; this.relay=true; this._h={}; this._closed=false; }
+  RelayConn.prototype.on=function(ev, fn){ (this._h[ev]=this._h[ev]||[]).push(fn); return this; };
+  RelayConn.prototype._emit=function(ev, a){
+    (this._h[ev]||[]).slice().forEach(function(fn){ try{ fn(a); }catch(e){ if(window.console) console.error(e); } });
+  };
+  RelayConn.prototype.send=function(m){ if(this.open && this._send) this._send(m); };
+  RelayConn.prototype.close=function(){
+    if(this._closed) return;
+    this._closed=true; this.open=false;
+    if(this._cleanup) this._cleanup();
+    this._emit('close');
+  };
+
+  /* invité : ouvre une connexion vers l'hôte par le relais */
+  function relayConnect(prefix, code){
+    var c=new RelayConn(), token=randToken(), hello=null;
+    var room=rtJoin(roomTopic(prefix, code), function(p){
+      if(p.d!=='h') return;
+      p.b.forEach(function(e){
+        if(e.t && e.t.indexOf(token)===-1) return;
+        deliver(e.m);
+      });
+    });
+    var priv=rtJoin(roomTopic(prefix, code)+':'+token, function(p){
+      if(p.d!=='h') return;
+      p.b.forEach(function(e){ deliver(e.m); });
+    });
+    function deliver(m){
+      if(!m || c._closed) return;
+      if(m.type==='_welcome'){ if(!c.open){ c.open=true; clearInterval(hello); c._emit('open'); } return; }
+      if(c.open) c._emit('data', m);
+    }
+    function sayHello(){ room.send('g', {type:'_hello', token:token}); }
+    sayHello(); hello=setInterval(sayHello, 1500);
+    c._send=function(m){ priv.send('g', m); };
+    c._cleanup=function(){ clearInterval(hello); room.leave(); priv.leave(); };
+    return c;
+  }
+  /* hôte : écoute les invités qui arrivent par le relais. onConn(conn) pour chaque nouvel invité.
+     Renvoie {stop(), sendAll(msg, conns)} : envoi groupé à plusieurs invités du relais. */
+  function relayHost(prefix, code, onConn){
+    var guests={};
+    var room=rtJoin(roomTopic(prefix, code), function(p){
+      if(p.d!=='g') return;
+      p.b.forEach(function(e){
+        var m=e.m;
+        if(!m) return;
+        if(m.type==='_probe' && typeof m.token==='string' && TOKEN_RE.test(m.token)){ room.send('h', {type:'_here'}, m.token); return; }
+        if(m.type!=='_hello' || typeof m.token!=='string' || !TOKEN_RE.test(m.token)) return;
+        var g=guests[m.token];
+        if(g && !g.conn._closed){ g.priv.send('h', {type:'_welcome'}); return; }
+        if(Object.keys(guests).length>=40) return;
+        var conn=new RelayConn(), token=m.token;
+        var priv=rtJoin(roomTopic(prefix, code)+':'+token, function(q){
+          if(q.d!=='g') return;
+          q.b.forEach(function(x){ if(x.m && conn.open) conn._emit('data', x.m); });
+        }, function(){ priv.send('h', {type:'_welcome'}); });
+        conn._token=token;
+        conn._send=function(msg){ priv.send('h', msg); };
+        conn._cleanup=function(){ priv.leave(); delete guests[token]; };
+        guests[token]={conn:conn, priv:priv};
+        conn.open=true;
+        onConn(conn);
+        conn._emit('open');
+      });
+    });
+    return {
+      stop:function(){ Object.keys(guests).forEach(function(k){ guests[k].conn.close(); }); room.leave(); },
+      /* même message à plusieurs invités du relais : un seul envoi dans la salle */
+      sendAll:function(msg, conns){
+        if(!conns.length) return;
+        if(conns.length===1){ conns[0].send(msg); return; }
+        conns.forEach(function(c){ room.send('h', msg, c._token); });
+      }
+    };
+  }
+  /* y a-t-il déjà un hôte sur ce code ? cb(true/false/null = relais injoignable) */
+  function relayProbe(prefix, code, wait, cb){
+    var token=randToken(), done=false, timer=null;
+    var room=rtJoin(roomTopic(prefix, code), function(p){
+      if(p.d!=='h') return;
+      p.b.forEach(function(e){ if(e.m && e.m.type==='_here' && e.t && e.t.indexOf(token)!==-1) end(true); });
+    }, function(){
+      room.send('g', {type:'_probe', token:token});
+      clearTimeout(timer); timer=setTimeout(function(){ end(false); }, wait);
+    });
+    timer=setTimeout(function(){ end(null); }, wait+5000);
+    function end(v){ if(done) return; done=true; clearTimeout(timer); room.leave(); cb(v); }
+    return {cancel:function(){ if(!done){ done=true; clearTimeout(timer); room.leave(); } }};
+  }
+  CG.relayStatus=function(){ return {open:rt.open, topics:Object.keys(rt.topics).length}; };
+
+
   /* Retrouve à quel jeu appartient un code de salle (bouton « Rejoindre » du hub) :
      on tente une connexion vers chaque jeu à la fois ; la première salle qui répond
      gagne, les autres renvoient « peer-unavailable ». La connexion d'essai ne demande
      pas de place : l'hôte l'oublie tout seul. cb(route) ou cb(null, message). */
   function findRoom(code, prefixes, cb){
-    var routes=Object.keys(prefixes), left=routes.length, done=false, conns=[], peer=null, timer=null;
+    var routes=Object.keys(prefixes), left=routes.length, relayLeft=routes.length, done=false, conns=[], probes=[], peer=null, timer=null;
+    var peerDone=false, peerErr=null;
     function finish(route, err){
       if(done) return; done=true;
       clearTimeout(timer);
       conns.forEach(function(c){ try{ c.close(); }catch(e){} });
+      probes.forEach(function(pr){ pr.cancel(); });
       setTimeout(function(){ try{ if(peer) peer.destroy(); }catch(e){} }, 300);
       cb(route, err);
     }
-    if(typeof window.Peer!=='function') return finish(null, 'Connexion impossible (réseau ?)');
+    /* échec seulement quand les deux recherches (directe et relais) n'ont rien trouvé */
+    function maybeFail(){
+      if(!peerDone || relayLeft>0) return;
+      finish(null, peerErr || 'Aucune salle trouvée avec ce code. Vérifie-le auprès de l’hôte.');
+    }
+    timer=setTimeout(function(){ finish(null, 'Aucune salle trouvée avec ce code.'); }, 12000);
+    /* par le relais : on demande « qui est là ? » dans la salle de chaque jeu */
+    routes.forEach(function(route){
+      probes.push(relayProbe(prefixes[route], code, 2500, function(found){
+        if(found) return finish(route);
+        relayLeft--; maybeFail();
+      }));
+    });
+    /* en direct (PeerJS) */
+    if(typeof window.Peer!=='function'){ peerDone=true; return; }
     iceReady().then(function(){ if(!done) start(); });
     function start(){
-    try{ peer=new Peer(PEER_OPTS); }catch(e){ return finish(null, 'Connexion impossible (réseau ?)'); }
-    timer=setTimeout(function(){ finish(null, 'Aucune salle trouvée avec ce code.'); }, 12000);
+    try{ peer=new Peer(PEER_OPTS); }catch(e){ peerDone=true; return maybeFail(); }
     peer.on('open', function(){
       routes.forEach(function(route){
         var c=peer.connect(prefixes[route]+code.toLowerCase(), {reliable:true});
@@ -191,10 +445,11 @@
     peer.on('error', function(err){
       if(err && err.type==='peer-unavailable'){
         left--;
-        if(left<=0) finish(null, 'Aucune salle trouvée avec ce code. Vérifie-le auprès de l’hôte.');
+        if(left<=0){ peerDone=true; maybeFail(); }
         return;
       }
-      finish(null, peerErrorMessage(err));
+      peerDone=true;
+      maybeFail();
     });
     }
   }
@@ -290,59 +545,94 @@
 
     /* ===================== HÔTE ===================== */
     /* code : celui choisi par l'hôte (sinon un code au hasard) */
-    var wantedCode='';
+    var wantedCode='', hostRelay=null;
+    var RELAY_HOST_DELAY=5000;    /* serveur PeerJS muet au bout de 5 s : la salle s'ouvre sur le relais seul */
     net.host = function(onReady, code){
       net.close();
       intentional=false;
-      if(typeof Peer==='undefined'){ status('error','PEERJS INDISPONIBLE (vérifie ta connexion internet)'); return; }
       hostIdRetries=0;
       wantedCode=cleanRoomCode(code);
       status('connecting','CRÉATION DE LA SALLE...');
       var gen=++openGen;
       iceReady().then(function(){ if(gen===openGen && !intentional) openHostPeer(onReady); });
     };
+    /* la salle est à nous : on écoute aussi les invités qui passent par le relais */
+    function becomeHost(code, onReady, viaRelayOnly){
+      if(net.role==='host') return;
+      promoting=false;
+      net.role='host'; net.code=code; net.mySeat=0; net.conns=[]; seatIds=[];
+      heartbeatTimer=clearTimer(heartbeatTimer);
+      heartbeatTimer=setInterval(hostHeartbeat, PING_EVERY);
+      if(hostRelay) hostRelay.stop();
+      hostRelay=relayHost(cfg.prefix, code, hostAccept);
+      status('connected', viaRelayOnly ? 'SALLE CRÉÉE (PAR LE RELAIS)' : 'SALLE CRÉÉE');
+      onReady(code);
+    }
+    /* le code est déjà pris par une autre salle */
+    function codeTaken(onReady){
+      serverTimer=clearTimer(serverTimer); destroyPeer();
+      if(promoting){
+        /* reprise de la salle : un autre invité a été plus rapide -> on redevient invité */
+        promoting=false;
+        net.role='guest'; net.mySeat=promoteInfo.oldSeat;
+        scheduleRetry(MIGRATE_RETRY);
+        return;
+      }
+      if(hostIdRetries<3){
+        /* code choisi : la salle qu'on vient de fermer peut occuper encore
+           l'identifiant quelques secondes, on réessaie un peu avant d'abandonner */
+        hostIdRetries++;
+        if(wantedCode){
+          status('connecting','CODE OCCUPÉ, NOUVEL ESSAI...');
+          signalTimer=setTimeout(function(){ signalTimer=null; if(!intentional && !peer && net.role!=='host') openHostPeer(onReady); }, 1500);
+        } else openHostPeer(onReady);
+        return;
+      }
+      status('error', peerErrorMessage({type:'unavailable-id'}));
+    }
     function openHostPeer(onReady){
       status('connecting','CRÉATION DE LA SALLE...');
-      var code=wantedCode||randomRoomCode();
-      var p=peer=new Peer(cfg.prefix+code.toLowerCase(), PEER_OPTS);
-      serverTimer=setTimeout(function(){
-        if(p===peer && !p.open) status('error','IMPOSSIBLE DE JOINDRE LE SERVEUR — RÉESSAIE');
-      }, SERVER_TIMEOUT);
+      var code=wantedCode||randomRoomCode(), gen=openGen, relayTried=false, probe=null;
+      var p=null, relayTimer=setTimeout(tryRelay, RELAY_HOST_DELAY);
+      function stale(){ return gen!==openGen || intentional || net.role==='host'; }
+      /* PeerJS injoignable (réseau d'université…) : salle ouverte sur le relais seul,
+         après avoir vérifié que personne n'y a déjà ce code */
+      function tryRelay(){
+        clearTimeout(relayTimer);
+        if(relayTried || stale()) return;
+        relayTried=true;
+        status('connecting','SERVEUR INJOIGNABLE — OUVERTURE PAR LE RELAIS...');
+        probe=relayProbe(cfg.prefix, code, 1500, function(taken){
+          probe=null;
+          if(stale()) return;
+          if(taken===true){ codeTaken(onReady); return; }
+          if(taken===null){ status('error','IMPOSSIBLE DE JOINDRE LE SERVEUR — RÉESSAIE'); return; }
+          becomeHost(code, onReady, true);
+        });
+      }
+      if(typeof Peer!=='function'){ tryRelay(); return; }
+      try{ p=peer=new Peer(cfg.prefix+code.toLowerCase(), PEER_OPTS); }catch(e){ tryRelay(); return; }
       p.on('open',function(){
         if(p!==peer) return;
         serverTimer=clearTimer(serverTimer);
-        if(net.role==='host'){ status('connected','SALLE EN LIGNE'); return; } /* ré-ouverture après coupure */
-        promoting=false;
-        net.role='host'; net.code=code; net.mySeat=0; net.conns=[]; seatIds=[];
-        heartbeatTimer=clearTimer(heartbeatTimer);
-        heartbeatTimer=setInterval(hostHeartbeat, PING_EVERY);
-        status('connected','SALLE CRÉÉE');
-        onReady(code);
+        if(net.role==='host'){ status('connected','SALLE EN LIGNE'); return; } /* ré-ouverture après coupure, ou PeerJS plus lent que le relais */
+        if(stale()) return;
+        clearTimeout(relayTimer); if(probe){ probe.cancel(); probe=null; }
+        becomeHost(code, onReady, false);
       });
       p.on('connection', hostAccept);
       p.on('disconnected', function(){ handleSignalLost(p); });
       p.on('error',function(err){
         if(p!==peer) return;
-        /* reprise de la salle : le code est encore pris (ancien hôte pas encore
-           oublié par le serveur, ou un autre invité a été plus rapide) -> on
-           redevient invité et on continue d'essayer de se connecter */
-        if(promoting && err && err.type==='unavailable-id'){
-          promoting=false; serverTimer=clearTimer(serverTimer); destroyPeer();
-          net.role='guest'; net.mySeat=promoteInfo.oldSeat;
-          scheduleRetry(MIGRATE_RETRY);
-          return;
-        }
-        if(err && err.type==='unavailable-id' && !net.role && hostIdRetries<3){
-          /* code choisi : la salle qu'on vient de fermer peut occuper encore
-             l'identifiant quelques secondes, on réessaie un peu avant d'abandonner */
-          hostIdRetries++; serverTimer=clearTimer(serverTimer); destroyPeer();
-          if(wantedCode){
-            status('connecting','CODE OCCUPÉ, NOUVEL ESSAI...');
-            signalTimer=setTimeout(function(){ signalTimer=null; if(!intentional && !peer) openHostPeer(onReady); }, 1500);
-          } else openHostPeer(onReady);
+        if(net.role==='host' && relayTried) return;   /* la salle vit sur le relais */
+        if(err && err.type==='unavailable-id' && !net.role || (promoting && err && err.type==='unavailable-id')){
+          clearTimeout(relayTimer); if(probe){ probe.cancel(); probe=null; }
+          codeTaken(onReady);
           return;
         }
         if(err && err.type==='peer-unavailable') return;
+        /* serveur PeerJS injoignable : on n'attend pas, on passe par le relais */
+        if(!net.role && err && /network|server-error|socket-error|socket-closed|browser-incompatible/.test(err.type||'')){ tryRelay(); return; }
         serverTimer=clearTimer(serverTimer);
         if(!net.role || !p.open) status('error', peerErrorMessage(err));
       });
@@ -419,10 +709,12 @@
     }
 
     /* ===================== INVITÉ ===================== */
+    var RELAY_DELAY=3500;         /* connexion directe pas ouverte au bout de 3,5 s : on tente aussi le relais */
+    var RELAY_OPEN_TIMEOUT=9000;
+    var attemptGen=0, cands=[], relayTimer=null;
     net.join = function(code, payload){
       net.close();
       intentional=false;
-      if(typeof Peer==='undefined'){ status('error','PEERJS INDISPONIBLE (vérifie ta connexion internet)'); return; }
       net.role='guest'; net.code=code; net.mySeat=0;
       joinPayload=payload||{}; joined=false; reconnectAttempt=0;
       heartbeatTimer=setInterval(guestWatchdog, 2000);
@@ -430,41 +722,93 @@
       var gen=++openGen;
       iceReady().then(function(){ if(gen===openGen && !intentional) connectToHost(false); });
     };
+    function dropCands(except){
+      cands.forEach(function(c){ if(c!==except){ c._lost=true; try{ c.close(); }catch(e){} } });
+      cands=except ? [except] : [];
+    }
+    /* Une tentative = connexion directe (PeerJS) et, si elle tarde ou échoue, le relais.
+       La première qui s'ouvre gagne ; l'échec n'est annoncé que si les deux ont échoué. */
     function connectToHost(isRetry){
       if(intentional) return;
       status('connecting', isRetry ? 'RECONNEXION ('+reconnectAttempt+'/'+RECONNECT_DELAYS.length+')...' : 'CONNEXION EN COURS...');
-      if(peer && peer.open && !peer.disconnected && !peer.destroyed){ openConn(); return; }
+      dropCands(); relayTimer=clearTimer(relayTimer); serverTimer=clearTimer(serverTimer);
+      var gen=++attemptGen, relayTried=false, directDone=false, lastErr=null, lastReason='CONNEXION IMPOSSIBLE';
+      function live(){ return gen===attemptGen && !intentional && net.role==='guest'; }
+      function failed(reason, err, isRelay){
+        if(!live() || (conn && conn.open)) return;
+        if(reason) lastReason=reason;
+        if(err) lastErr=err;
+        if(!isRelay) directDone=true;
+        if(!relayTried){ tryRelay(); return; }
+        if(!directDone || cands.some(function(c){ return !c._failed && !c._lost; })) return;   /* l'autre voie est encore en cours */
+        relayTimer=clearTimer(relayTimer);
+        /* plus personne ne porte le code de la salle, ni en direct ni par le relais : l'hôte est parti */
+        if(lastErr && lastErr.type==='peer-unavailable' && tryPromote()) return;
+        guestFailure(lastReason);
+      }
+      function tryRelay(){
+        relayTimer=clearTimer(relayTimer);
+        if(relayTried || !live() || (conn && conn.open)) return;
+        relayTried=true;
+        status('connecting','CONNEXION PAR LE RELAIS...');
+        attach(relayConnect(cfg.prefix, net.code), gen, failed);
+      }
+      relayTimer=setTimeout(tryRelay, RELAY_DELAY);
+      if(typeof Peer!=='function'){ failed('PEERJS INDISPONIBLE', null, false); return; }
+      if(peer && peer.open && !peer.disconnected && !peer.destroyed){ attach(peer.connect(cfg.prefix+net.code.toLowerCase(), {reliable:true}), gen, failed); return; }
       destroyPeer();
-      var p=peer=new Peer(PEER_OPTS);
-      serverTimer=clearTimer(serverTimer);
+      var p;
+      try{ p=peer=new Peer(PEER_OPTS); }catch(e){ failed('PEERJS INDISPONIBLE', null, false); return; }
       serverTimer=setTimeout(function(){
         if(p!==peer || p.open) return;
-        guestFailure('IMPOSSIBLE DE JOINDRE LE SERVEUR — RÉESSAIE');
+        failed('IMPOSSIBLE DE JOINDRE LE SERVEUR — RÉESSAIE', null, false);
       }, SERVER_TIMEOUT);
       p.on('open',function(){
         if(p!==peer) return;
         serverTimer=clearTimer(serverTimer);
-        if(!conn) openConn();
+        if(live() && !(conn && conn.open)) attach(p.connect(cfg.prefix+net.code.toLowerCase(), {reliable:true}), gen, failed);
       });
       p.on('disconnected', function(){ handleSignalLost(p); });
       p.on('error',function(err){
         if(p!==peer) return;
         serverTimer=clearTimer(serverTimer);
-        if(conn && conn.open) return; /* le lien direct fonctionne encore */
-        if(conn){ var c=conn; conn=null; try{ c.close(); }catch(e){} }
-        /* plus personne ne porte le code de la salle : l'hôte est parti */
-        if(err && err.type==='peer-unavailable' && tryPromote()) return;
-        guestFailure(peerErrorMessage(err));
+        if(conn && conn.open) return; /* le lien (direct ou relais) fonctionne encore */
+        cands.forEach(function(c){ if(!c.relay && !c._failed){ c._failed=true; try{ c.close(); }catch(e){} } });
+        failed(peerErrorMessage(err), err, false);
       });
     }
-    function openConn(){
-      var c=conn=peer.connect(cfg.prefix+net.code.toLowerCase(), {reliable:true});
-      var joinTries=0, joinTimer=null, seatedHere=false;
+    /* suit une connexion candidate jusqu'à son ouverture (ou son échec) */
+    function attach(c, gen, failed){
+      cands.push(c);
       var openTimer=setTimeout(function(){
-        if(conn!==c || c.open) return;
-        conn=null; try{ c.close(); }catch(e){}
-        guestFailure('CONNEXION DIRECTE IMPOSSIBLE — TESTE TA CONNEXION (⚙️ RÉGLAGES)');
-      }, OPEN_TIMEOUT);
+        if(c.open || c._failed || c._lost) return;
+        c._failed=true; try{ c.close(); }catch(e){}
+        failed(c.relay ? 'RELAIS INJOIGNABLE — RÉESSAIE' : 'CONNEXION DIRECTE IMPOSSIBLE — TESTE TA CONNEXION (⚙️ RÉGLAGES)', null, !!c.relay);
+      }, c.relay ? RELAY_OPEN_TIMEOUT : OPEN_TIMEOUT);
+      c.on('open', function(){
+        clearTimeout(openTimer);
+        if(c._lost || c._failed) return;
+        if(gen!==attemptGen || intentional || (conn && conn.open)){ c._lost=true; try{ c.close(); }catch(e){} return; }
+        relayTimer=clearTimer(relayTimer);
+        dropCands(c);
+        adopt(c);
+      });
+      function gone(){
+        clearTimeout(openTimer);
+        if(c._adopted || c._lost || c._failed) return;
+        c._failed=true;
+        failed(c.relay ? 'RELAIS INJOIGNABLE — RÉESSAIE' : 'CONNEXION PERDUE', null, !!c.relay);
+      }
+      c.on('close', gone);
+      c.on('error', gone);
+    }
+    /* la connexion est ouverte : demande d'une place, puis messages de l'hôte */
+    function adopt(c){
+      c._adopted=true;
+      conn=c;
+      var joinTries=0, joinTimer=null, seatedHere=false;
+      hostLastSeen=Date.now();
+      status('connecting', c.relay ? 'CONNECTÉ PAR LE RELAIS, ENTRÉE DANS LA SALLE...' : 'CONNECTÉ, ENTRÉE DANS LA SALLE...');
       function sendJoin(){
         joinTimer=null;
         if(conn!==c || seatedHere) return;
@@ -479,13 +823,6 @@
         safeSend(c,msg);
         joinTimer=setTimeout(sendJoin, JOIN_RETRY);
       }
-      c.on('open',function(){
-        if(conn!==c) return;
-        clearTimeout(openTimer);
-        hostLastSeen=Date.now();
-        status('connecting','CONNECTÉ, ENTRÉE DANS LA SALLE...');
-        sendJoin();
-      });
       c.on('data',function(msg){
         if(conn!==c || !msg || !msg.type) return;
         hostLastSeen=Date.now();
@@ -506,7 +843,7 @@
           joined=true; reconnectAttempt=0; lostAt=0;
           reconnectTimer=clearTimer(reconnectTimer);
           net.mySeat=msg.seat;
-          status('connected', wasJoined?'RECONNECTÉ':'CONNEXION ÉTABLIE');
+          status('connected', (wasJoined?'RECONNECTÉ':'CONNEXION ÉTABLIE')+(c.relay?' (RELAIS)':''));
           call('onHostMessage', msg);
           if(wasJoined) call('onReconnected');
           return;
@@ -514,7 +851,7 @@
         call('onHostMessage', msg);
       });
       function down(){
-        clearTimeout(openTimer); joinTimer=clearTimer(joinTimer);
+        joinTimer=clearTimer(joinTimer);
         if(conn!==c) return;
         conn=null;
         guestFailure('CONNEXION PERDUE');
@@ -522,6 +859,7 @@
       c.on('close', down);
       c.on('error', down);
       watchLink(c, down);
+      sendJoin();
     }
     /* Échec côté invité : avant d'avoir été placé, on affiche l'erreur ;
        une fois en jeu, on retente automatiquement de récupérer sa place. */
@@ -574,7 +912,8 @@
       if(rank<0 || Date.now()-lostAt < rank*PROMOTE_STEP) return false;
       promoting=true;
       promoteInfo={oldSeat:net.mySeat, ids:roster.slice()};
-      reconnectTimer=clearTimer(reconnectTimer);
+      reconnectTimer=clearTimer(reconnectTimer); relayTimer=clearTimer(relayTimer);
+      attemptGen++; dropCands(); conn=null;
       destroyPeer();
       status('connecting','L’HÔTE EST PARTI — TU DEVIENS L’HÔTE...');
       net.role=null; hostIdRetries=3; wantedCode=net.code;
@@ -613,17 +952,24 @@
       if(net.role==='host') return safeSend(net.conns[seat],msg);
       return false;
     };
-    net.sendToAll = function(msg){
-      for(var s=1;s<net.conns.length;s++) safeSend(net.conns[s],msg);
-    };
+    /* même message à plusieurs invités : un envoi par invité direct, un seul pour tous ceux du relais */
+    function sendGroup(msg, exceptSeat){
+      var relays=[];
+      for(var s=1;s<net.conns.length;s++){
+        var c=net.conns[s];
+        if(!c || s===exceptSeat) continue;
+        if(c.relay){ if(c.open) relays.push(c); }
+        else safeSend(c,msg);
+      }
+      if(relays.length && hostRelay){ try{ hostRelay.sendAll(msg, relays); }catch(e){} }
+    }
+    net.sendToAll = function(msg){ sendGroup(msg, -1); };
     /* hôte : à tout le monde, lui compris. L'hôte traite une copie : son
        affichage ne doit jamais modifier l'état qui fait foi. */
     function selfCopy(msg){ call('onHostMessage', JSON.parse(JSON.stringify(msg))); }
     net.broadcast = function(msg){ selfCopy(msg); net.sendToAll(msg); };
     net.sendToSeat = function(seat, msg){ if(seat===0) selfCopy(msg); else net.sendTo(seat, msg); };
-    net.sendToAllExcept = function(msg, exceptSeat){
-      for(var s=1;s<net.conns.length;s++){ if(s!==exceptSeat) safeSend(net.conns[s],msg); }
-    };
+    net.sendToAllExcept = function(msg, exceptSeat){ sendGroup(msg, exceptSeat); };
     /* invité -> hôte ; hôte -> tout le monde */
     net.send = function(msg){
       if(net.role==='host'){ net.sendToAll(msg); return true; }
@@ -637,13 +983,15 @@
     /* farewell : message envoyé à tous les invités avant de fermer (hôte).
        Les connexions sont fermées un peu plus tard pour qu'il parte bien. */
     net.close = function(farewell){
-      intentional=true; openGen++;
+      intentional=true; openGen++; attemptGen++;
       serverTimer=clearTimer(serverTimer);
+      relayTimer=clearTimer(relayTimer);
+      dropCands();
       heartbeatTimer=clearTimer(heartbeatTimer);
       reconnectTimer=clearTimer(reconnectTimer);
       signalTimer=clearTimer(signalTimer);
-      var oldConn=conn, oldConns=net.conns, oldPeer=peer;
-      conn=null; net.conns=[]; peer=null;
+      var oldConn=conn, oldConns=net.conns, oldPeer=peer, oldRelay=hostRelay;
+      conn=null; net.conns=[]; peer=null; hostRelay=null;
       for(var s=1;s<oldConns.length;s++){
         if(!oldConns[s]) continue;
         oldConns[s]._dead=true;
@@ -653,6 +1001,7 @@
         if(oldConn){ try{ oldConn.close(); }catch(e){} }
         for(var k=1;k<oldConns.length;k++){ if(oldConns[k]){ try{ oldConns[k].close(); }catch(e){} } }
         if(oldPeer){ try{ oldPeer.destroy(); }catch(e){} }
+        if(oldRelay){ try{ oldRelay.stop(); }catch(e){} }
       }
       if(farewell && oldConns.length) setTimeout(teardown, 400); else teardown();
       net.role=null; net.code=''; net.mySeat=0; joined=false;
@@ -686,10 +1035,10 @@
      2. quelles routes WebRTC sont possibles : adresse publique (STUN) et relais (TURN) ?
      done({server, direct, relay, own}) : true / false pour chaque étape. */
   function netTest(done){
-    var out={server:false, direct:false, relay:false, own:false};
+    var out={server:false, direct:false, relay:false, own:false, backup:false};
     iceReady().then(function(){
       out.own=ice.own;
-      var left=2;
+      var left=3;
       function step(){ if(--left===0) done(out); }
       /* 1. serveur PeerJS */
       var p=null, t1=setTimeout(function(){ end1(); }, 8000);
@@ -699,6 +1048,10 @@
         p.on('open', function(){ out.server=true; end1(); });
         p.on('error', function(){ end1(); });
       }catch(e){ end1(); }
+      /* 3. relais Supabase (secours quand rien d'autre ne passe) */
+      var tb=null, t3=setTimeout(function(){ end3(); }, 8000);
+      function end3(){ clearTimeout(t3); if(tb){ tb.leave(); tb=null; step(); } }
+      tb=rtJoin('cg:test-'+randToken(), function(){}, function(){ out.backup=true; end3(); });
       /* 2. candidats ICE */
       var pc=null, t2=setTimeout(function(){ end2(); }, 7000), ended=false;
       function end2(){ if(ended) return; ended=true; clearTimeout(t2); try{ if(pc) pc.close(); }catch(e){} step(); }

@@ -149,13 +149,16 @@
       list.innerHTML=
         li(r.server, 'Serveur de mise en relation')+
         li(r.direct, 'Connexion directe entre téléphones')+
-        li(r.relay, 'Relais de secours'+(r.own?' (perso)':' (public)'));
+        li(r.relay, 'Relais WebRTC'+(r.own?' (perso)':' (public)'))+
+        li(r.backup, 'Relais Supabase (passe partout : 4G, fac, partage de co)');
       var v;
       if(!navigator.onLine) v='Pas d’internet : active le wifi ou les données mobiles.';
-      else if(!r.server) v='Le serveur de mise en relation ne répond pas : réseau qui bloque (wifi d’école, d’entreprise…), bloqueur de pubs ou bouclier Brave. Essaie en 4G, ou désactive le bloqueur pour ce site.';
+      else if(r.backup && !(r.server && (r.direct || r.relay))) v='Tu peux jouer : la connexion directe ne passe pas sur ce réseau, le jeu passera tout seul par le relais Supabase.';
+      else if(!r.server && !r.backup) v='Le serveur de mise en relation ne répond pas : réseau qui bloque (wifi d’école, d’entreprise…), bloqueur de pubs ou bouclier Brave. Essaie en 4G, ou désactive le bloqueur pour ce site.';
       else if(r.direct && r.relay) v='Tout est bon : tu peux jouer en ligne.';
       else if(r.relay) v='Ça passera par le relais : tu peux jouer, avec parfois un peu plus de latence.';
-      else if(r.direct) v='Ça marchera avec la plupart des joueurs, mais pas avec ceux dont le réseau est très fermé (relais injoignable).';
+      else if(r.direct) v= r.backup ? 'Tu peux jouer : si la connexion directe ne passe pas avec un joueur, le jeu passera par le relais Supabase.'
+        : 'Ça marchera avec la plupart des joueurs, mais pas avec ceux dont le réseau est très fermé (relais injoignable).';
       else v='Ton réseau bloque les connexions entre téléphones. Essaie un autre réseau (4G ↔ wifi).';
       verdict.textContent=v; verdict.hidden=false;
       testing=false; btn.disabled=false;

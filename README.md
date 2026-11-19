@@ -271,7 +271,33 @@ définissez `window.CG_PEER_OVERRIDE = {host:'mon-serveur.fr', port:443, path:'/
 dans un petit fichier `.js` du site chargé avant les scripts (la CSP interdit les scripts écrits
 dans la page), et ajoutez ce serveur à `connect-src` dans la CSP de `index.html`.
 
+## Quand la connexion directe ne passe pas : le relais Supabase
+
+Les jeux relient directement les téléphones (WebRTC). Ça échoue souvent quand les deux joueurs
+sont en 4G/5G (des milliers de téléphones derrière la même adresse chez l'opérateur), sur un
+réseau d'université ou d'entreprise (serveur de mise en relation ou WebRTC bloqués), ou sur un
+partage de connexion (téléphones isolés les uns des autres).
+
+Dans ces cas, les messages du jeu passent tout seuls par **Supabase Realtime**, une connexion web
+ordinaire (port 443) qui passe partout. Rien à installer, rien à payer ; `js/net.js` :
+- l'**hôte** écoute toujours des deux côtés : en direct (PeerJS) et sur le relais. Si le serveur
+  PeerJS ne répond pas en 5 s (réseau de fac…), la salle s'ouvre sur le relais seul ;
+- l'**invité** tente le direct ; s'il n'est pas ouvert au bout de 3,5 s, ou s'il échoue, il tente
+  aussi le relais, et le premier qui répond gagne. Le lobby affiche « CONNEXION ÉTABLIE (RELAIS) » ;
+- « Rejoindre une partie » du hub cherche le code des deux côtés ;
+- canaux « cg:<jeu><code> » (messages pour tous) et un canal privé par invité, au nom tiré au hasard
+  (messages secrets : rôles, mots…). Les messages sont regroupés toutes les 80 ms.
+
+À vérifier une fois dans Supabase : **Realtime → Settings → « Allow public access »** doit être
+activé (canaux publics). Offre gratuite : 200 connexions simultanées, 2 millions de messages par
+mois ; le relais ne sert que quand le direct échoue, et seul l'hôte s'y connecte sinon.
+Limite : quelqu'un qui connaît le code d'une salle peut lire ce qui y est envoyé à tout le monde
+(il pourrait de toute façon rejoindre la salle).
+
 ## Relais réseau (TURN) et test de connexion
+
+*Facultatif depuis le relais Supabase* : un relais TURN perso (Cloudflare) garde la connexion
+directe (un peu plus rapide) sur plus de réseaux, mais demande une carte bancaire.
 
 Deux joueurs derrière une box ou une 4G restrictive ne peuvent pas se joindre directement :
 il leur faut un **relais**. Le relais public de PeerJS, gratuit et partagé, est souvent saturé ;
@@ -325,14 +351,14 @@ Le site demande des accès temporaires (4 h) à `supabase/functions/turn-credent
 l'ouverture, les garde jusqu'à expiration, et n'attend jamais plus de 3 s.
 
 **⚙️ Réglages → 📡 Tester ma connexion** vérifie le serveur de mise en relation, la connexion
-directe et le relais (perso ou public), puis explique quoi faire (4G, bloqueur, bouclier Brave…).
+directe, le relais WebRTC (perso ou public) et le relais Supabase, puis explique quoi faire.
 Quand le réseau revient (wifi → 4G), un invité déconnecté réessaie aussitôt.
 
 ## Sécurité
 
 - **CSP** (balise `<meta http-equiv="Content-Security-Policy">` dans `index.html`) : seuls les
   scripts du site s'exécutent (aucun script injecté ni venu d'un autre site), et le site ne parle
-  qu'à Supabase et au serveur PeerJS. Un nouveau service externe doit y être ajouté.
+  qu'à Supabase (https et wss) et au serveur PeerJS. Un nouveau service externe doit y être ajouté.
 - **PeerJS** est hébergé dans le site (`js/vendor/peerjs.min.js`, copie identique au paquet npm 1.5.4),
   comme three.js : plus de dépendance à un CDN.
 - **Tout ce qui vient du réseau est un texte non fiable** : `CG.escapeHtml` (échappe aussi `"` et `'`,
