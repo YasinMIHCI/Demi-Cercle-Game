@@ -198,11 +198,12 @@
       if(rt.ws!==ws) return;
       rt.open=true; rt.backoff=1000;
       clearInterval(rt.hb);
-      rt.hb=setInterval(function(){ rtRaw({topic:'phoenix', event:'heartbeat', payload:{}, ref:String(++rt.ref)}); }, RT_HEARTBEAT);
+      rt.hb=setInterval(function(){ rtPing(10000); }, RT_HEARTBEAT);
       Object.keys(rt.topics).forEach(function(n){ rtJoinFrame(n, rt.topics[n]); });
     };
     ws.onmessage=function(ev){
       var f; try{ f=JSON.parse(ev.data); }catch(e){ return; }
+      if(f && f.topic==='phoenix'){ if(f.event==='phx_reply' && f.ref===rt.hbPending) rt.hbPending=null; return; }
       if(!f || typeof f.topic!=='string' || f.topic.indexOf('realtime:')!==0) return;
       var t=rt.topics[f.topic.slice(9)]; if(!t) return;
       if(f.event==='phx_reply' && f.ref===t.joinRef){
@@ -228,6 +229,31 @@
       if(Object.keys(rt.topics).length) rtScheduleRetry();
     };
   }
+  /* battement : sans réponse à temps, la connexion est morte (téléphone en veille, changement
+     de réseau…) même si le navigateur ne l'a pas encore remarqué : on la refait aussitôt */
+  function rtPing(wait){
+    if(!rt.open) return;
+    var ref=String(++rt.ref);
+    rt.hbPending=ref;
+    rtRaw({topic:'phoenix', event:'heartbeat', payload:{}, ref:ref});
+    setTimeout(function(){ if(rt.hbPending===ref) rtReset(); }, wait);
+  }
+  function rtReset(){
+    var w=rt.ws;
+    rt.ws=null; rt.open=false; rt.hbPending=null; clearInterval(rt.hb);
+    Object.keys(rt.topics).forEach(function(n){ rt.topics[n].joined=false; });
+    if(w){ w.onclose=w.onerror=w.onmessage=null; try{ w.close(); }catch(e){} }
+    clearTimeout(rt.retry); rt.retry=null; rt.backoff=1000;
+    if(Object.keys(rt.topics).length) rtConnect();
+  }
+  /* retour dans l'app ou retour du réseau : on vérifie la connexion tout de suite */
+  function rtWake(){
+    if(!Object.keys(rt.topics).length) return;
+    if(!rt.ws){ clearTimeout(rt.retry); rt.retry=null; rt.backoff=1000; rtConnect(); }
+    else if(rt.open) rtPing(4000);
+  }
+  document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible') rtWake(); });
+  window.addEventListener('online', rtWake);
   function rtScheduleRetry(){
     if(rt.retry) return;
     rt.retry=setTimeout(function(){ rt.retry=null; if(Object.keys(rt.topics).length) rtConnect(); }, rt.backoff);
@@ -300,6 +326,23 @@
       }
     };
   }
+  /* Ce réseau a-t-il eu besoin du relais récemment ? (par type de réseau quand le
+     navigateur le dit : wifi, 4G…). Gardé 6 h, sur cet appareil seulement. */
+  var HINT_KEY='cg_net_hint', HINT_TTL=6*3600000;
+  function netKind(){ var c=navigator.connection; return (c && (c.type || c.effectiveType)) || 'inconnu'; }
+  function netHint(){
+    try{
+      var h=JSON.parse(localStorage.getItem(HINT_KEY)||'null');
+      if(h && h.kind===netKind() && Date.now()-h.at<HINT_TTL) return h;
+    }catch(e){}
+    return {};
+  }
+  function setHint(k, v){
+    try{
+      var h=netHint(); h[k]=v; h.kind=netKind(); h.at=Date.now();
+      localStorage.setItem(HINT_KEY, JSON.stringify(h));
+    }catch(e){}
+  }
   function roomTopic(prefix, code){ return 'cg:'+prefix+String(code).toLowerCase(); }
   function randToken(){
     var a=new Uint8Array(12);
@@ -317,8 +360,9 @@
   RelayConn.prototype.send=function(m){ if(this.open && this._send) this._send(m); };
   RelayConn.prototype.close=function(){
     if(this._closed) return;
+    var was=this.open;
     this._closed=true; this.open=false;
-    if(this._cleanup) this._cleanup();
+    if(this._cleanup) this._cleanup(was);
     this._emit('close');
   };
 
@@ -344,7 +388,12 @@
     function sayHello(){ room.send('g', {type:'_hello', token:token}); }
     sayHello(); hello=setInterval(sayHello, 1500);
     c._send=function(m){ priv.send('g', m); };
-    c._cleanup=function(){ clearInterval(hello); room.leave(); priv.leave(); };
+    c._reached=function(){ return room.joined(); };   /* relais joint (mais l'hôte n'a peut-être pas répondu) */
+    c._cleanup=function(wasOpen){
+      clearInterval(hello);
+      if(wasOpen) priv.send('g', {type:'_bye'});   /* l'hôte libère la place tout de suite */
+      room.leave(); priv.leave();
+    };
     return c;
   }
   /* hôte : écoute les invités qui arrivent par le relais. onConn(conn) pour chaque nouvel invité.
@@ -364,7 +413,11 @@
         var conn=new RelayConn(), token=m.token;
         var priv=rtJoin(roomTopic(prefix, code)+':'+token, function(q){
           if(q.d!=='g') return;
-          q.b.forEach(function(x){ if(x.m && conn.open) conn._emit('data', x.m); });
+          q.b.forEach(function(x){
+            if(!x.m || !conn.open) return;
+            if(x.m.type==='_bye'){ conn.close(); return; }
+            conn._emit('data', x.m);
+          });
         }, function(){ priv.send('h', {type:'_welcome'}); });
         conn._token=token;
         conn._send=function(msg){ priv.send('h', msg); };
@@ -593,7 +646,8 @@
     function openHostPeer(onReady){
       status('connecting','CRÉATION DE LA SALLE...');
       var code=wantedCode||randomRoomCode(), gen=openGen, relayTried=false, probe=null;
-      var p=null, relayTimer=setTimeout(tryRelay, RELAY_HOST_DELAY);
+      /* serveur PeerJS injoignable la dernière fois sur ce réseau : on n'attend que 1,5 s */
+      var p=null, relayTimer=setTimeout(function(){ setHint('noServer', true); tryRelay(); }, netHint().noServer ? 1500 : RELAY_HOST_DELAY);
       function stale(){ return gen!==openGen || intentional || net.role==='host'; }
       /* PeerJS injoignable (réseau d'université…) : salle ouverte sur le relais seul,
          après avoir vérifié que personne n'y a déjà ce code */
@@ -618,6 +672,7 @@
         if(net.role==='host'){ status('connected','SALLE EN LIGNE'); return; } /* ré-ouverture après coupure, ou PeerJS plus lent que le relais */
         if(stale()) return;
         clearTimeout(relayTimer); if(probe){ probe.cancel(); probe=null; }
+        setHint('noServer', false);
         becomeHost(code, onReady, false);
       });
       p.on('connection', hostAccept);
@@ -632,7 +687,7 @@
         }
         if(err && err.type==='peer-unavailable') return;
         /* serveur PeerJS injoignable : on n'attend pas, on passe par le relais */
-        if(!net.role && err && /network|server-error|socket-error|socket-closed|browser-incompatible/.test(err.type||'')){ tryRelay(); return; }
+        if(!net.role && err && /network|server-error|socket-error|socket-closed|browser-incompatible/.test(err.type||'')){ setHint('noServer', true); tryRelay(); return; }
         serverTimer=clearTimer(serverTimer);
         if(!net.role || !p.open) status('error', peerErrorMessage(err));
       });
@@ -710,13 +765,13 @@
 
     /* ===================== INVITÉ ===================== */
     var RELAY_DELAY=3500;         /* connexion directe pas ouverte au bout de 3,5 s : on tente aussi le relais */
-    var RELAY_OPEN_TIMEOUT=9000;
-    var attemptGen=0, cands=[], relayTimer=null;
+    var RELAY_OPEN_TIMEOUT=6000;
+    var attemptGen=0, cands=[], relayTimer=null, preJoinTries=0, PREJOIN_MAX=3;
     net.join = function(code, payload){
       net.close();
       intentional=false;
       net.role='guest'; net.code=code; net.mySeat=0;
-      joinPayload=payload||{}; joined=false; reconnectAttempt=0;
+      joinPayload=payload||{}; joined=false; reconnectAttempt=0; preJoinTries=0;
       heartbeatTimer=setInterval(guestWatchdog, 2000);
       status('connecting','CONNEXION EN COURS...');
       var gen=++openGen;
@@ -730,7 +785,8 @@
        La première qui s'ouvre gagne ; l'échec n'est annoncé que si les deux ont échoué. */
     function connectToHost(isRetry){
       if(intentional) return;
-      status('connecting', isRetry ? 'RECONNEXION ('+reconnectAttempt+'/'+RECONNECT_DELAYS.length+')...' : 'CONNEXION EN COURS...');
+      if(!isRetry) status('connecting','CONNEXION EN COURS...');
+      else if(joined) status('connecting','RECONNEXION ('+reconnectAttempt+'/'+RECONNECT_DELAYS.length+')...');
       dropCands(); relayTimer=clearTimer(relayTimer); serverTimer=clearTimer(serverTimer);
       var gen=++attemptGen, relayTried=false, directDone=false, lastErr=null, lastReason='CONNEXION IMPOSSIBLE';
       function live(){ return gen===attemptGen && !intentional && net.role==='guest'; }
@@ -744,7 +800,9 @@
         relayTimer=clearTimer(relayTimer);
         /* plus personne ne porte le code de la salle, ni en direct ni par le relais : l'hôte est parti */
         if(lastErr && lastErr.type==='peer-unavailable' && tryPromote()) return;
-        guestFailure(lastReason);
+        /* introuvable en direct comme par le relais : la salle n'existe pas (ou plus) */
+        guestFailure(lastErr && lastErr.type==='peer-unavailable' && !joined ? 'SALLE INTROUVABLE (vérifie le code)' : lastReason,
+          !!(lastErr && lastErr.type==='peer-unavailable'));
       }
       function tryRelay(){
         relayTimer=clearTimer(relayTimer);
@@ -753,7 +811,8 @@
         status('connecting','CONNEXION PAR LE RELAIS...');
         attach(relayConnect(cfg.prefix, net.code), gen, failed);
       }
-      relayTimer=setTimeout(tryRelay, RELAY_DELAY);
+      /* le relais a été nécessaire sur ce réseau : on le tente presque tout de suite */
+      relayTimer=setTimeout(tryRelay, netHint().relay ? 800 : RELAY_DELAY);
       if(typeof Peer!=='function'){ failed('PEERJS INDISPONIBLE', null, false); return; }
       if(peer && peer.open && !peer.disconnected && !peer.destroyed){ attach(peer.connect(cfg.prefix+net.code.toLowerCase(), {reliable:true}), gen, failed); return; }
       destroyPeer();
@@ -782,8 +841,11 @@
       cands.push(c);
       var openTimer=setTimeout(function(){
         if(c.open || c._failed || c._lost) return;
+        var reached=c.relay && c._reached && c._reached();
         c._failed=true; try{ c.close(); }catch(e){}
-        failed(c.relay ? 'RELAIS INJOIGNABLE — RÉESSAIE' : 'CONNEXION DIRECTE IMPOSSIBLE — TESTE TA CONNEXION (⚙️ RÉGLAGES)', null, !!c.relay);
+        failed(!c.relay ? 'CONNEXION DIRECTE IMPOSSIBLE — TESTE TA CONNEXION (⚙️ RÉGLAGES)'
+          : reached ? 'SALLE INTROUVABLE — VÉRIFIE LE CODE (OU L’HÔTE A QUITTÉ L’APP)'
+          : 'RELAIS INJOIGNABLE — TESTE TA CONNEXION (⚙️ RÉGLAGES)', null, !!c.relay);
       }, c.relay ? RELAY_OPEN_TIMEOUT : OPEN_TIMEOUT);
       c.on('open', function(){
         clearTimeout(openTimer);
@@ -805,6 +867,7 @@
     /* la connexion est ouverte : demande d'une place, puis messages de l'hôte */
     function adopt(c){
       c._adopted=true;
+      setHint('relay', !!c.relay);
       conn=c;
       var joinTries=0, joinTimer=null, seatedHere=false;
       hostLastSeen=Date.now();
@@ -863,9 +926,20 @@
     }
     /* Échec côté invité : avant d'avoir été placé, on affiche l'erreur ;
        une fois en jeu, on retente automatiquement de récupérer sa place. */
-    function guestFailure(reason){
+    function guestFailure(reason, noRoom){
       if(intentional || net.role!=='guest') return;
-      if(!joined){ status('error', reason); return; }
+      if(!joined){
+        /* pas encore entré : l'hôte a peut-être quitté l'app un instant (pour envoyer le
+           code par message…) ; on réessaie un peu avant d'afficher l'erreur */
+        if(!noRoom && preJoinTries<PREJOIN_MAX){
+          preJoinTries++;
+          status('connecting','EN ATTENTE DE L’HÔTE ('+preJoinTries+'/'+PREJOIN_MAX+')...');
+          reconnectTimer=clearTimer(reconnectTimer);
+          reconnectTimer=setTimeout(function(){ reconnectTimer=null; connectToHost(true); }, 2500);
+          return;
+        }
+        status('error', reason); return;
+      }
       if(reconnectTimer) return;
       if(!lostAt) lostAt=Date.now();
       /* une reprise de la salle reste possible : on continue d'essayer plus longtemps */
@@ -934,6 +1008,11 @@
     }
     document.addEventListener('visibilitychange', function(){
       if(document.visibilityState==='visible') guestWatchdog();
+    });
+    /* onglet fermé ou page quittée : par le relais, on prévient l'hôte tout de suite
+       (sinon il attend 12 s de silence avant de libérer la place) */
+    window.addEventListener('pagehide', function(){
+      if(net.role==='guest' && conn && conn.relay && conn.open){ try{ conn.close(); }catch(e){} }
     });
     /* le réseau revient (wifi -> 4G, sortie d'un tunnel…) : on réessaie tout de suite
        au lieu d'attendre le prochain essai programmé */
