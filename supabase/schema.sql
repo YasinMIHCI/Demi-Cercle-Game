@@ -393,38 +393,7 @@ alter table public.room_invites add constraint room_invites_route_check check (r
   ('demicercle','cameleon','imposteur','loup','garou','classement','quiaecrit','crousprison','bots','soiree','emoji'));
 
 -- =====================================================================
--- Relais TURN (fonction Edge « turn-credentials ») : limites et blocages (relançable sans risque)
--- Seule la fonction (clé service) lit et écrit ces tables : aucune politique, aucun droit pour le site.
+-- Ancien relais TURN (Cloudflare) : retiré, remplacé par le relais Supabase Realtime.
+-- On efface ses tables si elles avaient été créées (relançable sans risque).
 -- =====================================================================
--- chaque demande d'accès au relais (acceptée ou non) : sert aux limites par adresse IP
-create table if not exists public.turn_requests (
-  id        bigint generated always as identity primary key,
-  ip        text not null,
-  at        timestamptz not null default now(),
-  username  text            -- identifiant TURN donné (null = demande refusée)
-);
-create index if not exists turn_requests_ip_idx on public.turn_requests (ip, at desc);
-create index if not exists turn_requests_at_idx on public.turn_requests (at desc);
-
--- adresses bloquées (automatiquement en cas d'abus, ou à la main : insert ... values ('1.2.3.4', now() + interval '30 days', 'manuel'))
-create table if not exists public.turn_bans (
-  ip     text primary key,
-  until  timestamptz not null,
-  reason text not null default ''
-);
-
--- consommation du mois (relevée chez Cloudflare) et coupure automatique
-create table if not exists public.turn_state (
-  id         integer primary key default 1 check (id = 1),
-  month      text not null default '',
-  used_bytes bigint not null default 0,
-  blocked    boolean not null default false,
-  checked_at timestamptz,
-  last_error text
-);
-insert into public.turn_state (id) values (1) on conflict do nothing;
-
-alter table public.turn_requests enable row level security;
-alter table public.turn_bans     enable row level security;
-alter table public.turn_state    enable row level security;
-revoke all on public.turn_requests, public.turn_bans, public.turn_state from anon, authenticated;
+drop table if exists public.turn_requests, public.turn_bans, public.turn_state;

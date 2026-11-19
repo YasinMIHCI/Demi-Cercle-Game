@@ -11,11 +11,10 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
-  var ROOM_PREFIX='cgemoji-';
+  var ROOM_PREFIX=CG.ONLINE.emoji.prefix;
   var MIN_PLAYERS=2, MAX_PLAYERS=10;
   var GUESS_MS=30000, HINT_AT=15000, REVEAL_MS=4500;
   var PLACE_PTS=[100,80,65,55,45,40,35,30,25,20];
-  var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#c49a6c'];
 
   /* [emojis, réponse affichée, autres réponses acceptées, catégorie] */
   var BANK=[
@@ -101,19 +100,16 @@
   var bar=CG.timerBar('emoTimerFill','emoTimerText');
 
   var ui=CG.roomUI('emo', {route:'emoji', code:function(){ return roomCode; },
-    onLostBack:function(){ cleanup(); ui.goto('online'); }});
+    back:function(){ cleanup(); ui.goto('online'); }});
   var seats=CG.seatTools(es), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix:ROOM_PREFIX,
-    onStatus:ui.setStatus,
     onJoinRequest:hostOnJoinRequest,
     onSeatJoined:hostOnSeatJoined,
     onGuestMessage:hostOnGuestMessage,
     onSeatLost:hostOnSeatLost,
     onHostMessage:handleMsg,
-    onReconnecting:function(){ ui.showBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected:function(){ ui.hideBanner(); },
-    onLost:function(){ ui.showLost("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote:onPromote
   });
   var broadcast=net.broadcast, sendToSeat=net.sendToSeat;
@@ -128,8 +124,7 @@
     ui.hideBanner(); ui.setStatus('offline','HORS LIGNE');
   }
   function isLive(){ return es.phase==='guess' || es.phase==='reveal'; }
-  function pname(s){ var p=es.players[s]; return p?p.name:'?'; }
-  function pcolor(s){ return COLORS[s%COLORS.length]; }
+  function pcolor(s){ return CG.seatColor(s); }
 
   /* ----- comparaison des propositions : sans accents ni articles, une faute permise ----- */
   var ARTICLES=/^(le|la|les|l|un|une|des|du|the)\s+/;
@@ -184,7 +179,6 @@
     }, wanted);
     sfxToggle();
   });
-  $('emoJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('emoJoinRoomBtn').click(); } });
   $('emoJoinRoomBtn').addEventListener('click',function(){
     myName=$('emoName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('emoJoinCode').value);
@@ -193,16 +187,11 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('emoBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanup(); ui.goto('online'); });
-  $('emoHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('emoRulesModal','emoRulesBtn');
 
   /* ===================== HÔTE ===================== */
   function hostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
-    for(var s=1;s<es.players.length;s++) if(!es.players[s]) return s;
-    return Math.max(1, es.players.length);
+    return seats.pickSeat(msg, MAX_PLAYERS);
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
     var p=es.players[seat];

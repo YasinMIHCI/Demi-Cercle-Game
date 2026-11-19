@@ -40,64 +40,6 @@
      est ouverte en file:// et la connexion au serveur est refusée. */
   var PEER_OPTS = {secure:true, debug:0, config:{iceServers:ICE_SERVERS}};
 
-  /* Relais perso (Cloudflare) : accès temporaires donnés par la fonction Supabase
-     « turn-credentials » (la clé reste côté serveur). Gardés en mémoire jusqu'à
-     leur expiration ; sans réponse en 3 s, ou si le relais n'est pas configuré,
-     on garde la liste ci-dessus. Les relais perso passent en premier, le relais
-     public de PeerJS reste en secours. */
-  var TURN_URL='https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials';
-  var ICE_KEY='cg_ice', ICE_WAIT_KEY='cg_ice_wait', ICE_WAIT=3000;
-  var ice={own:false, exp:0, pending:null};
-  function validIce(list){
-    return Array.isArray(list) && list.length<10 && list.every(function(x){
-      var u=x && (Array.isArray(x.urls)?x.urls:[x.urls]);
-      return u && u.length && u.every(function(v){ return typeof v==='string' && /^(stun|turns?):[^\s]{3,200}$/.test(v); });
-    });
-  }
-  function applyIce(list, exp){
-    PEER_OPTS.config={iceServers:list.concat(ICE_SERVERS)};
-    ice.own=true; ice.exp=exp;
-  }
-  (function(){
-    try{
-      var c=JSON.parse(localStorage.getItem(ICE_KEY)||'null');
-      if(c && validIce(c.list) && c.exp>Date.now()) applyIce(c.list, c.exp);
-    }catch(e){}
-  })();
-  /* promesse toujours tenue (jamais d'erreur) : on peut ouvrir le Peer après */
-  function iceReady(){
-    if(window.CG_PEER_OVERRIDE) return Promise.resolve();
-    if(ice.own && ice.exp-Date.now()>30*60000) return Promise.resolve();   /* encore valable au moins 30 min */
-    if(ice.own && ice.exp<=Date.now()){ PEER_OPTS.config={iceServers:ICE_SERVERS}; ice.own=false; }  /* accès expirés : relais public */
-    if(ice.pending) return ice.pending;
-    /* refusé récemment (limite, plafond du mois, relais coupé) : on ne redemande pas avant l'heure,
-       pour ne pas se faire bloquer à force de réessayer */
-    var wait=0; try{ wait=+localStorage.getItem(ICE_WAIT_KEY)||0; }catch(e){}
-    if(wait>Date.now()) return Promise.resolve();
-    var timer, fetched=new Promise(function(res){
-      if(typeof fetch!=='function') return res();
-      fetch(TURN_URL, {cache:'no-store'}).then(function(r){
-        if(r.ok) return r.json();
-        if(r.status===429 || r.status===403 || r.status===503){
-          var sec=Math.min(Math.max(parseInt(r.headers.get('Retry-After'),10)||3600, 300), 86400);
-          try{ localStorage.setItem(ICE_WAIT_KEY, String(Date.now()+sec*1000)); }catch(e){}
-        }
-        return null;
-      }).then(function(d){
-        if(d && validIce(d.iceServers)){
-          var exp=Date.now()+Math.min(+d.ttl||3600, 12*3600)*1000-5*60000;
-          applyIce(d.iceServers, exp);
-          try{ localStorage.setItem(ICE_KEY, JSON.stringify({list:d.iceServers, exp:exp})); }catch(e){}
-        }
-        res();
-      }, function(){ res(); });
-    });
-    ice.pending=Promise.race([fetched, new Promise(function(res){ timer=setTimeout(res, ICE_WAIT); })])
-      .then(function(){ clearTimeout(timer); ice.pending=null; });
-    return ice.pending;
-  }
-  iceReady();   /* on s'y prend dès l'ouverture du site */
-  CG.iceReady=iceReady;
   /* Permet de pointer vers son propre PeerServer (tests en local, ou si le
      serveur public est saturé) : window.CG_PEER_OVERRIDE = {host, port, path, secure} */
   if(window.CG_PEER_OVERRIDE){
@@ -151,10 +93,7 @@
       if(last && !els[i].value) els[i].value=last;
       (function(el){
         el.addEventListener('blur', function(){ el.value=cleanRoomCode(el.value); });
-        el.addEventListener('keydown', function(e){
-          var btn=document.getElementById(el.getAttribute('data-room-code'));
-          if(e.key==='Enter' && btn){ e.preventDefault(); btn.click(); }
-        });
+        el.setAttribute('data-enter', el.getAttribute('data-room-code'));
       })(els[i]);
     }
   }
@@ -452,7 +391,6 @@
     function end(v){ if(done) return; done=true; clearTimeout(timer); room.leave(); cb(v); }
     return {cancel:function(){ if(!done){ done=true; clearTimeout(timer); room.leave(); } }};
   }
-  CG.relayStatus=function(){ return {open:rt.open, topics:Object.keys(rt.topics).length}; };
 
 
   /* Retrouve à quel jeu appartient un code de salle (bouton « Rejoindre » du hub) :
@@ -485,8 +423,6 @@
     });
     /* en direct (PeerJS) */
     if(typeof window.Peer!=='function'){ peerDone=true; return; }
-    iceReady().then(function(){ if(!done) start(); });
-    function start(){
     try{ peer=new Peer(PEER_OPTS); }catch(e){ peerDone=true; return maybeFail(); }
     peer.on('open', function(){
       routes.forEach(function(route){
@@ -504,7 +440,6 @@
       peerDone=true;
       maybeFail();
     });
-    }
   }
   CG.findRoom=findRoom;
 
@@ -530,6 +465,8 @@
 
   /* cfg :
      - prefix                 préfixe des identifiants PeerJS du jeu
+     - ui                     (facultatif) CG.roomUI du jeu : fournit onStatus,
+                              onReconnecting, onReconnected et onLost par défaut
      - onStatus(cls,label)    affichage de l'état réseau
      -- côté hôte --
      - onJoinRequest(msg)     -> numéro de place (>=1) ou chaîne = motif du refus
@@ -548,6 +485,14 @@
                               Voir CG.promoteSeats (common.js) pour renuméroter. */
   function createRoomNet(cfg){
     var net = {role:null, code:'', mySeat:0, conns:[]};
+    /* cfg.ui (CG.roomUI) : état réseau, bandeau et fenêtre « connexion perdue » par défaut */
+    var u=cfg.ui;
+    if(u){
+      cfg.onStatus=cfg.onStatus||u.setStatus;
+      cfg.onReconnecting=cfg.onReconnecting||function(){ u.showBanner('📡 Connexion perdue — reconnexion en cours...'); };
+      cfg.onReconnected=cfg.onReconnected||u.hideBanner;
+      cfg.onLost=cfg.onLost||function(){ u.showLost("Impossible de rétablir la connexion avec l'hôte."); };
+    }
     var clientId = getClientId(cfg.prefix);
     var peer=null, conn=null;
     var intentional=false, joined=false, joinPayload=null;
@@ -555,7 +500,7 @@
     var reconnectAttempt=0, hostLastSeen=0, hostIdRetries=0;
     var roster=null, rosterLive=null, lostAt=0, promoting=false, beats=0;
     var seatIds=[];               /* hôte : identifiant client de chaque place (même déconnectée) */
-    var openGen=0;                /* ignore une ouverture en attente des relais si on a changé d'avis entre-temps */
+    var openGen=0;                /* change à chaque fermeture : une ouverture de salle en cours devient caduque */
 
     function status(cls,label){ if(cfg.onStatus) cfg.onStatus(cls,label); }
     function call(name){
@@ -606,8 +551,7 @@
       hostIdRetries=0;
       wantedCode=cleanRoomCode(code);
       status('connecting','CRÉATION DE LA SALLE...');
-      var gen=++openGen;
-      iceReady().then(function(){ if(gen===openGen && !intentional) openHostPeer(onReady); });
+      openHostPeer(onReady);
     };
     /* la salle est à nous : on écoute aussi les invités qui passent par le relais */
     function becomeHost(code, onReady, viaRelayOnly){
@@ -774,8 +718,7 @@
       joinPayload=payload||{}; joined=false; reconnectAttempt=0; preJoinTries=0;
       heartbeatTimer=setInterval(guestWatchdog, 2000);
       status('connecting','CONNEXION EN COURS...');
-      var gen=++openGen;
-      iceReady().then(function(){ if(gen===openGen && !intentional) connectToHost(false); });
+      connectToHost(false);
     };
     function dropCands(except){
       cands.forEach(function(c){ if(c!==except){ c._lost=true; try{ c.close(); }catch(e){} } });
@@ -1109,43 +1052,43 @@
 
   CG.createRoomNet = createRoomNet;
 
-  /* ----- test de connexion (⚙️ Réglages) -----
-     1. le serveur de mise en relation PeerJS répond-il ?
-     2. quelles routes WebRTC sont possibles : adresse publique (STUN) et relais (TURN) ?
-     done({server, direct, relay, own}) : true / false pour chaque étape. */
+  /* ----- test de connexion (⚙️ Réglages) : done({server, direct, relay, backup})
+     server : le serveur de mise en relation PeerJS répond ; direct / relay : adresse
+     publique (STUN) et relais WebRTC (TURN) joignables ; backup : relais Supabase joignable. */
   function netTest(done){
-    var out={server:false, direct:false, relay:false, own:false, backup:false};
-    iceReady().then(function(){
-      out.own=ice.own;
-      var left=3;
-      function step(){ if(--left===0) done(out); }
-      /* 1. serveur PeerJS */
-      var p=null, t1=setTimeout(function(){ end1(); }, 8000);
-      function end1(){ clearTimeout(t1); try{ if(p) p.destroy(); }catch(e){} p=null; step(); }
-      try{
-        p=new Peer(PEER_OPTS);
-        p.on('open', function(){ out.server=true; end1(); });
-        p.on('error', function(){ end1(); });
-      }catch(e){ end1(); }
-      /* 3. relais Supabase (secours quand rien d'autre ne passe) */
-      var tb=null, t3=setTimeout(function(){ end3(); }, 8000);
-      function end3(){ clearTimeout(t3); if(tb){ tb.leave(); tb=null; step(); } }
-      tb=rtJoin('cg:test-'+randToken(), function(){}, function(){ out.backup=true; end3(); });
-      /* 2. candidats ICE */
-      var pc=null, t2=setTimeout(function(){ end2(); }, 7000), ended=false;
-      function end2(){ if(ended) return; ended=true; clearTimeout(t2); try{ if(pc) pc.close(); }catch(e){} step(); }
-      try{
-        pc=new RTCPeerConnection({iceServers:PEER_OPTS.config.iceServers});
-        pc.createDataChannel('test');
-        pc.onicecandidate=function(e){
-          if(!e.candidate){ end2(); return; }
-          var c=e.candidate.candidate||'';
-          if(/ typ srflx/.test(c)) out.direct=true;
-          if(/ typ relay/.test(c)) out.relay=true;
-          if(out.direct && out.relay) end2();
-        };
-        pc.createOffer().then(function(o){ return pc.setLocalDescription(o); })['catch'](end2);
-      }catch(e){ end2(); }
+    var out={server:false, direct:false, relay:false, backup:false}, left=3;
+    /* une vérification : run(finish) renvoie de quoi la nettoyer ; finish au plus tard après ms */
+    function probe(ms, run){
+      var over=false, cleanup=null, t=setTimeout(finish, ms);
+      function finish(){
+        if(over) return; over=true; clearTimeout(t);
+        try{ if(cleanup) cleanup(); }catch(e){}
+        if(--left===0) done(out);
+      }
+      try{ cleanup=run(finish); }catch(e){ finish(); }
+    }
+    probe(8000, function(finish){
+      var p=new Peer(PEER_OPTS);
+      p.on('open', function(){ out.server=true; finish(); });
+      p.on('error', finish);
+      return function(){ p.destroy(); };
+    });
+    probe(7000, function(finish){
+      var pc=new RTCPeerConnection({iceServers:PEER_OPTS.config.iceServers});
+      pc.createDataChannel('test');
+      pc.onicecandidate=function(e){
+        if(!e.candidate) return finish();
+        var c=e.candidate.candidate||'';
+        if(/ typ srflx/.test(c)) out.direct=true;
+        if(/ typ relay/.test(c)) out.relay=true;
+        if(out.direct && out.relay) finish();
+      };
+      pc.createOffer().then(function(o){ return pc.setLocalDescription(o); })['catch'](finish);
+      return function(){ pc.close(); };
+    });
+    probe(8000, function(finish){
+      var ch=rtJoin('cg:test-'+randToken(), function(){}, function(){ out.backup=true; finish(); });
+      return function(){ ch.leave(); };
     });
   }
   CG.netTest = netTest;

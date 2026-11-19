@@ -28,71 +28,37 @@
     return {route: route||'hub', query: query};
   }
 
-  /* musique de fond selon l'écran (js/audio.js) */
-  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', garou:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist', emoji:'heist'};
+  var ONLINE=CG.ONLINE;
+  function game(route){ var g=ONLINE[route]; return g && CG[g.api]; }
   /* quitte proprement les salles en cours ; un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
-  function resetGames(){
-    ['demicercle','cameleon','imposteur','bots','loup','garou','classement','quiaecrit','crousprison','emoji'].forEach(function(k){
-      try{ if(CG[k]) CG[k].reset(); }catch(e){}
+  function resetGames(withParty){
+    Object.keys(ONLINE).forEach(function(route){
+      if(route==='soiree' && !withParty) return;
+      try{ var g=game(route); if(g) g.reset(); }catch(e){}
     });
   }
   function router(isInitial){
-    var r = parseHash();
-    if(window.CGAudio) CGAudio.play(MUSIC[r.route]||'lounge');
-    if(r.route==='soiree'){
-      /* retour à la soirée : on ferme la salle du jeu de la manche précédente */
-      resetGames();
-      showView('soiree');
-      if(isInitial && r.query.room) CG.party.enterJoinFlow(r.query.room);
-    } else if(r.route==='demicercle'){
-      showView('demicercle');
-      if(isInitial && r.query.room) CG.demicercle.enterJoinFlow(r.query.room);
-    } else if(r.route==='cameleon'){
-      showView('cameleon');
-      if(isInitial && r.query.room) CG.cameleon.enterJoinFlow(r.query.room);
-    } else if(r.route==='crousprison'){
-      showView('crousprison');
-      if(isInitial && r.query.room) CG.crousprison.enterJoinFlow(r.query.room);
-    } else if(r.route==='quiaecrit'){
-      showView('quiaecrit');
-      if(isInitial && r.query.room) CG.quiaecrit.enterJoinFlow(r.query.room);
-    } else if(r.route==='classement'){
-      showView('classement');
-      if(isInitial && r.query.room) CG.classement.enterJoinFlow(r.query.room);
-    } else if(r.route==='garou'){
-      showView('garou');
-      if(isInitial && r.query.room) CG.garou.enterJoinFlow(r.query.room);
-    } else if(r.route==='loup'){
-      showView('loup');
-      if(isInitial && r.query.room) CG.loup.enterJoinFlow(r.query.room);
-    } else if(r.route==='bots'){
-      showView('bots');
-      if(isInitial && r.query.room) CG.bots.enterJoinFlow(r.query.room);
-    } else if(r.route==='emoji'){
-      showView('emoji');
-      if(isInitial && r.query.room) CG.emoji.enterJoinFlow(r.query.room);
-    } else if(r.route==='imposteur'){
-      showView('imposteur');
-      if(isInitial && r.query.room) CG.imposteur.enterJoinFlow(r.query.room);
-    } else {
-      /* retour au hub : on quitte proprement les salles en cours */
-      /* un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
-      resetGames();
-      try{ if(CG.party) CG.party.reset(); }catch(e){}
+    var r=parseHash(), g=ONLINE[r.route];
+    if(window.CGAudio) CGAudio.play(g ? g.music : 'lounge');
+    if(!g){
+      /* retour au hub : on quitte proprement les salles en cours (soirée comprise) */
+      resetGames(true);
       showView('hub');
+      return;
     }
+    /* retour à la soirée : on ferme la salle du jeu de la manche précédente */
+    if(r.route==='soiree') resetGames(false);
+    showView(r.route);
+    if(isInitial && r.query.room){ var api=game(r.route); if(api) api.enterJoinFlow(r.query.room); }
   }
   window.addEventListener('hashchange', function(){ router(false); });
 
   /* Lien ou QR code d'invitation : si le pseudo est déjà connu (compte ou
      dernière partie), on rejoint la salle directement, sans autre clic. */
-  var AUTOJOIN={demicercle:['onlineName','joinRoomBtn'], cameleon:['chamName','chamJoinRoomBtn'], imposteur:['impName','impJoinRoomBtn'],
-    loup:['loupName','loupJoinRoomBtn'], garou:['garouName','garouJoinRoomBtn'], classement:['clsName','clsJoinRoomBtn'], quiaecrit:['qaeName','qaeJoinRoomBtn'],
-    crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn'], emoji:['emoName','emoJoinRoomBtn']};
   function autoJoin(route){
-    var a=AUTOJOIN[route]; if(!a) return;
+    var g=ONLINE[route]; if(!g) return;
     setTimeout(function(){
-      var name=$(a[0]), btn=$(a[1]);
+      var name=$(g.name), btn=$(g.join);
       if(name && name.value.trim() && btn && !btn.disabled) btn.click();
       else if(name){ try{ name.focus(); }catch(e){} }
     }, 350);
@@ -149,7 +115,7 @@
       list.innerHTML=
         li(r.server, 'Serveur de mise en relation')+
         li(r.direct, 'Connexion directe entre téléphones')+
-        li(r.relay, 'Relais WebRTC'+(r.own?' (perso)':' (public)'))+
+        li(r.relay, 'Relais WebRTC')+
         li(r.backup, 'Relais Supabase (passe partout : 4G, fac, partage de co)');
       var v;
       if(!navigator.onLine) v='Pas d’internet : active le wifi ou les données mobiles.';
@@ -225,9 +191,8 @@
   (function(){ var n=0; try{ n=+(localStorage.getItem(FILTER_KEY)||0); }catch(e){} applyFilter(n>=1 && n<=10 ? n : 0); })();
 
   /* ----- « Rejoindre une partie » : un code suffit, on cherche le jeu tout seul ----- */
-  var ROOM_PREFIXES={soiree:'cgparty-', demicercle:'cgdemicercle-', cameleon:'cgcameleon-', imposteur:'cgimposteur-', emoji:'cgemoji-',
-    bots:'cgbots-', loup:'cgloup-', garou:'cggarou-', classement:'cgclassement-', quiaecrit:'cgquiaecrit-', crousprison:'cgcrousprison-'};
-  var GAME_OBJ={soiree:'party'};
+  var ROOM_PREFIXES={};
+  Object.keys(ONLINE).forEach(function(route){ ROOM_PREFIXES[route]=ONLINE[route].prefix; });
   var joining=false;
   function hubJoinMsg(t, err){ var m=$('hubJoinMsg'); m.textContent=t; m.classList.toggle('error', !!err); }
   $('hubJoinBtn').addEventListener('click',function(){
@@ -245,7 +210,7 @@
       location.hash=route+'?room='+code;
       /* le routeur affiche le jeu ; on remplit le code et on rejoint (pseudo connu) */
       setTimeout(function(){
-        var g=CG[GAME_OBJ[route]||route];
+        var g=game(route);
         if(g && g.enterJoinFlow) g.enterJoinFlow(code);
         autoJoin(route);
       }, 0);

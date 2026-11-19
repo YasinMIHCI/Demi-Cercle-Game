@@ -21,7 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=51">
+<link rel="stylesheet" href="css/style.css?v=52">
 </head>
 <body>
 
@@ -32,8 +32,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=51"></script>
-<script src="js/intro.js?v=51"></script>
+<script src="js/audio.js?v=52"></script>
+<script src="js/intro.js?v=52"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -355,7 +355,7 @@
       </div>
 
       <label for="clueInput" style="margin-top:22px;">Ton indice</label>
-      <input type="text" id="clueInput" placeholder="Ex : Le film Minecraft..." maxlength="80">
+      <input type="text" id="clueInput" data-enter="validateClueBtn" placeholder="Ex : Le film Minecraft..." maxlength="80">
 
       <div class="btn-row center">
         <button class="btn yellow" id="validateClueBtn"><span>🙈 Valider et cacher l'écran</span></button>
@@ -613,7 +613,7 @@
         <div class="bots-timer" style="margin-bottom:14px;"><div class="bots-timer-fill" id="chamGuessTimerFill"></div><span id="chamGuessTimerText"></span></div>
         <div id="chamGuessSelfBox" style="display:none;">
           <label for="chamGuessInput">Ta tentative</label>
-          <input type="text" id="chamGuessInput" placeholder="Le mot secret était..." maxlength="30">
+          <input type="text" id="chamGuessInput" data-enter="chamGuessSubmitBtn" placeholder="Le mot secret était..." maxlength="30">
           <div class="btn-row center">
             <button class="btn yellow" id="chamGuessSubmitBtn"><span>✅ Valider ma tentative</span></button>
           </div>
@@ -748,7 +748,7 @@
         <p class="subtitle" id="impAnswerNImp" hidden>🕵️🕵️ Attention : cette manche, il y a <b>2 imposteurs</b>.</p>
         <div id="impAnswerBox">
           <label for="impAnswerInput" id="impAnswerLabel">Ta réponse (un nombre)</label>
-          <input type="text" id="impAnswerInput" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="Ex : 7">
+          <input type="text" id="impAnswerInput" data-enter="impAnswerBtn" inputmode="decimal" autocomplete="off" maxlength="12" placeholder="Ex : 7">
           <div class="btn-row center">
             <button class="btn yellow" id="impAnswerBtn"><span>✅ Valider ma réponse</span></button>
           </div>
@@ -987,7 +987,7 @@
         <div id="qaeWriteArea">
           <div id="qaeTextBox">
             <label for="qaeAnswerInput">Ta réponse (anonyme… jusqu'à ce qu'on te démasque)</label>
-            <textarea id="qaeAnswerInput" class="qae-input" maxlength="140" rows="3" placeholder="Sois honnête. Ou pas."></textarea>
+            <textarea id="qaeAnswerInput" data-enter="qaeAnswerBtn" class="qae-input" maxlength="140" rows="3" placeholder="Sois honnête. Ou pas."></textarea>
             <div class="qae-charcount" id="qaeCharCount">0 / 140</div>
           </div>
           <div id="qaeDrawBox" hidden>
@@ -1007,7 +1007,7 @@
           </div>
           <div id="qaeEmojiBox" hidden>
             <label for="qaeEmojiInput">Ta réponse en emojis seulement</label>
-            <div class="loup-ask"><input type="text" id="qaeEmojiInput" class="qae-emoji-input" maxlength="40" autocomplete="off" placeholder="🤔🍕💀"><button type="button" class="btn ghost small" id="qaeEmojiDel" aria-label="Effacer le dernier emoji"><span>⌫</span></button></div>
+            <div class="loup-ask"><input type="text" id="qaeEmojiInput" data-enter="qaeAnswerBtn" class="qae-emoji-input" maxlength="40" autocomplete="off" placeholder="🤔🍕💀"><button type="button" class="btn ghost small" id="qaeEmojiDel" aria-label="Effacer le dernier emoji"><span>⌫</span></button></div>
             <div class="qae-emoji-palette" id="qaeEmojiPalette"></div>
           </div>
         </div>
@@ -2380,23 +2380,23 @@
 <!-- PeerJS 1.5.4, copie identique au paquet npm officiel (sha256 ad5d8870…36fe5) -->
 <script src="js/vendor/peerjs.min.js?v=1"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=51"></script>
-<script src="js/net.js?v=51"></script>
-<script src="js/demicercle.js?v=51"></script>
-<script src="js/cameleon.js?v=51"></script>
-<script src="js/imposteur.js?v=51"></script>
-<script src="js/loup.js?v=51"></script>
-<script src="js/garou.js?v=51"></script>
-<script src="js/classement.js?v=51"></script>
-<script src="js/quiaecrit.js?v=51"></script>
-<script src="js/emoji.js?v=51"></script>
-<script src="js/crousprison-photos.js?v=51"></script>
-<script src="js/crousprison.js?v=51"></script>
-<script src="js/bots-maps.js?v=51"></script>
-<script src="js/bots.js?v=51"></script>
-<script src="js/pwa.js?v=51"></script>
-<script src="js/party.js?v=51"></script>
-<script src="js/account.js?v=51"></script>
-<script src="js/hub.js?v=51"></script>
+<script src="js/common.js?v=52"></script>
+<script src="js/net.js?v=52"></script>
+<script src="js/demicercle.js?v=52"></script>
+<script src="js/cameleon.js?v=52"></script>
+<script src="js/imposteur.js?v=52"></script>
+<script src="js/loup.js?v=52"></script>
+<script src="js/garou.js?v=52"></script>
+<script src="js/classement.js?v=52"></script>
+<script src="js/quiaecrit.js?v=52"></script>
+<script src="js/emoji.js?v=52"></script>
+<script src="js/crousprison-photos.js?v=52"></script>
+<script src="js/crousprison.js?v=52"></script>
+<script src="js/bots-maps.js?v=52"></script>
+<script src="js/bots.js?v=52"></script>
+<script src="js/pwa.js?v=52"></script>
+<script src="js/party.js?v=52"></script>
+<script src="js/account.js?v=52"></script>
+<script src="js/hub.js?v=52"></script>
 </body>
 </html>

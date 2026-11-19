@@ -408,9 +408,7 @@
 
   /* ===================== AMIS ===================== */
   function rpc(name, body){ return authed('/rest/v1/rpc/'+name, {method:'POST', body:body||{}}); }
-  var JOIN={demicercle:['demicercle','joinRoomBtn'], cameleon:['cameleon','chamJoinRoomBtn'], imposteur:['imposteur','impJoinRoomBtn'],
-    loup:['loup','loupJoinRoomBtn'], garou:['garou','garouJoinRoomBtn'], classement:['classement','clsJoinRoomBtn'], quiaecrit:['quiaecrit','qaeJoinRoomBtn'],
-    crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn'], emoji:['emoji','emoJoinRoomBtn']};
+  var JOIN=CG.ONLINE;   /* jeux où l'on peut inviter un ami (route -> {api, …}) */
   function ago(iso){
     if(!iso) return 'jamais joué';
     var m=Math.round((Date.now()-new Date(iso).getTime())/60000);
@@ -586,7 +584,7 @@
     var j=JOIN[inv.route];
     location.hash=inv.route;
     setTimeout(function(){
-      var api=CG[j[0]];
+      var api=CG[j.api];
       if(api && api.enterJoinFlow) api.enterJoinFlow(inv.code);
       fillNames(false);
       CG.autoJoin(inv.route);

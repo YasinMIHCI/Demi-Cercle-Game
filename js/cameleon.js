@@ -2,9 +2,9 @@
 (function(){
   'use strict';
   var CG=window.CG;
-  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
-  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
-  var CHAM_ROOM_PREFIX = 'cgcameleon-';
+  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
+  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
+  var CHAM_ROOM_PREFIX=CG.ONLINE.cameleon.prefix;
   /* couleurs bien lisibles sur la toile crème (le blanc et le jaune ne se voyaient presque pas) */
   var CHAM_PALETTE = ['#E60012','#111111','#2E6FF2','#1f9e3a','#8e44ec','#ff7a00','#e0389b','#0aa3b5'];
   var CHAM_WORDBANK_KEY = 'cham_wordbank_v1';
@@ -112,8 +112,6 @@
   /* ----- screen management ----- */
 
   CG.wireModal('chamRulesModal', 'chamRulesBtn');
-  $('chamHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
-  $('chamBackFromLobby').addEventListener('click',function(){ sfxToggle(); chamCleanupOnline(); chamGoto_('online'); });
 
   /* ----- canvas helpers ----- */
   var CHAM_W=800, CHAM_H=500;
@@ -143,20 +141,17 @@
 
   /* ================= RÉSEAU ================= */
   var ui=CG.roomUI('cham', {route:'cameleon', code:function(){ return chamCurrentRoomCode; },
-    onLostBack:function(){ chamCleanupOnline(); chamGoto_('online'); }});
+    back:function(){ chamCleanupOnline(); chamGoto_('online'); }});
   var chamSetNetStatus=ui.setStatus, chamShowBanner=ui.showBanner, chamHideBanner=ui.hideBanner, chamShowLostModal=ui.showLost, chamGoto_=ui.goto;
   var seats=CG.seatTools(chamState), chamIsConnected=seats.isConnected, chamActiveCount=seats.activeCount;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: CHAM_ROOM_PREFIX,
-    onStatus: chamSetNetStatus,
     onJoinRequest: chamHostOnJoinRequest,
     onSeatJoined: chamHostOnSeatJoined,
     onGuestMessage: chamHostOnGuestMessage,
     onSeatLost: chamHostOnSeatLost,
     onHostMessage: chamHandleNetMessage,
-    onReconnecting: function(){ chamShowBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ chamHideBanner(); },
-    onLost: function(){ chamShowLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: chamOnPromote
   });
   /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
@@ -238,9 +233,7 @@
 
   /* ----- host: seats ----- */
   function chamHostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(chamActiveCount()>=8) return 'SALLE COMPLÈTE (8/8)';
-    return Math.max(1, chamState.players.length);
+    return seats.pickSeat(msg, 8);
   }
   function chamHostOnSeatJoined(seat, msg, isRepeat){
     var p=chamState.players[seat];
@@ -342,9 +335,6 @@
   }
 
   /* ----- join (guest) ----- */
-  $('chamJoinCode').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); $('chamJoinRoomBtn').click(); }
-  });
   $('chamJoinRoomBtn').addEventListener('click',function(){
     chamMyName=$('chamName').value.trim()||'Joueur';
     chamMyColor=chamSelectedColor;
@@ -936,9 +926,6 @@
   }
 
   /* ----- chameleon's final guess ----- */
-  $('chamGuessInput').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); $('chamGuessSubmitBtn').click(); }
-  });
   $('chamGuessSubmitBtn').addEventListener('click',function(){
     var guess=$('chamGuessInput').value.trim();
     if(!guess){ shake($('chamGuessInput')); return; }

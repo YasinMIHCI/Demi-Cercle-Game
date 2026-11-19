@@ -5,10 +5,10 @@
 (function(){
   'use strict';
   var CG=window.CG;
-  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
-  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
+  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
+  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
-  var IMP_ROOM_PREFIX = 'cgimposteur-';
+  var IMP_ROOM_PREFIX=CG.ONLINE.imposteur.prefix;
   var IMP_PALETTE = ['#E60012','#ffffff','#FFE600','#00e5ff','#ff6ec7','#ff9d2f','#7cff6e','#b388ff'];
   var IMP_OLD_BANK_KEY = 'imp_questions_v1';   /* ancien format : toute la banque */
   var IMP_CUSTOM_KEY = 'imp_custom_v2';        /* seulement les paires ajoutées par le joueur */
@@ -309,8 +309,6 @@
   }
 
   CG.wireModal('impRulesModal', 'impRulesBtn');
-  $('impHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
-  $('impBackFromLobby').addEventListener('click',function(){ sfxToggle(); impCleanupOnline(); impGoto_('online'); });
 
   $('impAddQBtn').addEventListener('click',function(){
     var q=$('impCustomQ').value.trim(), qi=$('impCustomQImp').value.trim();
@@ -327,20 +325,17 @@
 
   /* ================= RÉSEAU ================= */
   var ui=CG.roomUI('imp', {route:'imposteur', code:function(){ return impCurrentRoomCode; },
-    onLostBack:function(){ impCleanupOnline(); impGoto_('online'); }});
+    back:function(){ impCleanupOnline(); impGoto_('online'); }});
   var impSetNetStatus=ui.setStatus, impShowBanner=ui.showBanner, impHideBanner=ui.hideBanner, impShowLostModal=ui.showLost, impGoto_=ui.goto;
   var seats=CG.seatTools(impState), impIsConnected=seats.isConnected, impActiveCount=seats.activeCount;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: IMP_ROOM_PREFIX,
-    onStatus: impSetNetStatus,
     onJoinRequest: impHostOnJoinRequest,
     onSeatJoined: impHostOnSeatJoined,
     onGuestMessage: impHostOnGuestMessage,
     onSeatLost: impHostOnSeatLost,
     onHostMessage: impHandleNetMessage,
-    onReconnecting: function(){ impShowBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ impHideBanner(); },
-    onLost: function(){ impShowLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: impOnPromote
   });
   /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
@@ -422,9 +417,7 @@
 
   /* ----- host: seats ----- */
   function impHostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(impActiveCount()>=8) return 'SALLE COMPLÈTE (8/8)';
-    return Math.max(1, impState.players.length);
+    return seats.pickSeat(msg, 8);
   }
   function impHostOnSeatJoined(seat, msg, isRepeat){
     var p=impState.players[seat];
@@ -499,9 +492,6 @@
   }
 
   /* ----- join (guest) ----- */
-  $('impJoinCode').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); $('impJoinRoomBtn').click(); }
-  });
   $('impJoinRoomBtn').addEventListener('click',function(){
     impMyName=$('impName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('impJoinCode').value);
@@ -773,9 +763,6 @@
     var mine=$('impAnswerBox').style.display==='none';
     $('impAnswerStatus').textContent=(mine?'Réponse envoyée. ':'')+n+' / '+impState.roundSeats.length+' réponses reçues';
   }
-  $('impAnswerInput').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); $('impAnswerBtn').click(); }
-  });
   $('impAnswerBtn').addEventListener('click',function(){
     var v=impCleanAnswer($('impAnswerInput').value, impState.kind);
     if(v===null){ shake($('impAnswerInput')); return; }

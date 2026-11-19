@@ -10,8 +10,8 @@
 (function(){
   'use strict';
   var CG=window.CG;
-  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
-  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
+  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
+  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
   /* ===================== CONSTANTES ===================== */
   var W=960, H=540, CELL=4, GW=W/CELL, GH=H/CELL;
@@ -22,7 +22,7 @@
   var WATER_START=516, WATER_RISE_FROM=15, WATER_MIN=30;
   var MAPS=CG.botsMaps.MAPS;
   var AIM_MAX_LEN=170;             /* longueur de flèche à 100 % (unités du canvas) */
-  var BOTS_ROOM_PREFIX='cgbots-';
+  var BOTS_ROOM_PREFIX=CG.ONLINE.bots.prefix;
   var MODE_LABEL={'1v1':'1 VS 1','2v2':'2 VS 2','ffa':'CHACUN POUR SOI','surv':'SURVIE CONTRE LES BOTS'};
   var MODE_CAP={'1v1':2,'2v2':4,'ffa':6,'surv':4};
   var AI_SEAT=100;                 /* tanks pilotés par l'ordinateur : places 100, 101... */
@@ -420,20 +420,17 @@
 
   /* ===================== RÉSEAU ===================== */
   var ui=CG.roomUI('bots', {route:'bots', code:function(){ return botsRoomCode; },
-    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
-  var botsSetNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost;
+    back:function(){ cleanupOnline(); gotoScreen('online'); }});
+  var botsSetNetStatus=ui.setStatus, hideBanner=ui.hideBanner, showLostModal=ui.showLost;
   var seats=CG.seatTools(bs), isConnected=seats.isConnected;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: BOTS_ROOM_PREFIX,
-    onStatus: botsSetNetStatus,
     onJoinRequest: hostOnJoinRequest,
     onSeatJoined: hostOnSeatJoined,
     onGuestMessage: hostOnGuestMessage,
     onSeatLost: hostOnSeatLost,
     onHostMessage: handleMsg,
-    onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: onPromote
   });
   /* l'hôte a disparu : on reprend la salle ; le combat en cours est perdu,
@@ -511,7 +508,6 @@
     }, wantedCode);
     sfxToggle();
   });
-  $('botsJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('botsJoinRoomBtn').click(); } });
   $('botsJoinRoomBtn').addEventListener('click',function(){
     botsMyName=$('botsName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('botsJoinCode').value);
@@ -521,8 +517,6 @@
     net.join(code, {name:botsMyName, skin:mySkin});
     sfxToggle();
   });
-  $('botsBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
-  $('botsHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('botsRulesModal', 'botsRulesBtn');
 
   /* ----- hôte : places ----- */

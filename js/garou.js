@@ -13,10 +13,9 @@
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
   var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
-  var ROOM_PREFIX='cggarou-';
+  var ROOM_PREFIX=CG.ONLINE.garou.prefix;
   var MIN_PLAYERS=5, MAX_PLAYERS=12;
   var NIGHT_MS=45000, WITCH_MS=30000, HUNTER_MS=25000, DAY_END_DELAY=4000;
-  var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#c49a6c','#ff5577','#8fd3ff'];
 
   var ROLES={
     loup:{ico:'🐺', name:'LOUP-GAROU', camp:'loups', desc:'Chaque nuit, avec ta meute, choisis un villageois à dévorer. Le jour, fais-toi passer pour un innocent.'},
@@ -44,20 +43,17 @@
 
   /* ===================== RÉSEAU ===================== */
   var ui=CG.roomUI('garou', {route:'garou', code:function(){ return roomCode; },
-    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
+    back:function(){ cleanupOnline(); gotoScreen('online'); }});
   var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
-  var seats=CG.seatTools(gs), isConnected=seats.isConnected, activeCount=seats.activeCount;
+  var seats=CG.seatTools(gs), isConnected=seats.isConnected;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: ROOM_PREFIX,
-    onStatus: setNetStatus,
     onJoinRequest: hostOnJoinRequest,
     onSeatJoined: hostOnSeatJoined,
     onGuestMessage: hostOnGuestMessage,
     onSeatLost: hostOnSeatLost,
     onHostMessage: handleMsg,
-    onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: onPromote
   });
   /* l'hôte a disparu : la partie en cours est perdue (les rôles n'étaient connus que de lui),
@@ -88,8 +84,7 @@
     setNetStatus('offline','HORS LIGNE');
   }
   function pname(s){ var p=gs.players[s]; return p ? p.name : '?'; }
-  function pcolor(s){ return COLORS[s%COLORS.length]; }
-  function inGamePhase(){ return ['night','witch','hunter','day'].indexOf(gs.phase)!==-1; }
+  function pcolor(s){ return CG.seatColor(s); }
 
   /* ----- création / connexion ----- */
   $('garouCreateRoomBtn').addEventListener('click',function(){
@@ -116,8 +111,6 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('garouBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
-  $('garouHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('garouRulesModal', 'garouRulesBtn');
   /* réglages de l'hôte (lobby) */
   ['garouDaySel','garouWitchChk','garouHunterChk'].forEach(function(id){
@@ -130,9 +123,7 @@
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
-    return Math.max(1, gs.players.length);
+    return seats.pickSeat(msg, MAX_PLAYERS);
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
     var p=gs.players[seat];

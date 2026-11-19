@@ -219,8 +219,8 @@ css/style.css     tout le style
 js/audio.js       son commun : déblocage, instruments synthétisés, musiques
 js/intro.js       l'intro 3D (Three.js + canvas)
 js/vendor/three.min.js  Three.js r128 (licence MIT), chargé seulement pour l'intro
-js/common.js      outils partagés : DOM, sons, copie, comparaison de mots
-js/net.js         couche réseau commune (PeerJS) : salles, reconnexion, battements de cœur, migration de l’hôte
+js/common.js      outils partagés : DOM, sons, table des jeux en ligne (CG.ONLINE), salles (roomUI, seatTools), couleurs
+js/net.js         couche réseau commune (PeerJS + relais Supabase) : salles, reconnexion, battements de cœur, migration de l’hôte
 js/demicercle.js  le Demi-Cercle
 js/cameleon.js    le Caméléon
 js/imposteur.js   L'Imposteur des chiffres
@@ -240,7 +240,8 @@ js/party.js       Soirée All in : salle de la soirée, enchaînement des jeux, 
 js/account.js     comptes (Supabase) : connexion, statistiques, top records, pseudo pré-rempli, amis et invitations
 supabase/schema.sql  tables et droits des comptes, à exécuter dans le SQL Editor de Supabase
 js/vendor/qrcode.js  générateur de QR codes (licence MIT)
-js/hub.js         routeur (#hub, #demicercle, #cameleon, #imposteur, #bots, #loup, #classement, #quiaecrit, #crousprison), infos, bouton son
+js/vendor/peerjs.min.js  PeerJS 1.5.4 (licence MIT)
+js/hub.js         routeur (#hub et une route par jeu de CG.ONLINE), « Rejoindre une partie », favoris, réglages
 ```
 
 Les scripts sont de simples fichiers chargés dans l'ordre (pas de build). Ils partagent
@@ -252,9 +253,14 @@ avec les nouveaux (le jeu ne se charge plus et tout reste « HORS LIGNE »).
 
 ### Ajouter un jeu
 1. Ajouter une vue `<div id="view-monjeu" class="view">` dans `index.html` et une carte dans le hub.
-2. Créer `js/monjeu.js` et utiliser `CG.createRoomNet({...})` pour le multijoueur
-   (voir les commentaires en tête de `js/net.js`).
-3. Exposer `CG.monjeu = {reset, enterJoinFlow}` et ajouter la route dans `js/hub.js`.
+   Les éléments de salle suivent le préfixe du jeu (voir `CG.roomUI` dans `js/common.js`) ;
+   un champ qui doit valider avec Entrée prend `data-enter="idDuBouton"` (rien d'autre à écrire).
+2. Ajouter le jeu à `CG.ONLINE` (`js/common.js`) : le hub, « Rejoindre une partie », les liens
+   d'invitation et les invitations d'amis s'en servent tout seuls.
+3. Créer `js/monjeu.js` : `var ui=CG.roomUI('mj', {route, code, back})`, puis
+   `CG.createRoomNet({ui:ui, prefix:CG.ONLINE.monjeu.prefix, …})` (voir l'en-tête de `js/net.js`),
+   `CG.seatTools(état)` pour les places (`pickSeat` dans `onJoinRequest`), `CG.seatColor` pour
+   les couleurs. Exposer `CG.monjeu = {reset, enterJoinFlow}`.
 
 ## Lancer en local
 
@@ -302,65 +308,10 @@ mois ; le relais ne sert que quand le direct échoue, et seul l'hôte s'y connec
 Limite : quelqu'un qui connaît le code d'une salle peut lire ce qui y est envoyé à tout le monde
 (il pourrait de toute façon rejoindre la salle).
 
-## Relais réseau (TURN) et test de connexion
-
-*Facultatif depuis le relais Supabase* : un relais TURN perso (Cloudflare) garde la connexion
-directe (un peu plus rapide) sur plus de réseaux, mais demande une carte bancaire.
-
-Deux joueurs derrière une box ou une 4G restrictive ne peuvent pas se joindre directement :
-il leur faut un **relais**. Le relais public de PeerJS, gratuit et partagé, est souvent saturé ;
-le site peut utiliser le tien (Cloudflare, gratuit jusqu'à 1 To par mois), et garde celui de
-PeerJS en secours. Tant que rien n'est configuré, tout marche comme avant.
-
-1. Cloudflare → **Realtime** → **TURN Server** → *Create* : note le *Key ID* et l'*API Token*.
-   Cloudflare demande une carte bancaire, mais ne facture qu'au-delà de 1 000 Go par mois, et la
-   fonction coupe le relais bien avant (voir « Protections » ci-dessous).
-2. Cloudflare → **My Profile → API Tokens → Create Token → Custom token**, permission
-   *Account → Account Analytics → Read* : c'est le jeton qui sert à relever la consommation.
-   Note aussi l'*Account ID* (colonne de droite de la page d'accueil du compte).
-3. Supabase → SQL Editor : relance `supabase/schema.sql` (tables des limites et blocages).
-4. Supabase → Edge Functions → **Secrets** :
-   - `TURN_KEY_ID`, `TURN_KEY_API_TOKEN` (étape 1) ;
-   - `CF_ACCOUNT_ID`, `CF_ANALYTICS_TOKEN` (étape 2) ;
-   - `TURN_CRON_SECRET` : un mot de passe au hasard (ex. 32 caractères) ;
-   - `ALLOWED_ORIGINS` : l'adresse du site, ex. `https://yasinmihci.github.io` ;
-   - facultatif : `TURN_MONTHLY_GB` (plafond du mois, **100** par défaut).
-5. Déploie la fonction (appelable sans compte, comme le jeu en ligne) :
-   `supabase functions deploy turn-credentials --no-verify-jwt`
-6. Supabase → SQL Editor : relevé automatique toutes les 10 min (remplace `TON_SECRET`) :
-   ```sql
-   create extension if not exists pg_cron;
-   create extension if not exists pg_net;
-   select cron.schedule('turn-check', '*/10 * * * *', $$
-     select net.http_get(
-       url := 'https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials?check=1',
-       headers := '{"x-cron-secret":"TON_SECRET"}'::jsonb)
-   $$);
-   ```
-7. Vérifie l'état (consommation du mois, plafond, erreur éventuelle) :
-   `curl -H "x-cron-secret: TON_SECRET" "https://pjcmpgqektxaidjkjylp.supabase.co/functions/v1/turn-credentials?check=1"`
-   → `"last_error": null` et `"used_gb"` : tout va bien. Si `last_error` n'est pas vide, le relais
-   reste coupé par prudence (le site utilise le relais public).
-
-**Protections** (dans `supabase/functions/turn-credentials`) :
-- **par adresse IP** : 30 demandes par heure et 100 par jour (une soirée à 10 sur le même wifi en
-  fait une dizaine) ; au-delà, refus pendant une heure ;
-- **blocage automatique** : plus de 300 demandes dans la journée → adresse bloquée 7 jours, et ses
-  accès en cours sont annulés. Bloquer à la main : table `turn_bans` (SQL Editor) ;
-- **pour tout le site** : 300 accès par heure et 2 000 par jour au plus ;
-- **plafond du mois** : la consommation réelle est relevée chez Cloudflare toutes les 10 min ;
-  au-delà de 100 Go (10 % de l'offre gratuite), plus aucun accès n'est donné et ceux en cours sont
-  annulés, jusqu'au mois suivant. Si le relevé échoue, le relais est coupé par prudence ;
-- côté site, après un refus, le téléphone ne redemande pas avant l'heure indiquée.
-Dans tous les cas de refus, le jeu continue avec le relais public de PeerJS.
-En plus, active une alerte de facturation dans Cloudflare (Notifications → Billing).
-
-Le site demande des accès temporaires (4 h) à `supabase/functions/turn-credentials` à
-l'ouverture, les garde jusqu'à expiration, et n'attend jamais plus de 3 s.
+## Test de connexion
 
 **⚙️ Réglages → 📡 Tester ma connexion** vérifie le serveur de mise en relation, la connexion
-directe, le relais WebRTC (perso ou public) et le relais Supabase, puis explique quoi faire.
-Quand le réseau revient (wifi → 4G), un invité déconnecté réessaie aussitôt.
+directe, le relais WebRTC public de PeerJS et le relais Supabase, puis explique quoi faire.
 
 ## Sécurité
 

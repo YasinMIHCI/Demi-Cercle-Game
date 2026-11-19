@@ -6,14 +6,13 @@
 (function(){
   'use strict';
   var CG=window.CG;
-  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
-  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
+  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
+  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
-  var ROOM_PREFIX='cgloup-';
+  var ROOM_PREFIX=CG.ONLINE.loup.prefix;
   var MIN_PLAYERS=4, MAX_PLAYERS=10;
   var CHOOSE_MS=30000, LOUPVOTE_MS=30000, VILLAGEVOTE_MS=60000, MAYOR_GRACE=30000;
   var MAX_PENDING=2;                /* questions sans réponse par joueur */
-  var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#c49a6c'];
 
   var ROLES={
     loup:{ico:'🐺', name:'LOUP', desc:'Tu connais le mot. Sabote discrètement le village… et repère le Voyant si le mot est trouvé.'},
@@ -87,20 +86,17 @@
 
   /* ===================== RÉSEAU ===================== */
   var ui=CG.roomUI('loup', {route:'loup', code:function(){ return roomCode; },
-    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
+    back:function(){ cleanupOnline(); gotoScreen('online'); }});
   var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
   var seats=CG.seatTools(ls), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: ROOM_PREFIX,
-    onStatus: setNetStatus,
     onJoinRequest: hostOnJoinRequest,
     onSeatJoined: hostOnSeatJoined,
     onGuestMessage: hostOnGuestMessage,
     onSeatLost: hostOnSeatLost,
     onHostMessage: handleMsg,
-    onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: onPromote
   });
   /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
@@ -139,7 +135,7 @@
 
   function isRoundLive(){ return ['choosing','asking','loupvote','villagevote'].indexOf(ls.phase)!==-1; }
   function pname(seat){ var p=ls.players[seat]; return p?p.name:'?'; }
-  function pcolor(seat){ return COLORS[seat%COLORS.length]; }
+  function pcolor(s){ return CG.seatColor(s); }
 
   /* ----- création / connexion ----- */
   (function(){
@@ -169,7 +165,6 @@
     }, wantedCode);
     sfxToggle();
   });
-  $('loupJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('loupJoinRoomBtn').click(); } });
   $('loupJoinRoomBtn').addEventListener('click',function(){
     myName=$('loupName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('loupJoinCode').value);
@@ -179,15 +174,11 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('loupBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
-  $('loupHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('loupRulesModal', 'loupRulesBtn');
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
-    return Math.max(1, ls.players.length);
+    return seats.pickSeat(msg, MAX_PLAYERS);
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
     var p=ls.players[seat];

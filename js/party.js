@@ -36,18 +36,17 @@
   var view={idx:-1, total:0, game:null, totals:[], inGame:false};
 
   var ui=CG.roomUI('party', {screens:'party', route:'soiree', code:function(){ return roomCode; },
-    onLostBack:function(){ cleanup(); ui.goto('menu'); }});
+    back:function(){ cleanup(); ui.goto('menu'); }});
   var seats=CG.seatTools(ps), isConnected=seats.isConnected;
   var net=CG.createRoomNet({
-    prefix:'cgparty-',
-    onStatus:ui.setStatus,
+    ui: ui,
+    prefix:CG.ONLINE.soiree.prefix,
     onJoinRequest:hostOnJoinRequest,
     onSeatJoined:hostOnSeatJoined,
     onGuestMessage:function(){},
     onSeatLost:hostOnSeatLost,
     onHostMessage:handleMsg,
     onReconnecting:function(){ ui.showBanner('📡 Connexion à la soirée perdue — reconnexion en cours...'); },
-    onReconnected:function(){ ui.hideBanner(); },
     onLost:function(){ leaveGame(); ui.showLost("Impossible de rétablir la connexion avec l'hôte de la soirée."); },
     onPromote:onPromote
   });
@@ -131,7 +130,6 @@
     }, wanted);
     sfxToggle();
   });
-  $('partyJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('partyJoinRoomBtn').click(); } });
   $('partyJoinRoomBtn').addEventListener('click',function(){
     myName=$('partyName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('partyJoinCode').value);
@@ -141,16 +139,11 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('partyBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanup(); ui.goto('menu'); });
-  $('partyHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('partyRulesModal', 'partyRulesBtn');
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(seats.activeCount()>=10) return 'SOIRÉE COMPLÈTE (10/10)';
-    for(var s=1;s<ps.players.length;s++) if(!ps.players[s]) return s;
-    return Math.max(1, ps.players.length);
+    return seats.pickSeat(msg, 10, 'SOIRÉE');
   }
   /* deux joueurs du même nom : les scores des jeux sont rattachés par le nom */
   function uniqueName(name, seat){
@@ -360,8 +353,7 @@
   }
 
   /* ===================== AFFICHAGE ===================== */
-  var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#ff5a5a'];
-  function pcolor(s){ return COLORS[s%COLORS.length]; }
+  function pcolor(s){ return CG.seatColor(s); }
   function standingsRows(totals, players){
     var order=[];
     for(var s=0;s<players.length;s++) if(players[s]) order.push(s);

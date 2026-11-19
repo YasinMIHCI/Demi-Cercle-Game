@@ -8,13 +8,12 @@
 (function(){
   'use strict';
   var CG=window.CG;
-  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
-  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
+  var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, closeModal=CG.closeModal;
+  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
-  var ROOM_PREFIX='cgquiaecrit-';
+  var ROOM_PREFIX=CG.ONLINE.quiaecrit.prefix;
   var MIN_PLAYERS=3, MAX_PLAYERS=8;
   var WRITE_MS=90000, GUESS_MS=30000, MAX_LEN=140, FOOL_MAX=3;
-  var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff'];
   var CUSTOM_KEY='qae_custom_v1';
   /* forme des réponses : texte, dessin ou emojis (l'hôte choisit, ou chacun choisit)
      une réponse = {k:'t'|'d'|'e', v:texte | image PNG en data URL | emojis} */
@@ -105,20 +104,17 @@
 
   /* ===================== RÉSEAU ===================== */
   var ui=CG.roomUI('qae', {route:'quiaecrit', code:function(){ return roomCode; },
-    onLostBack:function(){ cleanupOnline(); gotoScreen('online'); }});
+    back:function(){ cleanupOnline(); gotoScreen('online'); }});
   var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
   var seats=CG.seatTools(qs), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: ROOM_PREFIX,
-    onStatus: setNetStatus,
     onJoinRequest: hostOnJoinRequest,
     onSeatJoined: hostOnSeatJoined,
     onGuestMessage: hostOnGuestMessage,
     onSeatLost: hostOnSeatLost,
     onHostMessage: handleMsg,
-    onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: onPromote
   });
   /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
@@ -154,7 +150,7 @@
 
   function isRoundLive(){ return qs.phase==='writing' || qs.phase==='guess' || qs.phase==='reveal' || qs.phase==='scores'; }
   function pname(seat){ var p=qs.players[seat]; return p?p.name:'?'; }
-  function pcolor(seat){ return COLORS[seat%COLORS.length]; }
+  function pcolor(s){ return CG.seatColor(s); }
 
   /* ----- création / connexion ----- */
   function renderBankCount(){ $('qaeBankCount').textContent=bank().length+' questions'; }
@@ -183,7 +179,6 @@
     }, wantedCode);
     sfxToggle();
   });
-  $('qaeJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('qaeJoinRoomBtn').click(); } });
   $('qaeJoinRoomBtn').addEventListener('click',function(){
     myName=$('qaeName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('qaeJoinCode').value);
@@ -193,15 +188,11 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('qaeBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('online'); });
-  $('qaeHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('qaeRulesModal', 'qaeRulesBtn');
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
-    return Math.max(1, qs.players.length);
+    return seats.pickSeat(msg, MAX_PLAYERS);
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
     var p=qs.players[seat];
@@ -497,7 +488,6 @@
   }
 
   /* ----- écriture : texte, dessin ou emojis ----- */
-  var FORMAT_LABEL={t:'✍️ Texte', d:'🎨 Dessin', e:'😀 Emojis'};
   var EMOJIS=['😂','🤣','😭','😍','🥰','😎','🤔','😱','🤢','🤮','😈','💀','👻','🤡','💩','👀','🙈','🔥','💯','❤️','💔','👍','👎','🙏',
     '💪','🍕','🍔','🍟','🍺','🍷','☕','🎉','🎁','⚽','🎮','📱','💸','🚀','🚽','🛏️','🐶','🐱','🐷','🐍','🦄','🌈','☀️','🌧️','⏰','👑'];
   /* petit carnet de dessin : fond blanc, quelques couleurs, effacer / annuler */
@@ -616,8 +606,6 @@
   }
   function updateCharCount(){ $('qaeCharCount').textContent=$('qaeAnswerInput').value.length+' / '+MAX_LEN; }
   $('qaeAnswerInput').addEventListener('input', updateCharCount);
-  $('qaeAnswerInput').addEventListener('keydown',function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $('qaeAnswerBtn').click(); } });
-  $('qaeEmojiInput').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('qaeAnswerBtn').click(); } });
   $('qaeAnswerBtn').addEventListener('click',function(){
     if(view.sent) return;
     var a=null;

@@ -102,7 +102,7 @@
   var currentRoomCode = '';
   var myOnlineName = '';
   var lastCursorSend = 0;
-  var ROOM_PREFIX = 'cgdemicercle-';
+  var ROOM_PREFIX=CG.ONLINE.demicercle.prefix;
   /* host only: clientId de chaque place (pour récupérer sa place après une
      coupure), et journal de la manche en cours pour resynchroniser un
      joueur qui se reconnecte. */
@@ -475,9 +475,6 @@
     sfxToggle();
   });
 
-  $('clueInput').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); $('validateClueBtn').click(); }
-  });
 
   $('validateClueBtn').addEventListener('click',function(){
     if(!$('screen-target').classList.contains('active')) return;
@@ -1040,9 +1037,6 @@
   }
 
   /* ----- join (guest) ----- */
-  $('joinCodeInput').addEventListener('keydown',function(e){
-    if(e.key==='Enter'){ e.preventDefault(); $('joinRoomBtn').click(); }
-  });
   $('joinRoomBtn').addEventListener('click',function(){
     myOnlineName = $('onlineName').value.trim() || 'Joueur';
     var code = CG.cleanRoomCode($('joinCodeInput').value);

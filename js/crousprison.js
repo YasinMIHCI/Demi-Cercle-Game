@@ -8,10 +8,10 @@
   'use strict';
   var CG=window.CG;
   var $=CG.$, escapeHtml=CG.escapeHtml, shuffle=CG.shuffle, shake=CG.shake, openModal=CG.openModal, closeModal=CG.closeModal;
-  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal, copyText=CG.copyText;
+  var sfxToggle=CG.sfxToggle, sfxValidate=CG.sfxValidate, sfxReveal=CG.sfxReveal;
 
   var PHOTOS=CG.COP_PHOTOS||[];
-  var ROOM_PREFIX='cgcrousprison-';
+  var ROOM_PREFIX=CG.ONLINE.crousprison.prefix;
   var MIN_PLAYERS=2, MAX_PLAYERS=8;
   var PER_GAME=9, PHOTO_MS=10000, REVEAL_MS=2600, COUNT_MS=3000;
   var BASE_PTS=100, SPEED_PTS=50, MIN_EACH=2;
@@ -19,7 +19,6 @@
   function streakBonus(n){ return n>=3 ? Math.min(100, (n-2)*20) : 0; }
   var BEST_KEY='cop_best_v1', SEEN_KEY='cop_seen_v1', SEEN_KEEP=60;
   var LABEL={c:'CROUS', p:'PRISON'};
-  var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff'];
 
   /* ---------- tirage des photos ----------
      Les photos déjà vues récemment passent en dernier, et chaque partie a au
@@ -69,20 +68,17 @@
 
   /* ===================== RÉSEAU ===================== */
   var ui=CG.roomUI('cop', {route:'crousprison', code:function(){ return roomCode; },
-    onLostBack:function(){ cleanupOnline(); gotoScreen('menu'); }});
+    back:function(){ cleanupOnline(); gotoScreen('menu'); }});
   var setNetStatus=ui.setStatus, showBanner=ui.showBanner, hideBanner=ui.hideBanner, showLostModal=ui.showLost, gotoScreen=ui.goto;
   var seats=CG.seatTools(gs), isConnected=seats.isConnected, activeCount=seats.activeCount;
   var net=CG.createRoomNet({
+    ui: ui,
     prefix: ROOM_PREFIX,
-    onStatus: setNetStatus,
     onJoinRequest: hostOnJoinRequest,
     onSeatJoined: hostOnSeatJoined,
     onGuestMessage: hostOnGuestMessage,
     onSeatLost: hostOnSeatLost,
     onHostMessage: handleMsg,
-    onReconnecting: function(){ showBanner('📡 Connexion perdue — reconnexion en cours...'); },
-    onReconnected: function(){ hideBanner(); },
-    onLost: function(){ showLostModal("Impossible de rétablir la connexion avec l'hôte."); },
     onPromote: onPromote
   });
   /* l'hôte a disparu : on reprend la salle, retour au lobby avec les scores */
@@ -116,7 +112,7 @@
 
   function isGameLive(){ return gs.phase==='countdown' || gs.phase==='photo' || gs.phase==='reveal'; }
   function pname(seat){ var p=gs.players[seat]; return p?p.name:'?'; }
-  function pcolor(seat){ return COLORS[seat%COLORS.length]; }
+  function pcolor(s){ return CG.seatColor(s); }
 
   /* ----- menu ----- */
   function loadBest(){ var b=0; try{ b=parseInt(localStorage.getItem(BEST_KEY)||'0',10)||0; }catch(e){} return b; }
@@ -154,7 +150,6 @@
     }, wantedCode);
     sfxToggle();
   });
-  $('copJoinCode').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('copJoinRoomBtn').click(); } });
   $('copJoinRoomBtn').addEventListener('click',function(){
     myName=$('copName').value.trim()||'Joueur';
     var code=CG.cleanRoomCode($('copJoinCode').value);
@@ -164,8 +159,6 @@
     net.join(code, {name:myName});
     sfxToggle();
   });
-  $('copBackFromLobby').addEventListener('click',function(){ sfxToggle(); cleanupOnline(); gotoScreen('menu'); });
-  $('copHubReturnBtn').addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
   CG.wireModal('copRulesModal', 'copRulesBtn');
   function openCredits(){
     var html='';
@@ -182,10 +175,7 @@
 
   /* ===================== HÔTE : PLACES ===================== */
   function hostOnJoinRequest(msg){
-    var back=seats.returningSeat(msg); if(back) return back;
-    if(activeCount()>=MAX_PLAYERS) return 'SALLE COMPLÈTE ('+MAX_PLAYERS+'/'+MAX_PLAYERS+')';
-    for(var s=1;s<gs.players.length;s++){ if(!gs.players[s]) return s; }
-    return Math.max(1, gs.players.length);
+    return seats.pickSeat(msg, MAX_PLAYERS);
   }
   function hostOnSeatJoined(seat, msg, isRepeat){
     var p=gs.players[seat];

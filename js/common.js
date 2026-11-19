@@ -107,10 +107,28 @@
     $(modalId).addEventListener('click',function(e){ if(e.target===this) closeModal(modalId); });
   }
 
+  /* ---------- JEUX EN LIGNE : une seule table pour le hub, les invitations et les salles ----------
+     route (#…) -> api : objet CG du jeu, prefix : identifiants des salles (PeerJS et relais),
+     name / join : champ du pseudo et bouton « Rejoindre », music : ambiance (js/audio.js). */
+  var ONLINE={
+    soiree:     {api:'party',       prefix:'cgparty-',       name:'partyName',  join:'partyJoinRoomBtn', music:'heist'},
+    demicercle: {api:'demicercle',  prefix:'cgdemicercle-',  name:'onlineName', join:'joinRoomBtn',      music:'heist'},
+    cameleon:   {api:'cameleon',    prefix:'cgcameleon-',    name:'chamName',   join:'chamJoinRoomBtn',  music:'heist'},
+    imposteur:  {api:'imposteur',   prefix:'cgimposteur-',   name:'impName',    join:'impJoinRoomBtn',   music:'heist'},
+    emoji:      {api:'emoji',       prefix:'cgemoji-',       name:'emoName',    join:'emoJoinRoomBtn',   music:'heist'},
+    loup:       {api:'loup',        prefix:'cgloup-',        name:'loupName',   join:'loupJoinRoomBtn',  music:'heist'},
+    garou:      {api:'garou',       prefix:'cggarou-',       name:'garouName',  join:'garouJoinRoomBtn', music:'heist'},
+    classement: {api:'classement',  prefix:'cgclassement-',  name:'clsName',    join:'clsJoinRoomBtn',   music:'heist'},
+    quiaecrit:  {api:'quiaecrit',   prefix:'cgquiaecrit-',   name:'qaeName',    join:'qaeJoinRoomBtn',   music:'heist'},
+    crousprison:{api:'crousprison', prefix:'cgcrousprison-', name:'copName',    join:'copJoinRoomBtn',   music:'riot'},
+    bots:       {api:'bots',        prefix:'cgbots-',        name:'botsName',   join:'botsJoinRoomBtn',  music:'riot'}
+  };
+
   /* ---------- SALLES EN LIGNE : interface commune ----------
      Chaque jeu en ligne a les mêmes éléments, nommés avec son préfixe p :
      #pNetStatus, #pNetBanner(+Text), #pDisconnectModal(+Text, BackBtn),
-     #pCopyCodeBtn / #pCopyLinkBtn, et ses écrans .p-screen / #p-screen-<nom>. */
+     #pCopyCodeBtn / #pCopyLinkBtn, #pBackFromLobby, #pHubReturnBtn,
+     et ses écrans .p-screen / #p-screen-<nom>. À passer à createRoomNet({ui}). */
   function roomUI(p, opts){
     opts=opts||{};
     var sp=opts.screens||p;
@@ -135,7 +153,13 @@
         window.scrollTo({top:0,behavior:'smooth'});
       }
     };
-    if(opts.onLostBack) $(p+'DisconnectBackBtn').addEventListener('click',function(){ closeModal(p+'DisconnectModal'); opts.onLostBack(); });
+    /* opts.back : quitter la salle et revenir au menu du jeu (« Retour », ou après une connexion perdue) */
+    if(opts.back){
+      $(p+'DisconnectBackBtn').addEventListener('click',function(){ closeModal(p+'DisconnectModal'); opts.back(); });
+      $(p+'BackFromLobby').addEventListener('click',function(){ sfxToggle(); opts.back(); });
+    }
+    var hubBtn=$(p+'HubReturnBtn');
+    if(hubBtn) hubBtn.addEventListener('click',function(){ sfxToggle(); location.hash='hub'; });
     /* boutons « copier le code » et « copier le lien d'invitation » */
     if(opts.route) {
       $(p+'CopyCodeBtn').addEventListener('click',function(){ copyText(opts.code(), $(p+'CopyCodeBtn')); });
@@ -148,6 +172,12 @@
   /* places d'une salle : st.players / st.connected / st.clientIds (la place 0 est l'hôte) */
   function seatTools(st){
     function isConnected(seat){ return seat===0 || st.connected[seat]!==false; }
+    function returningSeat(msg){
+      for(var s=1;s<st.clientIds.length;s++){
+        if(msg.clientId && st.clientIds[s]===msg.clientId && st.players[s]) return s;
+      }
+      return 0;
+    }
     return {
       isConnected:isConnected,
       activeCount:function(){
@@ -156,11 +186,14 @@
         return n;
       },
       /* même onglet qui revient (même identifiant client) : il retrouve sa place, sinon 0 */
-      returningSeat:function(msg){
-        for(var s=1;s<st.clientIds.length;s++){
-          if(msg.clientId && st.clientIds[s]===msg.clientId && st.players[s]) return s;
-        }
-        return 0;
+      returningSeat:returningSeat,
+      /* place pour une demande d'entrée (onJoinRequest) : sa place s'il revient, sinon la
+         première place libre ; texte du refus si la salle est pleine (max joueurs présents) */
+      pickSeat:function(msg, max, what){
+        var back=returningSeat(msg); if(back) return back;
+        if(this.activeCount()>=max) return (what||'SALLE')+' COMPLÈTE ('+max+'/'+max+')';
+        for(var s=1;s<st.players.length;s++) if(!st.players[s]) return s;
+        return Math.max(1, st.players.length);
       }
     };
   }
@@ -185,6 +218,9 @@
   function missingText(names, what){
     return '⚠ '+names.join(', ')+(names.length>1?' se sont déconnectés':" s'est déconnecté(e)")+' — '+(what||'la manche')+' continue sans eux.';
   }
+  /* couleur d'une place dans les jeux à places (la même partout) */
+  var SEAT_COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#c49a6c','#ff5577','#8fd3ff'];
+  function seatColor(s){ return SEAT_COLORS[(s|0)%SEAT_COLORS.length]; }
   function playerDot(color){ return '<span class="cham-player-dot" style="background:'+safeColor(color)+';"></span>'; }
   /* ligne de joueur des listes (lobby, scores…) */
   function playerRow(o){
@@ -275,9 +311,10 @@
   }
   enhanceRoomShare();
 
-  /* Entrée dans un champ data-enter="idDuBouton" : clique le bouton (ex. « Rejoindre ») */
+  /* Entrée dans un champ data-enter="idDuBouton" : clique le bouton (ex. « Rejoindre »).
+     Seul endroit qui gère Entrée -> bouton : ne pas en ajouter dans les jeux (double clic). */
   document.addEventListener('keydown', function(e){
-    if(e.key!=='Enter' || !e.target || !e.target.getAttribute) return;
+    if(e.key!=='Enter' || e.shiftKey || e.isComposing || !e.target || !e.target.getAttribute) return;
     var id=e.target.getAttribute('data-enter'), btn=id && $(id);
     if(btn && !btn.disabled){ e.preventDefault(); btn.click(); }
   });
@@ -320,12 +357,14 @@
   CG.vibrateOn=vibrateOn;
   CG.setVibrate=setVibrate;
   CG.wireModal=wireModal;
+  CG.ONLINE=ONLINE;
   CG.roomUI=roomUI;
   CG.seatTools=seatTools;
   CG.missingText=missingText;
   CG.promoteSeats=promoteSeats;
   CG.PROMOTED_TEXT="👑 L'hôte s'est déconnecté : tu es le nouvel hôte ! Les autres reviennent tout seuls, relance quand tout le monde est là.";
   CG.playerDot=playerDot;
+  CG.seatColor=seatColor;
   CG.playerRow=playerRow;
   CG.timerBar=timerBar;
   CG.escapeHtml=escapeHtml;
