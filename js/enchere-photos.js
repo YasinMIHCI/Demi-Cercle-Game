@@ -131,5 +131,81 @@ CG.ADJ_PHOTOS={
 "by": "Thomas Vogt from Paderborn, Deutschland",
 "lic": "CC BY 2.0",
 "url": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_300_SLR,_Uhlenhaut_Coup%C3%A9_(51563094005).jpg"
+},
+"apple1": {
+"f": "img/adj/apple1.jpg",
+"by": "Wikimedia Commons",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Apple_1_computer.jpg",
+"illu": 1
+},
+"congo": {
+"f": "img/adj/congo.jpg",
+"by": "chimpanzee Congo",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Congo_chimpanzee_painting-1.jpg",
+"illu": 1
+},
+"birkin": {
+"f": "img/adj/birkin.jpg",
+"by": "Wen-Cheng Liu",
+"lic": "CC BY-SA 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Hermes_Ostrich_Birkin_Bag.jpg",
+"illu": 1
+},
+"moonbag": {
+"f": "img/adj/moonbag.jpg",
+"by": "Steve Jurvetson",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Charlie_Duke_Holding_the_Apollo_16_Lunar_Scoop.jpg",
+"illu": 1
+},
+"einstein_note": {
+"f": "img/adj/einstein_note.jpg",
+"by": "Unknown, Courtesy of Meiji Seihanjo",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Einstein_in_Japan,_1922.png",
+"illu": 1
+},
+"banksy": {
+"f": "img/adj/banksy.jpg",
+"by": "Monoxyde",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Girl_with_Balloon_(IMG_20230615_150813).jpg",
+"illu": 1
+},
+"moonshoe": {
+"f": "img/adj/moonshoe.jpg",
+"by": "Jordan Geller",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Nike_Moon_Shoe_Sotheby%27s.jpg"
+},
+"macallan": {
+"f": "img/adj/macallan.jpg",
+"by": "Ssu",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Macallan_whisky,_12-15-18_years.jpg",
+"illu": 1
+},
+"yubari": {
+"f": "img/adj/yubari.jpg",
+"by": "Captain76",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Half_cut_of_Yubari_melon.JPG",
+"illu": 1
+},
+"messi": {
+"f": "img/adj/messi.jpg",
+"by": "Sebas",
+"lic": "CC BY 3.0",
+"url": "https://commons.wikimedia.org/wiki/File:Argentina_3-3_Francia_-_Copa_Mundial_2022_-_Messi_patea_un_penal.jpg",
+"illu": 1
+},
+"maradona": {
+"f": "img/adj/maradona.jpg",
+"by": "Dani Yako",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Maradona_scoring_england_1986.jpg",
+"illu": 1
 }
 };
