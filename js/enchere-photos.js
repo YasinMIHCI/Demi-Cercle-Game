@@ -302,5 +302,46 @@ CG.ADJ_PHOTOS={
 "lic": "CC BY-SA 2.0",
 "url": "https://commons.wikimedia.org/wiki/File:Original_iPhone_docked.jpg",
 "illu": 1
+},
+"rabbit": {
+"f": "img/adj/rabbit.jpg",
+"by": "Randolph Croft",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:%22Rabbit_Balloon%22_(3984992021).jpg",
+"illu": 1
+},
+"constitution": {
+"f": "img/adj/constitution.jpg",
+"by": "Printed by Dunlap & Claypoole in Philadelphia, 1787",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Dunlap_%26_Claypoole_original_printing_of_the_United_States_Constitution,_1787,_p._2_of_4.jpg",
+"illu": 1
+},
+"codex": {
+"f": "img/adj/codex.jpg",
+"by": "Leonardo da Vinci",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:CodexLeicester.jpg"
+},
+"zelda": {
+"f": "img/adj/zelda.jpg",
+"by": "Dave or Atox",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:The_Legend_of_Zelda_-_Golden_Catridge.jpg",
+"illu": 1
+},
+"pikachu": {
+"f": "img/adj/pikachu.jpg",
+"by": "Klapi",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Pyrkon_2022_Pokemon_Trading_Card_Game.jpg",
+"illu": 1
+},
+"einstein_god": {
+"f": "img/adj/einstein_god.jpg",
+"by": "Ferdinand Schmutzer / Adam Cuerden",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Einstein_1921_by_F_Schmutzer_-_restoration.jpg",
+"illu": 1
 }
 };
