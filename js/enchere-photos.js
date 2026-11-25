@@ -50,5 +50,86 @@ CG.ADJ_PHOTOS={
 "by": "MossAlbatross",
 "lic": "Public domain",
 "url": "https://commons.wikimedia.org/wiki/File:America_(Cattelan)_side_view.jpg"
+},
+"french_toast": {
+"f": "img/adj/french_toast.jpg",
+"by": "Ocdp",
+"lic": "CC0",
+"url": "https://commons.wikimedia.org/wiki/File:French_toast_001.jpg",
+"illu": 1
+},
+"grilled": {
+"f": "img/adj/grilled.jpg",
+"by": "Maggie Hoffman",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Grilled_cheese_sandwich.jpg",
+"illu": 1
+},
+"iosono": {
+"f": "img/adj/iosono.jpg",
+"by": "Matt Brown",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Empty_Fourth_Plinth.jpg",
+"illu": 1
+},
+"lennon_tooth": {
+"f": "img/adj/lennon_tooth.jpg",
+"by": "Jack Mitchell",
+"lic": "CC BY-SA 3.0",
+"url": "https://commons.wikimedia.org/wiki/File:John_Lennon_portrait.jpg",
+"illu": 1
+},
+"marilyn": {
+"f": "img/adj/marilyn.jpg",
+"by": "Cecil Stoughton, White House Photographs",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Marilyn_Monroe_Happy_Birthday_Mr_President_1962.jpg"
+},
+"rolex": {
+"f": "img/adj/rolex.jpg",
+"by": "Shuntfield",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Rolex_Cosmograph_Daytona_Panda.jpg",
+"illu": 1
+},
+"ruby": {
+"f": "img/adj/ruby.jpg",
+"by": "dbking",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Dorothy%27s_Ruby_Slippers,_Wizard_of_Oz_1938.jpg",
+"illu": 1
+},
+"salvator": {
+"f": "img/adj/salvator.jpg",
+"by": "Leonardo da Vinci",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Leonardo_da_Vinci,_Salvator_Mundi,_c.1500,_oil_on_walnut,_45.4_%C3%97_65.6_cm.jpg"
+},
+"sandals": {
+"f": "img/adj/sandals.jpg",
+"by": "CNEcija12345",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Birkenstock_Sandals_CNE_01.jpg",
+"illu": 1
+},
+"shatner": {
+"f": "img/adj/shatner.jpg",
+"by": "Romain Brami",
+"lic": "CC BY-SA 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:William_Shatner_2010.jpg",
+"illu": 1
+},
+"tweet": {
+"f": "img/adj/tweet.jpg",
+"by": "cellanr",
+"lic": "CC BY-SA 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Jack_Dorsey_2014.jpg",
+"illu": 1
+},
+"uhlenhaut": {
+"f": "img/adj/uhlenhaut.jpg",
+"by": "Thomas Vogt from Paderborn, Deutschland",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Mercedes-Benz_300_SLR,_Uhlenhaut_Coup%C3%A9_(51563094005).jpg"
 }
 };
