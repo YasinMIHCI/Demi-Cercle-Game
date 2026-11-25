@@ -27,6 +27,7 @@
     cameleon:   {label:'Le Caméléon',       input:'chamName',   metric:'wins'},
     imposteur:  {label:"L'Imposteur",       input:'impName',    metric:'wins'},
     emoji:      {label:'Emoji Quiz',        input:'emoName',    metric:'best', unit:'pts'},
+    enchere:    {label:'Adjugé, vendu !',   input:'adjName',    metric:'best', unit:'pts'},
     loup:       {label:'Le Loup des mots',  input:'loupName',   metric:'wins'},
     garou:      {label:'Les Loups-Garous',  input:'garouName',  metric:'wins'}
   };
@@ -351,6 +352,8 @@
     ['bots_wave5','🛡️','Survivant','Battle Bots : atteindre la vague 5 en Survie.'],
     ['party_win','🎉','Roi de la soirée','Gagner une Soirée All in.'],
     ['emo_win','🤔','Décodeur d’emojis','Emoji Quiz : gagner une partie.'],
+    ['adj_win','🔨','Commissaire-priseur','Adjugé, vendu ! : gagner une partie.'],
+    ['adj_pile','🎯','Œil de lynx','Adjugé, vendu ! : trouver un prix à 2 % près.'],
     ['friends3','👥','Bien entouré','Avoir 3 amis.']
   ];
   var ACH_BY={}; ACH.forEach(function(a){ ACH_BY[a[0]]=a; });
@@ -410,7 +413,7 @@
   function rpc(name, body){ return authed('/rest/v1/rpc/'+name, {method:'POST', body:body||{}}); }
   var JOIN={demicercle:['demicercle','joinRoomBtn'], cameleon:['cameleon','chamJoinRoomBtn'], imposteur:['imposteur','impJoinRoomBtn'],
     loup:['loup','loupJoinRoomBtn'], garou:['garou','garouJoinRoomBtn'], classement:['classement','clsJoinRoomBtn'], quiaecrit:['quiaecrit','qaeJoinRoomBtn'],
-    crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn'], emoji:['emoji','emoJoinRoomBtn']};
+    crousprison:['crousprison','copJoinRoomBtn'], bots:['bots','botsJoinRoomBtn'], soiree:['party','partyJoinRoomBtn'], emoji:['emoji','emoJoinRoomBtn'], enchere:['enchere','adjJoinRoomBtn']};
   function ago(iso){
     if(!iso) return 'jamais joué';
     var m=Math.round((Date.now()-new Date(iso).getTime())/60000);

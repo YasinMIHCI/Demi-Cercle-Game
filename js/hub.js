@@ -29,10 +29,10 @@
   }
 
   /* musique de fond selon l'écran (js/audio.js) */
-  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', garou:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist', emoji:'heist'};
+  var MUSIC={hub:'lounge', bots:'riot', demicercle:'heist', cameleon:'heist', imposteur:'heist', loup:'heist', garou:'heist', classement:'heist', quiaecrit:'heist', crousprison:'riot', soiree:'heist', emoji:'heist', enchere:'heist'};
   /* quitte proprement les salles en cours ; un jeu qui n'a pas pu se charger ne doit pas bloquer les autres */
   function resetGames(){
-    ['demicercle','cameleon','imposteur','bots','loup','garou','classement','quiaecrit','crousprison','emoji'].forEach(function(k){
+    ['demicercle','cameleon','imposteur','bots','loup','garou','classement','quiaecrit','crousprison','emoji','enchere'].forEach(function(k){
       try{ if(CG[k]) CG[k].reset(); }catch(e){}
     });
   }
@@ -71,6 +71,9 @@
     } else if(r.route==='emoji'){
       showView('emoji');
       if(isInitial && r.query.room) CG.emoji.enterJoinFlow(r.query.room);
+    } else if(r.route==='enchere'){
+      showView('enchere');
+      if(isInitial && r.query.room) CG.enchere.enterJoinFlow(r.query.room);
     } else if(r.route==='imposteur'){
       showView('imposteur');
       if(isInitial && r.query.room) CG.imposteur.enterJoinFlow(r.query.room);
@@ -88,7 +91,7 @@
      dernière partie), on rejoint la salle directement, sans autre clic. */
   var AUTOJOIN={demicercle:['onlineName','joinRoomBtn'], cameleon:['chamName','chamJoinRoomBtn'], imposteur:['impName','impJoinRoomBtn'],
     loup:['loupName','loupJoinRoomBtn'], garou:['garouName','garouJoinRoomBtn'], classement:['clsName','clsJoinRoomBtn'], quiaecrit:['qaeName','qaeJoinRoomBtn'],
-    crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn'], emoji:['emoName','emoJoinRoomBtn']};
+    crousprison:['copName','copJoinRoomBtn'], bots:['botsName','botsJoinRoomBtn'], soiree:['partyName','partyJoinRoomBtn'], emoji:['emoName','emoJoinRoomBtn'], enchere:['adjName','adjJoinRoomBtn']};
   function autoJoin(route){
     var a=AUTOJOIN[route]; if(!a) return;
     setTimeout(function(){
@@ -110,6 +113,7 @@
   $('playLoupBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='loup'; });
   $('playBotsBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='bots'; });
   $('playEmojiBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='emoji'; });
+  $('playEnchereBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='enchere'; });
   $('playImposteurBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='imposteur'; });
   $('playCameleonBtn').addEventListener('click',function(){ CG.sfxToggle(); location.hash='cameleon'; });
 
@@ -225,7 +229,7 @@
   (function(){ var n=0; try{ n=+(localStorage.getItem(FILTER_KEY)||0); }catch(e){} applyFilter(n>=1 && n<=10 ? n : 0); })();
 
   /* ----- « Rejoindre une partie » : un code suffit, on cherche le jeu tout seul ----- */
-  var ROOM_PREFIXES={soiree:'cgparty-', demicercle:'cgdemicercle-', cameleon:'cgcameleon-', imposteur:'cgimposteur-', emoji:'cgemoji-',
+  var ROOM_PREFIXES={soiree:'cgparty-', demicercle:'cgdemicercle-', cameleon:'cgcameleon-', imposteur:'cgimposteur-', emoji:'cgemoji-', enchere:'cgenchere-',
     bots:'cgbots-', loup:'cgloup-', garou:'cggarou-', classement:'cgclassement-', quiaecrit:'cgquiaecrit-', crousprison:'cgcrousprison-'};
   var GAME_OBJ={soiree:'party'};
   var joining=false;

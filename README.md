@@ -228,6 +228,7 @@ js/loup.js        Le Loup des mots
 js/classement.js  Le Classement
 js/quiaecrit.js   Qui a écrit ça ?
 js/emoji.js       Emoji Quiz
+js/enchere.js     Adjugé, vendu ! (prix d'objets vendus aux enchères)
 js/crousprison-photos.js  Crous ou Prison ? : liste des photos et crédits
 js/crousprison.js Crous ou Prison ?
 img/cop/          Crous ou Prison ? : les photos

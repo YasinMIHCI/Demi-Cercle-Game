@@ -1173,3 +1173,25 @@ button.cls-slot{-webkit-tap-highlight-color:transparent;touch-action:manipulatio
   font-size:0.85rem;line-height:1;
 }
 .kick-btn:hover,.kick-btn:focus-visible{color:#fff;background:var(--red);border-color:#000;}
+
+/* ---------- ADJUGÉ, VENDU ! ---------- */
+.adj-screen{display:none;animation:fadeIn .35s ease;}
+.adj-screen.active{display:block;}
+.adj-emoji{text-align:center;font-size:clamp(3rem,14vw,4.6rem);line-height:1.1;margin:4px 0;}
+.adj-item{text-align:center;font-family:var(--font-display);font-size:clamp(1.15rem,4.8vw,1.6rem);color:#fff;margin:4px 0 2px;letter-spacing:.5px;}
+.adj-where{text-align:center;color:#aaa;font-size:0.85rem;margin:0 0 10px;}
+.adj-anecdote{background:#1b1700;border:2px solid var(--yellow);color:#eee;padding:10px 12px;margin:0 0 12px;font-size:0.95rem;line-height:1.4;}
+.adj-anecdote b{color:var(--yellow);margin-right:4px;}
+.adj-anecdote.pop{animation:adjPop .4s cubic-bezier(.2,1.4,.4,1);}
+.adj-anecdote[hidden],.adj-result[hidden],#adjGuessBox[hidden]{display:none;}
+.adj-result{text-align:center;margin:4px 0 14px;}
+.adj-price-label{font-family:var(--font-display);color:var(--red-bright);letter-spacing:2px;font-size:0.95rem;}
+.adj-price{font-family:var(--font-display);color:var(--yellow);font-size:clamp(1.9rem,9vw,3rem);animation:adjPop .5s cubic-bezier(.2,1.4,.4,1);}
+.adj-preview{min-height:1.2em;margin:4px 0 0;color:#7cff6e;font-size:0.9rem;}
+.adj-preview.bad{color:#ff6b6b;}
+.adj-mine{text-align:center;color:#ddd;margin:6px 0;}
+.adj-mine b{color:var(--yellow);}
+.adj-mine small{color:#888;}
+.adj-mine:empty{display:none;}
+.adj-guess{display:block;color:#aaa;font-weight:400;font-size:0.8rem;}
+@keyframes adjPop{from{transform:scale(0.6);opacity:0;}to{transform:scale(1);opacity:1;}}

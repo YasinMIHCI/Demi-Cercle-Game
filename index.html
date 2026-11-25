@@ -21,7 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=51">
+<link rel="stylesheet" href="css/style.css?v=52">
 </head>
 <body>
 
@@ -32,8 +32,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=51"></script>
-<script src="js/intro.js?v=51"></script>
+<script src="js/audio.js?v=52"></script>
+<script src="js/intro.js?v=52"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -110,6 +110,13 @@
         <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
         <p>Des emojis cachent un film, un manga, une série… Le plus rapide gagne.</p>
         <button class="btn yellow" id="playEmojiBtn" aria-label="Jouer : Emoji Quiz"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available" data-min="2" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🔨</div>
+        <h3>ADJUGÉ, VENDU !</h3>
+        <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
+        <p>De vrais objets fous vendus aux enchères : devine leur prix. Le plus proche rafle la mise.</p>
+        <button class="btn yellow" id="playEnchereBtn" aria-label="Jouer : Adjugé, vendu !"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card available" data-min="3" data-max="8">
         <div class="game-card-icon" aria-hidden="true">🕵️</div>
@@ -880,6 +887,102 @@
         <div class="btn-row center" style="margin-top:16px;">
           <button class="btn yellow" id="emoReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
           <span class="waiting-label" id="emoOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ================= ADJUGÉ, VENDU ! ================= -->
+<div id="view-enchere" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="adjHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>ADJUGÉ, <em>VENDU !</em></span></div>
+        <div class="badge-round" id="adjRoundBadge" style="display:none;">OBJET 1</div>
+      </div>
+      <div class="net-status offline" id="adjNetStatus"><span class="net-dot"></span><span class="net-label">HORS LIGNE</span></div>
+    </div>
+    <div class="net-banner" id="adjNetBanner" role="status"><span id="adjNetBannerText"></span></div>
+
+    <section class="adj-screen active" id="adj-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">ADJUGÉ, VENDU !</h1>
+        <p class="subtitle">2 à 10 joueurs. Une carte Pokémon, des toilettes en or, une banane scotchée au mur… De vrais objets vendus aux enchères : devine leur prix ! Le plus proche marque le plus.</p>
+        <div class="btn-row"><button class="btn ghost small" id="adjRulesBtn"><span>📖 Règles du jeu</span></button></div>
+        <label for="adjName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="adjName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="adjJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="adjJoinCode" data-enter="adjJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="adjJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
+        <label>Nombre d'objets</label>
+        <div class="format-toggle" id="adjCountToggle">
+          <button class="btn ghost small format-opt" data-count="5"><span>5</span></button>
+          <button class="btn ghost small format-opt active" data-count="8"><span>8</span></button>
+          <button class="btn ghost small format-opt" data-count="12"><span>12</span></button>
+        </div>
+        <label for="adjHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="adjHostCode" data-room-code="adjCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row"><button class="btn yellow small" id="adjCreateRoomBtn"><span>Créer la salle</span></button></div>
+      </div>
+    </section>
+
+    <section class="adj-screen" id="adj-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="adjBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="adjCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="adjCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="adjCopyLinkBtn"><span>🔗 Copier le lien</span></button>
+        </div>
+        <div class="cham-player-list" id="adjPlayerList"></div>
+        <p class="lobby-status" id="adjLobbyStatus">En attente de joueurs...</p>
+        <div class="btn-row center lobby-start"><button class="btn yellow" id="adjStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button></div>
+      </div>
+    </section>
+
+    <section class="adj-screen" id="adj-screen-play">
+      <div class="panel">
+        <div class="adj-emoji" id="adjEmoji" aria-hidden="true"></div>
+        <h2 class="adj-item" id="adjItemName"></h2>
+        <p class="adj-where" id="adjWhere"></p>
+        <p class="adj-anecdote" id="adjAnecdote" hidden></p>
+        <div class="adj-result" id="adjResult" hidden></div>
+        <div class="bots-timer" style="margin-bottom:12px;"><div class="bots-timer-fill" id="adjTimerFill"></div><span id="adjTimerText"></span></div>
+        <div id="adjGuessBox">
+          <label for="adjGuessInput" id="adjCurLabel">Ton prix</label>
+          <div class="loup-ask">
+            <input type="text" id="adjGuessInput" inputmode="decimal" maxlength="24" placeholder="Ex : 12 500 · 1,5 M · 300k" autocomplete="off">
+            <button class="btn yellow small" id="adjGuessBtn"><span>Miser</span></button>
+          </div>
+          <p class="adj-preview" id="adjPreview" aria-live="polite"></p>
+        </div>
+        <p class="adj-mine" id="adjMine"></p>
+        <div class="cham-player-list" id="adjGuessList"></div>
+      </div>
+    </section>
+
+    <section class="adj-screen" id="adj-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA VENTE</h1>
+        <div class="end-winner-text" id="adjWinnerText"></div>
+        <div class="cls-podium" id="adjFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="adjReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
+          <span class="waiting-label" id="adjOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
         </div>
       </div>
     </section>
@@ -2116,6 +2219,26 @@
 </div>
 
 <!-- EMOJI QUIZ : règles et déconnexion -->
+<div class="modal-overlay" id="adjRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="adjRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — ADJUGÉ, VENDU !</h2>
+    <ol class="rules-list">
+      <li>Un objet s'affiche : un vrai objet vendu aux enchères (ou presque), avec le lieu et l'année de la vente. Ça va de la carte Pokémon au squelette de dinosaure, en passant par un mouchoir usagé.</li>
+      <li>Tape ton estimation dans la monnaie indiquée ($, €, £ ou ¥). Tu peux écrire « 12 500 », « 1,5 M », « 300k » ou « 2 milliards ».</li>
+      <li>Au bout de 5 secondes, une <b>anecdote</b> sur l'objet apparaît. Tu peux changer ton estimation autant que tu veux jusqu'à la fin des 25 secondes : seule la dernière compte.</li>
+      <li><b>Points :</b> tu gagnes des points pour chaque joueur plus loin que toi du vrai prix (100 pts si tu es le plus proche de tous). Bonus 🎯 : +50 à 2 % près, +25 à 10 % près. Sans estimation : 0.</li>
+      <li>5, 8 ou 12 objets par partie (au choix de l'hôte). Le plus gros score gagne.</li>
+    </ol>
+  </div>
+</div>
+<div class="modal-overlay" id="adjDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="adjDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center"><button class="btn yellow" id="adjDisconnectBackBtn"><span>◀ Retour au menu</span></button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="emoRulesModal">
   <div class="modal-box">
     <button class="modal-close" id="emoRulesModalClose" aria-label="Fermer">✕</button>
@@ -2324,6 +2447,7 @@
       <li><b>Le Demi-Cercle :</b> jeu de déduction/estimation. Local (même écran), ou en ligne de 2 à 10 joueurs : 1 vs 1, 2 vs 2 ou équipes tournantes.</li>
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
       <li><b>Emoji Quiz :</b> des emojis cachent un film, une série, une expression… Le plus rapide à trouver marque le plus. 2 à 10 joueurs en ligne.</li>
+      <li><b>Adjugé, vendu ! :</b> de vrais objets fous vendus aux enchères (toilettes en or, carte Pokémon…) : devine leur prix, le plus proche gagne. 2 à 10 joueurs en ligne.</li>
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question (réponse en nombre ou en texte libre), et un joueur qui a reçu une autre question sans le savoir.</li>
       <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2, chacun pour soi (jusqu'à 6) ou survie contre des bots (1 à 4), en ligne.</li>
       <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
@@ -2381,23 +2505,24 @@
 <!-- PeerJS 1.5.4, copie identique au paquet npm officiel (sha256 ad5d8870…36fe5) -->
 <script src="js/vendor/peerjs.min.js?v=1"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=51"></script>
-<script src="js/net.js?v=51"></script>
-<script src="js/demicercle.js?v=51"></script>
-<script src="js/cameleon.js?v=51"></script>
-<script src="js/imposteur.js?v=51"></script>
-<script src="js/loup.js?v=51"></script>
-<script src="js/garou.js?v=51"></script>
-<script src="js/classement.js?v=51"></script>
-<script src="js/quiaecrit.js?v=51"></script>
-<script src="js/emoji.js?v=51"></script>
-<script src="js/crousprison-photos.js?v=51"></script>
-<script src="js/crousprison.js?v=51"></script>
-<script src="js/bots-maps.js?v=51"></script>
-<script src="js/bots.js?v=51"></script>
-<script src="js/pwa.js?v=51"></script>
-<script src="js/party.js?v=51"></script>
-<script src="js/account.js?v=51"></script>
-<script src="js/hub.js?v=51"></script>
+<script src="js/common.js?v=52"></script>
+<script src="js/net.js?v=52"></script>
+<script src="js/demicercle.js?v=52"></script>
+<script src="js/cameleon.js?v=52"></script>
+<script src="js/imposteur.js?v=52"></script>
+<script src="js/loup.js?v=52"></script>
+<script src="js/garou.js?v=52"></script>
+<script src="js/classement.js?v=52"></script>
+<script src="js/quiaecrit.js?v=52"></script>
+<script src="js/emoji.js?v=52"></script>
+<script src="js/enchere.js?v=52"></script>
+<script src="js/crousprison-photos.js?v=52"></script>
+<script src="js/crousprison.js?v=52"></script>
+<script src="js/bots-maps.js?v=52"></script>
+<script src="js/bots.js?v=52"></script>
+<script src="js/pwa.js?v=52"></script>
+<script src="js/party.js?v=52"></script>
+<script src="js/account.js?v=52"></script>
+<script src="js/hub.js?v=52"></script>
 </body>
 </html>
