@@ -207,5 +207,100 @@ CG.ADJ_PHOTOS={
 "lic": "Public domain",
 "url": "https://commons.wikimedia.org/wiki/File:Maradona_scoring_england_1986.jpg",
 "illu": 1
+},
+"ruth": {
+"f": "img/adj/ruth.jpg",
+"by": "Charles M. Conlon",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Babe_Ruth,_1933.jpg",
+"illu": 1
+},
+"apex": {
+"f": "img/adj/apex.jpg",
+"by": "Susannah Maidment et al. & Natural History Museum, London",
+"lic": "CC BY 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Stegosaurus_stenops_mounted_skeleton.jpg",
+"illu": 1
+},
+"cobain": {
+"f": "img/adj/cobain.jpg",
+"by": "The wub",
+"lic": "CC BY-SA 4.0",
+"url": "https://commons.wikimedia.org/wiki/File:Kurt_Cobain%27s_Martin_D-18E_guitar,_RCM_Museum.jpg",
+"illu": 1
+},
+"buffett": {
+"f": "img/adj/buffett.jpg",
+"by": "USA White House",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:Warren_Buffett_in_2010_(cropped).jpg",
+"illu": 1
+},
+"tissue": {
+"f": "img/adj/tissue.jpg",
+"by": "Gage Skidmore",
+"lic": "CC BY-SA 3.0",
+"url": "https://commons.wikimedia.org/wiki/File:Scarlett_Johansson_by_Gage_Skidmore_2019.jpg",
+"illu": 1
+},
+"wutang": {
+"f": "img/adj/wutang.jpg",
+"by": "Napalm filled tires",
+"lic": "CC BY-SA 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Wu_Tang_Clan_on_Stage.jpg",
+"illu": 1
+},
+"tuna": {
+"f": "img/adj/tuna.jpg",
+"by": "The original uploader was Cafe Nervosa at English Wikipedia.",
+"lic": "CC BY-SA 2.5",
+"url": "https://commons.wikimedia.org/wiki/File:Tsukiji_Fresh_Tuna_Auction.JPG",
+"illu": 1
+},
+"mantle": {
+"f": "img/adj/mantle.jpg",
+"by": "Bowman",
+"lic": "Public domain",
+"url": "https://commons.wikimedia.org/wiki/File:1954_Bowman_Mickey_Mantle.jpg",
+"illu": 1
+},
+"aj13": {
+"f": "img/adj/aj13.jpg",
+"by": "Ric_man",
+"lic": "CC BY-SA 3.0",
+"url": "https://commons.wikimedia.org/wiki/File:Air_jordan_xiii_flint.jpg",
+"illu": 1
+},
+"lennon_rolls": {
+"f": "img/adj/lennon_rolls.jpg",
+"by": "edvvc from London, UK",
+"lic": "CC BY 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:John_Lennon%27s_1965_Phantom_V_Rolls-Royce_-_Flickr_-_edvvc.jpg"
+},
+"titanic_violin": {
+"f": "img/adj/titanic_violin.jpg",
+"by": "Marathon",
+"lic": "CC BY-SA 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Wallace_Hartley%27s_violin_in_the_Titanic_Belfast_Museum._-_geograph.org.uk_-_7881465.jpg"
+},
+"db5": {
+"f": "img/adj/db5.jpg",
+"by": "Morio",
+"lic": "CC BY-SA 3.0",
+"url": "https://commons.wikimedia.org/wiki/File:Aston_Martin_DB5_(Goldfinger)_front_gadgets_National_Motor_Museum,_Beaulieu.jpg",
+"illu": 1
+},
+"lady_blunt": {
+"f": "img/adj/lady_blunt.jpg",
+"by": "Tarisio Auctions.\n\nViolachick68 at English Wikipedia",
+"lic": "CC BY-SA 3.0",
+"url": "https://commons.wikimedia.org/wiki/File:Lady_Blunt_top.jpg"
+},
+"iphone": {
+"f": "img/adj/iphone.jpg",
+"by": "Andrew from London, UK",
+"lic": "CC BY-SA 2.0",
+"url": "https://commons.wikimedia.org/wiki/File:Original_iPhone_docked.jpg",
+"illu": 1
 }
 };
