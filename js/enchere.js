@@ -418,7 +418,7 @@
     if(ph){
       if(img.getAttribute('src')!==ph.f){ img.removeAttribute('src'); img.src=ph.f; }
       img.alt='Photo : '+msg.name;
-      $('adjCredit').innerHTML='📷 <a href="'+escapeHtml(ph.url)+'" target="_blank" rel="noopener">'+escapeHtml(ph.by||'Wikimedia Commons')+'</a> · '+escapeHtml(ph.lic||'');
+      $('adjCredit').innerHTML=(ph.illu?'Photo d’illustration · ':'')+'📷 <a href="'+escapeHtml(ph.url)+'" target="_blank" rel="noopener">'+escapeHtml(ph.by||'Wikimedia Commons')+'</a> · '+escapeHtml(ph.lic||'');
       fig.hidden=false;
     } else fig.hidden=true;
     $('adjEmoji').hidden=!!ph;
