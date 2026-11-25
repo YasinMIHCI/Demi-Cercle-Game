@@ -49,6 +49,7 @@
     onReconnecting:function(){ ui.showBanner('📡 Connexion à la soirée perdue — reconnexion en cours...'); },
     onReconnected:function(){ ui.hideBanner(); },
     onLost:function(){ leaveGame(); ui.showLost("Impossible de rétablir la connexion avec l'hôte de la soirée."); },
+    onKicked:function(){ net.close(); clearTimers(); leaveGame(); ui.showLost("L'hôte t'a exclu(e) de la soirée."); },
     onPromote:onPromote
   });
   /* L'hôte de la soirée a disparu : tu reprends la soirée (même code, mêmes
@@ -174,6 +175,26 @@
     else ps.connected[seat]=false;
     hostBroadcastState();
   }
+  /* l'hôte exclut un joueur : il quitte la soirée et ne peut plus revenir avec ce code */
+  function hostKick(seat){
+    if(netRole!=='host' || !(seat>=1) || !ps.players[seat]) return;
+    var name=ps.players[seat].name;
+    if(!window.confirm('Exclure '+name+' de la soirée ?')) return;
+    if(!ps.players[seat]) return;
+    net.kick(seat);
+    ps.players[seat]=null; ps.clientIds[seat]=null; ps.connected[seat]=false; ps.totals[seat]=0;
+    hostBroadcastState();
+    net.chat('🚪 '+name+' a été exclu(e) de la soirée.', myName);
+  }
+  function kickBtn(s){
+    return (netRole==='host' && s!==mySeat) ? '<button type="button" class="kick-btn" data-kick="'+s+'" title="Exclure ce joueur" aria-label="Exclure ce joueur">✖</button>' : '';
+  }
+  ['partyPlayerList','partyTotalList'].forEach(function(id){
+    $(id).addEventListener('click', function(e){
+      var b=e.target.closest && e.target.closest('[data-kick]');
+      if(b){ sfxToggle(); hostKick(parseInt(b.getAttribute('data-kick'),10)); }
+    });
+  });
   function hostBroadcastState(){
     net.broadcast({type:'party_state', players:ps.players.slice(), connected:ps.connected.slice(), totals:ps.totals.slice(), phase:ps.phase,
       plan:ps.plan.slice(), idx:ps.idx});
@@ -324,6 +345,7 @@
           ps.phase=msg.phase||ps.phase; if(msg.plan){ ps.plan=msg.plan; ps.idx=msg.idx; }
         }
         renderLobby();
+        if(ps.phase==='standings') $('partyTotalList').innerHTML=standingsRows(ps.totals, ps.players, true).html;
         break;
       case 'round_intro':
         view.idx=msg.idx; view.total=msg.total; view.game=msg.game;
@@ -362,7 +384,7 @@
   /* ===================== AFFICHAGE ===================== */
   var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#ff5a5a'];
   function pcolor(s){ return COLORS[s%COLORS.length]; }
-  function standingsRows(totals, players){
+  function standingsRows(totals, players, kick){
     var order=[];
     for(var s=0;s<players.length;s++) if(players[s]) order.push(s);
     order.sort(function(a,b){ return (totals[b]||0)-(totals[a]||0); });
@@ -372,7 +394,7 @@
       if(i>0 && (totals[s]||0)<(totals[order[i-1]]||0)) rank=i;    /* égalité = même place */
       var lead=(totals[s]||0)===top && top>0;
       html+='<div class="cls-podium-row'+(lead?' first':'')+(s===mySeat?' me':'')+'"><span class="cls-pos">'+(lead?'👑':(rank+1))+'</span>'+CG.playerDot(pcolor(s))+
-        '<span class="cls-slot-name">'+escapeHtml(players[s].name)+(s===mySeat?' (toi)':'')+'</span><span class="cham-vote-count">'+(totals[s]||0)+' pts</span></div>';
+        '<span class="cls-slot-name">'+escapeHtml(players[s].name)+(s===mySeat?' (toi)':'')+'</span><span class="cham-vote-count">'+(totals[s]||0)+' pts</span>'+(kick?kickBtn(s):'')+'</div>';
     });
     return {html:html, order:order, top:top};
   }
@@ -381,7 +403,7 @@
     for(var s=0;s<ps.players.length;s++){
       if(!ps.players[s]) continue;
       html+=CG.playerRow({name:ps.players[s].name, color:pcolor(s), me:s===mySeat, off:!isConnected(s),
-        extra:(ps.totals[s]?'<span class="cham-vote-count">'+ps.totals[s]+' pts</span>':'')});
+        extra:(ps.totals[s]?'<span class="cham-vote-count">'+ps.totals[s]+' pts</span>':'')+kickBtn(s)});
     }
     $('partyPlayerList').innerHTML=html;
     var host=netRole==='host', n=connectedSeats().length;
@@ -416,7 +438,7 @@
     });
     $('partyRoundList').innerHTML=html;
     ps.players=msg.players; ps.totals=msg.totals;
-    $('partyTotalList').innerHTML=standingsRows(msg.totals, msg.players).html;
+    $('partyTotalList').innerHTML=standingsRows(msg.totals, msg.players, true).html;
     var host=netRole==='host';
     $('partyNextBtn').style.display=host?'inline-block':'none';
     $('partyNextBtn').querySelector('span').textContent = msg.last ? '🏁 Voir le classement final' : '▶ Manche suivante';
