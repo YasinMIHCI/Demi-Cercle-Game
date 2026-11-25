@@ -19,119 +19,119 @@
   var BONUS=[[0.02,50],[0.10,25]];  /* à 2 % près : +50, à 10 % près : +25 */
   var COLORS=['#E60012','#2E6FF2','#FFE600','#7cff6e','#ff6ec7','#ff9d2f','#00e5ff','#b388ff','#ffffff','#c49a6c'];
 
-  /* [emoji, objet, où et quand, anecdote, prix, devise]
+  /* [emoji, objet, où et quand, anecdote, prix, devise, clé de la photo (js/enchere-photos.js)]
      Prix d'adjudication tels que rapportés par la presse (frais compris quand
      c'est le chiffre le plus cité). */
   var BANK=[
     ['🃏','Carte Pokémon « Pikachu Illustrator » (notée PSA 10)','Achetée par le youtubeur Logan Paul, 2022',
-      'Seulement une trentaine d’exemplaires existent : elle a été offerte en 1998 aux gagnants d’un concours de dessin au Japon. Logan Paul l’a portée autour du cou sur le ring de WrestleMania.',5275000,'$'],
+      'Seulement une trentaine d’exemplaires existent : elle a été offerte en 1998 aux gagnants d’un concours de dessin au Japon. Logan Paul l’a portée autour du cou sur le ring de WrestleMania.',5275000,'$','pikachu'],
     ['🚽','Toilettes en or massif « America » de Maurizio Cattelan','Sotheby’s, New York, 2025',
-      'Environ 100 kg d’or 18 carats… et elles fonctionnent ! Leur jumelle a été volée en 2019 au palais de Blenheim, en Angleterre, et n’a jamais été retrouvée.',12100000,'$'],
+      'Environ 100 kg d’or 18 carats… et elles fonctionnent ! Leur jumelle a été volée en 2019 au palais de Blenheim, en Angleterre, et n’a jamais été retrouvée.',12100000,'$','toilet'],
     ['🍌','Une banane scotchée au mur (« Comedian », Maurizio Cattelan)','Sotheby’s, New York, 2024',
-      'La banane avait été achetée 35 centimes chez un marchand de fruits juste à côté. L’acheteur, un entrepreneur de la crypto, l’a mangée quelques jours plus tard.',6200000,'$'],
+      'La banane avait été achetée 35 centimes chez un marchand de fruits juste à côté. L’acheteur, un entrepreneur de la crypto, l’a mangée quelques jours plus tard.',6200000,'$','banana'],
     ['🧤','Le gant blanc à strass de Michael Jackson','Vente aux enchères à New York, 2009',
-      'C’est le gant qu’il portait en 1983 à la télé, le soir où il a fait son tout premier moonwalk en public.',350000,'$'],
+      'C’est le gant qu’il portait en 1983 à la télé, le soir où il a fait son tout premier moonwalk en public.',350000,'$','glove'],
     ['🎩','Un chapeau (bicorne) de Napoléon',
       'Osenat, Fontainebleau, 2023',
-      'Il était estimé entre 600 000 et 800 000 €. Napoléon le portait « en bataille », pointes sur les épaules, pour qu’on le reconnaisse de loin sur le champ de bataille.',1932000,'€'],
+      'Il était estimé entre 600 000 et 800 000 €. Napoléon le portait « en bataille », pointes sur les épaules, pour qu’on le reconnaisse de loin sur le champ de bataille.',1932000,'€','bicorne'],
     ['🥪','Un croque-monsieur où l’on voit le visage de la Vierge Marie','eBay, 2004',
-      'Sa propriétaire l’avait gardé 10 ans sur sa table de nuit : il n’avait jamais moisi. Il a été acheté par un casino en ligne pour sa pub.',28000,'$'],
+      'Sa propriétaire l’avait gardé 10 ans sur sa table de nuit : il n’avait jamais moisi. Il a été acheté par un casino en ligne pour sa pub.',28000,'$','grilled'],
     ['🏀','Maillot de Michael Jordan porté en finale NBA 1998 (« The Last Dance »)','Sotheby’s, 2022',
-      'Il le portait lors du premier match de sa dernière finale avec les Chicago Bulls, rendue célèbre par la série documentaire « The Last Dance ».',10100000,'$'],
+      'Il le portait lors du premier match de sa dernière finale avec les Chicago Bulls, rendue célèbre par la série documentaire « The Last Dance ».',10100000,'$','jordan_jersey'],
     ['⚾','Maillot de Babe Ruth du « called shot » (1932)','Heritage Auctions, 2024',
-      'Pendant ce match, Babe Ruth aurait pointé les tribunes du doigt… puis envoyé la balle exactement là. Un des moments les plus légendaires du baseball.',24120000,'$'],
+      'Pendant ce match, Babe Ruth aurait pointé les tribunes du doigt… puis envoyé la balle exactement là. Un des moments les plus légendaires du baseball.',24120000,'$','ruth'],
     ['🎮','Un jeu Super Mario 64 neuf, jamais ouvert','Heritage Auctions, 2021',
-      'Deux jours plus tôt, une cartouche de Zelda (NES) neuve venait de battre le record à 870 000 $. Mario l’a pulvérisé.',1560000,'$'],
+      'Deux jours plus tôt, une cartouche de Zelda (NES) neuve venait de battre le record à 870 000 $. Mario l’a pulvérisé.',1560000,'$','mario64'],
     ['🦖','Squelette de T. rex « Stan »','Christie’s, New York, 2020',
-      'Découvert en 1987 dans le Dakota du Sud, il a été acheté par un musée d’Abu Dhabi. Il mesure 12 mètres de long.',31800000,'$'],
+      'Découvert en 1987 dans le Dakota du Sud, il a été acheté par un musée d’Abu Dhabi. Il mesure 12 mètres de long.',31800000,'$','stan'],
     ['🦕','Squelette de stégosaure « Apex »','Sotheby’s, New York, 2024',
-      'Estimé entre 4 et 6 millions… Il a été trouvé en 2022 par un paléontologue amateur sur son propre terrain, dans une ville du Colorado qui s’appelle… Dinosaur.',44600000,'$'],
+      'Estimé entre 4 et 6 millions… Il a été trouvé en 2022 par un paléontologue amateur sur son propre terrain, dans une ville du Colorado qui s’appelle… Dinosaur.',44600000,'$','apex'],
     ['🖼️','Le tableau « Salvator Mundi » attribué à Léonard de Vinci','Christie’s, New York, 2017',
-      'En 2005, des marchands l’avaient acheté pour 1 175 $ seulement : il était abîmé et on pensait que c’était une copie. C’est le tableau le plus cher jamais vendu.',450300000,'$'],
+      'En 2005, des marchands l’avaient acheté pour 1 175 $ seulement : il était abîmé et on pensait que c’était une copie. C’est le tableau le plus cher jamais vendu.',450300000,'$','salvator'],
     ['🏎️','Voiture Mercedes-Benz 300 SLR « Uhlenhaut Coupé » (1955)','Vente secrète au musée Mercedes, Stuttgart, 2022',
-      'Il n’en existe que deux. La vente s’est faite en secret, sur invitation : c’est la voiture la plus chère de l’histoire.',135000000,'€'],
+      'Il n’en existe que deux. La vente s’est faite en secret, sur invitation : c’est la voiture la plus chère de l’histoire.',135000000,'€','uhlenhaut'],
     ['🩴','Les vieilles sandales Birkenstock de Steve Jobs','Julien’s Auctions, 2022',
-      'Estimées 60 000 à 80 000 $. Il les portait dans les années 70 et 80, à l’époque des débuts d’Apple : on voit encore l’empreinte de ses pieds.',218750,'$'],
+      'Estimées 60 000 à 80 000 $. Il les portait dans les années 70 et 80, à l’époque des débuts d’Apple : on voit encore l’empreinte de ses pieds.',218750,'$','sandals'],
     ['💻','Un ordinateur Apple-1 (1976)','Bonhams, New York, 2014',
-      'Fabriqué à la main par Steve Wozniak. En 1976, il était vendu… 666,66 $.',905000,'$'],
+      'Fabriqué à la main par Steve Wozniak. En 1976, il était vendu… 666,66 $.',905000,'$','apple1'],
     ['🎸','La guitare de Kurt Cobain du concert MTV Unplugged (1993)','Julien’s Auctions, 2020',
-      'Cobain l’avait jouée lors du célèbre concert acoustique de Nirvana, quelques mois avant sa mort.',6010000,'$'],
+      'Cobain l’avait jouée lors du célèbre concert acoustique de Nirvana, quelques mois avant sa mort.',6010000,'$','cobain'],
     ['👗','La robe de Marilyn Monroe « Happy Birthday Mr. President »','Julien’s Auctions, 2016',
-      'Marilyn a dû être cousue dedans tellement elle était serrée. Kim Kardashian l’a portée au Met Gala en 2022.',4800000,'$'],
+      'Marilyn a dû être cousue dedans tellement elle était serrée. Kim Kardashian l’a portée au Met Gala en 2022.',4800000,'$','marilyn'],
     ['👠','Les souliers de rubis de Dorothy (« Le Magicien d’Oz »)','Heritage Auctions, 2024',
-      'Cette paire avait été volée en 2005 dans un musée du Minnesota. Le FBI l’a retrouvée 13 ans plus tard.',32500000,'$'],
+      'Cette paire avait été volée en 2005 dans un musée du Minnesota. Le FBI l’a retrouvée 13 ans plus tard.',32500000,'$','ruby'],
     ['⌚','La montre Rolex Daytona de Paul Newman','Phillips, New York, 2017',
-      'Elle lui avait été offerte par sa femme, qui avait fait graver au dos : « Drive carefully me » (« Conduis prudemment, moi »).',17800000,'$'],
+      'Elle lui avait été offerte par sa femme, qui avait fait graver au dos : « Drive carefully me » (« Conduis prudemment, moi »).',17800000,'$','rolex'],
     ['🐦','Le tout premier tweet de l’histoire (vendu en NFT)','Vente en ligne, 2021',
-      'Le tweet dit « just setting up my twttr ». L’acheteur a essayé de le revendre en 2022 pour 48 millions… la meilleure offre était d’environ 280 $.',2900000,'$'],
+      'Le tweet dit « just setting up my twttr ». L’acheteur a essayé de le revendre en 2022 pour 48 millions… la meilleure offre était d’environ 280 $.',2900000,'$','tweet'],
     ['🍽️','Un déjeuner avec le milliardaire Warren Buffett','Enchère caritative en ligne, 2022',
-      'C’était la dernière édition de cette enchère annuelle : tout l’argent est allé à une association qui aide les sans-abri à San Francisco.',19000100,'$'],
+      'C’était la dernière édition de cette enchère annuelle : tout l’argent est allé à une association qui aide les sans-abri à San Francisco.',19000100,'$','buffett'],
     ['🦷','Une dent de John Lennon','Vente aux enchères en Angleterre, 2011',
-      'Achetée par un dentiste canadien… qui disait vouloir un jour cloner Lennon grâce à son ADN.',19500,'£'],
+      'Achetée par un dentiste canadien… qui disait vouloir un jour cloner Lennon grâce à son ADN.',19500,'£','lennon_tooth'],
     ['🍞','Le pain perdu à moitié mangé de Justin Timberlake','eBay, 2000',
-      'Ce sont des animateurs radio qui l’avaient récupéré sur sa table après une interview, puis mis en vente.',1025,'$'],
+      'Ce sont des animateurs radio qui l’avaient récupéré sur sa table après une interview, puis mis en vente.',1025,'$','french_toast'],
     ['🪨','Un calcul rénal de William Shatner (le capitaine Kirk de « Star Trek »)','Vente caritative en ligne, 2006',
-      'Oui, une pierre sortie de son rein. L’argent a servi à construire des maisons pour une association.',25000,'$'],
+      'Oui, une pierre sortie de son rein. L’argent a servi à construire des maisons pour une association.',25000,'$','shatner'],
     ['🤧','Un mouchoir usagé de Scarlett Johansson','eBay, 2008',
-      'Elle s’était mouchée dedans en direct, dans une émission de télé américaine. L’argent a été reversé à une association.',5300,'$'],
+      'Elle s’était mouchée dedans en direct, dans une émission de télé américaine. L’argent a été reversé à une association.',5300,'$','tissue'],
     ['🫥','Une sculpture invisible (« Io Sono », de Salvatore Garau)','Art-Rite, Milan, 2021',
-      'Il n’y a rien à voir : l’acheteur reçoit un certificat. L’œuvre doit être « exposée » dans un espace vide d’environ 1,5 m × 1,5 m.',15000,'€'],
+      'Il n’y a rien à voir : l’acheteur reçoit un certificat. L’œuvre doit être « exposée » dans un espace vide d’environ 1,5 m × 1,5 m.',15000,'€','iosono'],
     ['🐒','Trois tableaux peints par Congo, un chimpanzé','Bonhams, Londres, 2005',
-      'Dans la même vente, un Renoir et un Warhol n’ont trouvé aucun acheteur. Le chimpanzé, lui, a fait un carton.',14400,'£'],
+      'Dans la même vente, un Renoir et un Warhol n’ont trouvé aucun acheteur. Le chimpanzé, lui, a fait un carton.',14400,'£','congo'],
     ['👜','Le tout premier sac Birkin d’Hermès, celui de Jane Birkin','Sotheby’s, Paris, 2025',
-      'Le sac est né en 1984 d’une discussion dans un avion entre Jane Birkin et le patron d’Hermès. Elle y avait collé des autocollants et accroché un coupe-ongles.',8600000,'€'],
+      'Le sac est né en 1984 d’une discussion dans un avion entre Jane Birkin et le patron d’Hermès. Elle y avait collé des autocollants et accroché un coupe-ongles.',8600000,'€','birkin'],
     ['🌕','Un sac de Neil Armstrong avec de la poussière de Lune','Sotheby’s, New York, 2017',
-      'Deux ans plus tôt, le gouvernement américain l’avait vendu par erreur dans une enchère en ligne… pour 995 $.',1800000,'$'],
+      'Deux ans plus tôt, le gouvernement américain l’avait vendu par erreur dans une enchère en ligne… pour 995 $.',1800000,'$','moonbag'],
     ['✉️','La « lettre sur Dieu » d’Albert Einstein','Christie’s, New York, 2018',
-      'Une lettre d’une page et demie écrite en 1954, un an avant sa mort, où il dit ce qu’il pense de Dieu et de la religion.',2900000,'$'],
+      'Une lettre d’une page et demie écrite en 1954, un an avant sa mort, où il dit ce qu’il pense de Dieu et de la religion.',2900000,'$','einstein_god'],
     ['📝','Un petit mot d’Einstein sur le bonheur','Vente aux enchères à Jérusalem, 2017',
-      'En 1922 à Tokyo, il n’avait pas de monnaie pour donner un pourboire au coursier de l’hôtel : il lui a écrit ce mot à la place, en lui disant qu’il vaudrait peut-être cher un jour.',1560000,'$'],
+      'En 1922 à Tokyo, il n’avait pas de monnaie pour donner un pourboire au coursier de l’hôtel : il lui a écrit ce mot à la place, en lui disant qu’il vaudrait peut-être cher un jour.',1560000,'$','einstein_note'],
     ['🎈','Le tableau à moitié déchiqueté de Banksy (« Love is in the Bin »)','Sotheby’s, Londres, 2021',
-      'En 2018, juste après avoir été adjugé 1 million de livres, il s’est autodétruit dans son cadre grâce à une broyeuse cachée. Revendu 3 ans plus tard…',18600000,'£'],
+      'En 2018, juste après avoir été adjugé 1 million de livres, il s’est autodétruit dans son cadre grâce à une broyeuse cachée. Revendu 3 ans plus tard…',18600000,'£','banksy'],
     ['👟','Une paire de Nike « Moon Shoe » (1972)','Sotheby’s, 2019',
-      'Leur semelle a été fabriquée avec le gaufrier de la femme du cofondateur de Nike. Seule une douzaine de paires ont été fabriquées, pour les coureurs des sélections olympiques.',437500,'$'],
+      'Leur semelle a été fabriquée avec le gaufrier de la femme du cofondateur de Nike. Seule une douzaine de paires ont été fabriquées, pour les coureurs des sélections olympiques.',437500,'$','moonshoe'],
     ['💿','Le seul exemplaire d’un album du Wu-Tang Clan','Vente privée, 2015',
-      'L’acheteur, condamné plus tard pour fraude, a dû le céder à la justice américaine. Le contrat interdit de le commercialiser pendant 88 ans.',2000000,'$'],
+      'L’acheteur, condamné plus tard pour fraude, a dû le céder à la justice américaine. Le contrat interdit de le commercialiser pendant 88 ans.',2000000,'$','wutang'],
     ['🥃','Une bouteille de whisky Macallan de 1926','Sotheby’s, Londres, 2023',
-      'Le whisky a vieilli 60 ans en fût. L’étiquette a été peinte à la main par un artiste. C’est la bouteille d’alcool la plus chère du monde.',2187500,'£'],
+      'Le whisky a vieilli 60 ans en fût. L’étiquette a été peinte à la main par un artiste. C’est la bouteille d’alcool la plus chère du monde.',2187500,'£','macallan'],
     ['🐟','Un thon rouge de 278 kg','Marché aux poissons de Toyosu, Tokyo, 2019',
-      'Acheté à la toute première criée de l’année par le patron d’une chaîne de restaurants de sushis, surnommé « le roi du thon ».',333600000,'¥'],
+      'Acheté à la toute première criée de l’année par le patron d’une chaîne de restaurants de sushis, surnommé « le roi du thon ».',333600000,'¥','tuna'],
     ['🍈','Deux melons japonais Yubari','Criée de Sapporo, Japon, 2019',
-      'Ces melons sont cultivés dans une seule petite ville. La première criée de la saison sert surtout à faire de la pub… mais quand même.',5000000,'¥'],
+      'Ces melons sont cultivés dans une seule petite ville. La première criée de la saison sert surtout à faire de la pub… mais quand même.',5000000,'¥','yubari'],
     ['⚾','Une carte de baseball Mickey Mantle de 1952','Heritage Auctions, 2022',
-      'Une simple carte à collectionner en carton, mais en état quasi parfait. C’est la carte de sport la plus chère au monde.',12600000,'$'],
+      'Une simple carte à collectionner en carton, mais en état quasi parfait. C’est la carte de sport la plus chère au monde.',12600000,'$','mantle'],
     ['⚽','Les 6 maillots portés par Messi à la Coupe du monde 2022','Sotheby’s, New York, 2023',
-      'Dont celui de la finale contre la France, gagnée par l’Argentine aux tirs au but.',7800000,'$'],
+      'Dont celui de la finale contre la France, gagnée par l’Argentine aux tirs au but.',7800000,'$','messi'],
     ['🤚','Le maillot de Maradona du match de la « main de Dieu » (1986)','Sotheby’s, Londres, 2022',
-      'Maradona l’avait échangé à la fin du match avec un joueur anglais, Steve Hodge, qui l’a gardé 36 ans.',7100000,'£'],
+      'Maradona l’avait échangé à la fin du match avec un joueur anglais, Steve Hodge, qui l’a gardé 36 ans.',7100000,'£','maradona'],
     ['🐰','Une sculpture de lapin en acier (« Rabbit », Jeff Koons)','Christie’s, New York, 2019',
-      'Un lapin gonflable… en acier inoxydable, de 1 mètre de haut. Œuvre la plus chère vendue par un artiste vivant à l’époque.',91100000,'$'],
+      'Un lapin gonflable… en acier inoxydable, de 1 mètre de haut. Œuvre la plus chère vendue par un artiste vivant à l’époque.',91100000,'$','rabbit'],
     ['👟','Les baskets Air Jordan portées par Michael Jordan en finale 1998','Sotheby’s, 2023',
-      'Il les portait lors du deuxième match de sa dernière finale avec les Bulls. Record pour une paire de baskets.',2200000,'$'],
+      'Il les portait lors du deuxième match de sa dernière finale avec les Bulls. Record pour une paire de baskets.',2200000,'$','aj13'],
     ['🚙','La Rolls-Royce psychédélique de John Lennon','Sotheby’s, New York, 1985',
-      'Lennon l’avait fait peindre en jaune vif avec des fleurs. Une passante londonienne l’aurait attaquée à coups de parapluie en criant au sacrilège.',2290000,'$'],
+      'Lennon l’avait fait peindre en jaune vif avec des fleurs. Une passante londonienne l’aurait attaquée à coups de parapluie en criant au sacrilège.',2290000,'$','lennon_rolls'],
     ['🕷️','La BD où Spider-Man apparaît pour la première fois (1962)','Heritage Auctions, 2021',
-      'Le numéro « Amazing Fantasy #15 » coûtait 12 cents à sa sortie.',3600000,'$'],
+      'Le numéro « Amazing Fantasy #15 » coûtait 12 cents à sa sortie.',3600000,'$','amazing'],
     ['🎻','Le violon du chef d’orchestre du Titanic','Vente en Angleterre, 2013',
-      'Wallace Hartley et ses musiciens ont joué jusqu’au naufrage. Son violon a été retrouvé dans une valise attachée à son corps.',900000,'£'],
+      'Wallace Hartley et ses musiciens ont joué jusqu’au naufrage. Son violon a été retrouvé dans une valise attachée à son corps.',900000,'£','titanic_violin'],
     ['🚗','L’Aston Martin DB5 de James Bond','RM Sotheby’s, 2019',
-      'Une des voitures des films, avec les gadgets : fausses mitrailleuses, plaques d’immatriculation tournantes…',6385000,'$'],
+      'Une des voitures des films, avec les gadgets : fausses mitrailleuses, plaques d’immatriculation tournantes…',6385000,'$','db5'],
     ['🎻','Un violon Stradivarius (« Lady Blunt », 1721)','Vente en ligne, 2011',
-      'Vendu au profit des victimes du tsunami au Japon. Il est presque dans l’état où Stradivarius l’a fabriqué, il y a 300 ans.',9800000,'£'],
+      'Vendu au profit des victimes du tsunami au Japon. Il est presque dans l’état où Stradivarius l’a fabriqué, il y a 300 ans.',9800000,'£','lady_blunt'],
     ['🐶','Le dessin original d’une couverture de Tintin (« Le Lotus bleu »)','Artcurial, Paris, 2021',
-      'Hergé l’avait refusé en 1936 : trop cher à imprimer. Il a été offert au fils de l’éditeur, qui l’a gardé plié dans un tiroir pendant des années.',3175400,'€'],
+      'Hergé l’avait refusé en 1936 : trop cher à imprimer. Il a été offert au fils de l’éditeur, qui l’a gardé plié dans un tiroir pendant des années.',3175400,'€','tintin'],
     ['📱','Un iPhone de 2007, jamais déballé','LCG Auctions, 2023',
-      'À sa sortie, il coûtait 599 $.',190372,'$'],
+      'À sa sortie, il coûtait 599 $.',190372,'$','iphone'],
     ['📜','Un des premiers exemplaires imprimés de la Constitution américaine','Sotheby’s, New York, 2021',
-      'Un groupe de fans de crypto avait récolté 40 millions sur Internet pour l’acheter… et a perdu face à un milliardaire.',43200000,'$'],
+      'Un groupe de fans de crypto avait récolté 40 millions sur Internet pour l’acheter… et a perdu face à un milliardaire.',43200000,'$','constitution'],
     ['📓','Un carnet de Léonard de Vinci (le « Codex Leicester »)','Christie’s, New York, 1994',
-      'L’acheteur s’appelle Bill Gates. Le carnet parle d’eau, de fossiles et explique pourquoi la Lune brille.',30800000,'$'],
+      'L’acheteur s’appelle Bill Gates. Le carnet parle d’eau, de fossiles et explique pourquoi la Lune brille.',30800000,'$','codex'],
     ['💎','Le diamant rose « Pink Star »','Sotheby’s, Hong Kong, 2017',
-      'Près de 60 carats. La vente a duré cinq minutes.',71200000,'$'],
+      'Près de 60 carats. La vente a duré cinq minutes.',71200000,'$','pinkstar'],
     ['🗡️','Un jeu The Legend of Zelda (NES) neuf, jamais ouvert','Heritage Auctions, 2021',
-      'Une cartouche de 1987 encore sous son plastique d’origine. Record éphémère : battu deux jours plus tard par Super Mario 64.',870000,'$'],
+      'Une cartouche de 1987 encore sous son plastique d’origine. Record éphémère : battu deux jours plus tard par Super Mario 64.',870000,'$','zelda'],
     ['🖼️','Une œuvre numérique (NFT) de l’artiste Beeple','Christie’s, en ligne, 2021',
-      'Un collage de 5 000 dessins, un par jour pendant 13 ans et demi. Il n’existe que sous forme de fichier.',69300000,'$']
+      'Un collage de 5 000 dessins, un par jour pendant 13 ans et demi. Il n’existe que sous forme de fichier.',69300000,'$','beeple']
   ];
   var CUR_NAME={'$':'dollars','€':'euros','£':'livres','¥':'yens'};
 
@@ -287,7 +287,7 @@
   function anecdoteShown(){ return Date.now()>=as.deadline-GUESS_MS+ANECDOTE_AT; }
   function guessMsg(seat){
     var it=as.item;
-    return {type:'guess_start', idx:as.idx, count:as.count, emoji:it[0], name:it[1], where:it[2], cur:it[5],
+    return {type:'guess_start', idx:as.idx, count:as.count, emoji:it[0], name:it[1], where:it[2], cur:it[5], photo:it[6],
       anecdote: anecdoteShown() ? it[3] : null,
       ms:Math.max(0, as.deadline-Date.now()), total:GUESS_MS, guessed:Object.keys(as.guesses).map(Number),
       mine: as.guesses.hasOwnProperty(seat) ? as.guesses[seat] : null};
@@ -301,6 +301,7 @@
     as.started=true;
     if(as.pool.length<as.count) as.pool=shuffle(BANK.slice());
     as.idx=-1;
+    broadcast({type:'preload', photos:as.pool.slice(-as.count).map(function(it){ return it[6]; })});
     hostNext();
   }
   function hostNext(){
@@ -333,7 +334,7 @@
     var rows=scoreRound(as.item, as.guesses, inRound);
     rows.forEach(function(r){ as.scores[r.seat]=(as.scores[r.seat]||0)+r.pts; });
     as.lastMsg={type:'reveal', idx:as.idx, count:as.count, emoji:as.item[0], name:as.item[1], where:as.item[2], anecdote:as.item[3],
-      price:as.item[4], cur:as.item[5], rows:rows.map(function(r){ return {seat:r.seat, guess:r.guess, pts:r.pts, bonus:r.bonus}; }),
+      price:as.item[4], cur:as.item[5], photo:as.item[6], rows:rows.map(function(r){ return {seat:r.seat, guess:r.guess, pts:r.pts, bonus:r.bonus}; }),
       scores:as.scores.slice(), players:as.players.slice()};
     broadcast(as.lastMsg);
     as.timer=setTimeout(hostNext, REVEAL_MS);
@@ -374,6 +375,7 @@
         liveForLobby=!!msg.live;
         renderLobby(); renderGuessed();
         break;
+      case 'preload': if(Array.isArray(msg.photos)) preload(msg.photos.slice(0,20)); break;
       case 'guess_start': onGuessStart(msg); break;
       case 'anecdote': if(msg.idx===view.idx) showAnecdote(msg.text, true); break;
       case 'guess_ok':
@@ -409,7 +411,17 @@
     el.hidden=false;
     if(fresh){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); CG.buzz(40); sfxToggle(); }
   }
+  /* photo de l'objet (js/enchere-photos.js), sinon son emoji */
+  var PHOTOS=CG.ADJ_PHOTOS||{};
   function showItem(msg){
+    var ph=PHOTOS[msg.photo], fig=$('adjPhoto'), img=$('adjImg');
+    if(ph){
+      if(img.getAttribute('src')!==ph.f){ img.removeAttribute('src'); img.src=ph.f; }
+      img.alt='Photo : '+msg.name;
+      $('adjCredit').innerHTML='📷 <a href="'+escapeHtml(ph.url)+'" target="_blank" rel="noopener">'+escapeHtml(ph.by||'Wikimedia Commons')+'</a> · '+escapeHtml(ph.lic||'');
+      fig.hidden=false;
+    } else fig.hidden=true;
+    $('adjEmoji').hidden=!!ph;
     $('adjEmoji').textContent=msg.emoji;
     $('adjItemName').textContent=msg.name;
     $('adjWhere').textContent='🔨 '+msg.where;
@@ -512,6 +524,10 @@
     reset:function(){ if(netRole) cleanup(); closeModal('adjDisconnectModal'); ui.goto('online'); },
     enterJoinFlow:function(code){ ui.goto('online'); $('adjJoinCode').value=CG.cleanRoomCode(decodeURIComponent(code)); }
   };
+  /* photo qui ne charge pas (hors ligne…) : on garde l'emoji */
+  $('adjImg').addEventListener('error', function(){ $('adjPhoto').hidden=true; $('adjEmoji').hidden=false; });
+  /* préchargement des photos d'une partie, pour qu'elles s'affichent tout de suite */
+  function preload(keys){ keys.forEach(function(k){ var ph=PHOTOS[k]; if(ph){ var i=new Image(); i.src=ph.f; } }); }
   CG.lobbyChat(net, $('adjPlayerList'), 'adjName');
   /* exposé pour les tests */
   CG.enchere._parsePrice=parsePrice;

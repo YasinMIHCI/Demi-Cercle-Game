@@ -1195,3 +1195,8 @@ button.cls-slot{-webkit-tap-highlight-color:transparent;touch-action:manipulatio
 .adj-mine:empty{display:none;}
 .adj-guess{display:block;color:#aaa;font-weight:400;font-size:0.8rem;}
 @keyframes adjPop{from{transform:scale(0.6);opacity:0;}to{transform:scale(1);opacity:1;}}
+.adj-photo{margin:0 auto 8px;text-align:center;max-width:520px;}
+.adj-photo[hidden],.adj-emoji[hidden]{display:none;}
+.adj-photo img{display:block;width:100%;height:clamp(180px,48vw,300px);object-fit:contain;background:#0d0d0d;border:3px solid #000;box-shadow:5px 5px 0 #000;}
+.adj-photo figcaption{font-size:0.68rem;color:#777;margin-top:4px;}
+.adj-photo figcaption a{color:#999;}
