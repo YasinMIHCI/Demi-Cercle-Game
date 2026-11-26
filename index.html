@@ -125,6 +125,13 @@
         <p>5 secondes pour trouver un pays, un Pokémon… qui commence par la dernière lettre du mot d'avant. Trop lent : éliminé !</p>
         <button class="btn yellow" id="playChaineBtn" aria-label="Jouer : Chaîne de mots"><span>▶ JOUER</span></button>
       </div>
+      <div class="game-card available" data-min="4" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🧠</div>
+        <h3>LES ESPRITS CONNECTÉS</h3>
+        <span class="game-pill" title="Nombre de joueurs">👥 4-10</span>
+        <p>À deux, tapez chacun un mot… puis le mot qui les relie, jusqu'à penser pareil. L'équipe la plus rapide gagne.</p>
+        <button class="btn yellow" id="playEspritsBtn" aria-label="Jouer : Les Esprits connectés"><span>▶ JOUER</span></button>
+      </div>
       <div class="game-card available" data-min="3" data-max="8">
         <div class="game-card-icon" aria-hidden="true">🕵️</div>
         <h3>L'IMPOSTEUR</h3>
@@ -1098,6 +1105,98 @@
         <div class="btn-row center" style="margin-top:16px;">
           <button class="btn yellow" id="chnReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
           <span class="waiting-label" id="chnOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ================= LES ESPRITS CONNECTÉS ================= -->
+<div id="view-esprits" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="espHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>ESPRITS <em>CONNECTÉS</em></span></div>
+        <div class="badge-round" id="espRoundBadge" style="display:none;">MANCHE 1</div>
+      </div>
+      <div class="net-status offline" id="espNetStatus"><span class="net-dot"></span><span class="net-label">HORS LIGNE</span></div>
+    </div>
+    <div class="net-banner" id="espNetBanner" role="status"><span id="espNetBannerText"></span></div>
+
+    <section class="esp-screen active" id="esp-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">LES ESPRITS CONNECTÉS</h1>
+        <p class="subtitle">4 à 10 joueurs, par équipes de 2. Tapez un mot chacun en même temps, puis le mot qui relie vos deux mots… jusqu'à taper le même ! L'équipe la plus rapide gagne.</p>
+        <div class="btn-row"><button class="btn ghost small" id="espRulesBtn"><span>📖 Règles du jeu</span></button></div>
+        <label for="espName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="espName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="espJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="espJoinCode" data-enter="espJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="espJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
+        <label>Nombre de manches (nouvelles équipes à chaque manche)</label>
+        <div class="format-toggle" id="espMancheToggle">
+          <button class="btn ghost small format-opt" data-manches="1"><span>1</span></button>
+          <button class="btn ghost small format-opt active" data-manches="3"><span>3</span></button>
+          <button class="btn ghost small format-opt" data-manches="5"><span>5</span></button>
+        </div>
+        <label for="espHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="espHostCode" data-room-code="espCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row"><button class="btn yellow small" id="espCreateRoomBtn"><span>Créer la salle</span></button></div>
+      </div>
+    </section>
+
+    <section class="esp-screen" id="esp-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="espBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="espCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="espCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="espCopyLinkBtn"><span>🔗 Copier le lien</span></button>
+        </div>
+        <div class="cham-player-list" id="espPlayerList"></div>
+        <p class="lobby-status" id="espLobbyStatus">En attente de joueurs...</p>
+        <div class="btn-row center lobby-start"><button class="btn yellow" id="espStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button></div>
+      </div>
+    </section>
+
+    <section class="esp-screen" id="esp-screen-play">
+      <div class="panel">
+        <div class="emo-cat" id="espTeamName"></div>
+        <p class="esp-prompt" id="espPrompt"></p>
+        <div class="bots-timer" style="margin-bottom:12px;"><div class="bots-timer-fill" id="espTimerFill"></div><span id="espTimerText"></span></div>
+        <div class="loup-ask" id="espInputBox">
+          <input type="text" id="espInput" aria-label="Ton mot" maxlength="30" placeholder="Ton mot…" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="send">
+          <button class="btn yellow small" id="espSendBtn"><span>Valider</span></button>
+        </div>
+        <p class="emo-mine" id="espMine"></p>
+        <p class="chn-note" id="espNote"></p>
+        <div class="esp-hist" id="espHist"></div>
+        <div id="espResults" hidden></div>
+        <div class="esp-teams" id="espTeams"></div>
+      </div>
+    </section>
+
+    <section class="esp-screen" id="esp-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
+        <div class="end-winner-text" id="espWinnerText"></div>
+        <div class="cls-podium" id="espFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="espReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
+          <span class="waiting-label" id="espOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
         </div>
       </div>
     </section>
@@ -2355,6 +2454,27 @@
     <div class="btn-row center"><button class="btn yellow" id="chnDisconnectBackBtn"><span>◀ Retour au menu</span></button></div>
   </div>
 </div>
+<div class="modal-overlay" id="espRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="espRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — LES ESPRITS CONNECTÉS</h2>
+    <ol class="rules-list">
+      <li>Les joueurs sont répartis au hasard en <b>équipes de 2</b> (une équipe de 3 si vous êtes impairs). Toutes les équipes jouent en même temps.</li>
+      <li><b>Essai 1</b> : chacun tape un mot, n'importe lequel, sans se concerter. Les mots ne sont dévoilés que quand toute l'équipe a validé.</li>
+      <li><b>Essais suivants</b> : chacun tape le mot qui relie le mieux les deux mots précédents. Ex. : <i>pomme</i> / <i>voiture</i> → <i>rouge</i> / <i>vitesse</i> → <i>Ferrari</i> / <i>Ferrari</i> ✨</li>
+      <li>Dès que vous tapez <b>le même mot</b>, vous êtes connectés ! Accents, majuscules, article et pluriel ne comptent pas. Un mot déjà dit par l'équipe est refusé.</li>
+      <li>30 secondes par essai, 10 essais maximum. L'équipe connectée en le moins d'essais (puis le plus vite) gagne : 10 points chacun, puis 6, 4, 3, 2.</li>
+      <li>Nouvelles équipes à chaque manche (1, 3 ou 5 manches). Le plus gros total gagne.</li>
+    </ol>
+  </div>
+</div>
+<div class="modal-overlay" id="espDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="espDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center"><button class="btn yellow" id="espDisconnectBackBtn"><span>◀ Retour au menu</span></button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="adjRulesModal">
   <div class="modal-box">
     <button class="modal-close" id="adjRulesModalClose" aria-label="Fermer">✕</button>
@@ -2585,6 +2705,7 @@
       <li><b>Emoji Quiz :</b> des emojis cachent un film, une série, une expression… Le plus rapide à trouver marque le plus. 2 à 10 joueurs en ligne.</li>
       <li><b>Adjugé, vendu ! :</b> de vrais objets fous vendus aux enchères (toilettes en or, carte Pokémon…) : devine leur prix, le plus proche gagne. 2 à 10 joueurs en ligne.</li>
       <li><b>Chaîne de mots :</b> chacun son tour, un mot du thème qui commence par la dernière lettre du précédent, en 5 secondes. Trop lent ou mot déjà dit : éliminé. 2 à 10 joueurs en ligne.</li>
+      <li><b>Les Esprits connectés :</b> par équipes de 2, chacun tape un mot en même temps, puis le mot qui relie les deux précédents, jusqu'à taper le même. L'équipe la plus rapide gagne. 4 à 10 joueurs en ligne.</li>
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question (réponse en nombre ou en texte libre), et un joueur qui a reçu une autre question sans le savoir.</li>
       <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2, chacun pour soi (jusqu'à 6) ou survie contre des bots (1 à 4), en ligne.</li>
       <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
@@ -2653,6 +2774,7 @@
 <script src="js/quiaecrit.js?v=59"></script>
 <script src="js/emoji.js?v=59"></script>
 <script src="js/chaine.js?v=59"></script>
+<script src="js/esprits.js?v=59"></script>
 <script src="js/enchere-photos.js?v=59"></script>
 <script src="js/enchere.js?v=59"></script>
 <script src="js/crousprison-photos.js?v=59"></script>

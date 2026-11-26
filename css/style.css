@@ -1217,3 +1217,25 @@ button.cls-slot{-webkit-tap-highlight-color:transparent;touch-action:manipulatio
 .chn-word.last{background:#222;font-weight:bold;transform:scale(1.08);}
 .chn-word.bad{text-decoration:line-through;color:#ff6b6b;}
 .chn-more{color:#999;font-size:.85rem;align-self:center;}
+
+/* ===== LES ESPRITS CONNECTÉS ===== */
+.esp-screen{display:none;animation:fadeIn .35s ease;}
+.esp-screen.active{display:block;}
+.esp-prompt{text-align:center;font-size:1.15rem;margin:8px 0 12px;}
+.esp-prompt b{color:var(--yellow);}
+#espInputBox[hidden],#espResults[hidden]{display:none;}
+.esp-hist{display:flex;flex-direction:column;gap:6px;margin:10px 0;}
+.esp-hist-row{display:flex;align-items:center;justify-content:center;gap:6px;flex-wrap:wrap;}
+.esp-hist-row.same .esp-word{background:#123d12;border-color:#7cff6e !important;}
+.esp-hist-n{color:#888;font-size:.8rem;min-width:1.4em;text-align:right;}
+.esp-word{border:2px solid #555;border-radius:14px;padding:3px 10px;background:#111;}
+.esp-word i{color:#888;}
+.esp-vs{color:#888;font-weight:bold;}
+.esp-teams{display:flex;flex-direction:column;gap:6px;margin-top:14px;}
+.esp-team-row{display:flex;justify-content:space-between;align-items:center;gap:8px;border:1px solid #333;border-radius:8px;padding:6px 10px;}
+.esp-team-row.me{border-color:var(--yellow);}
+.esp-res{border:1px solid #333;border-radius:10px;padding:8px 10px;margin:8px 0;}
+.esp-res.me{border-color:var(--yellow);}
+.esp-res-head{display:flex;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.esp-team-row>span:first-child{display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.esp-team-row .cham-player-dot{display:inline-block;width:14px;height:14px;}
