@@ -428,3 +428,13 @@ alter table public.turn_requests enable row level security;
 alter table public.turn_bans     enable row level security;
 alter table public.turn_state    enable row level security;
 revoke all on public.turn_requests, public.turn_bans, public.turn_state from anon, authenticated;
+
+-- =====================================================================
+-- Nouveaux jeux (Adjugé, vendu !, Chaîne de mots, Esprits connectés) : listes autorisées (relançable sans risque)
+-- =====================================================================
+alter table public.stats drop constraint if exists stats_game_check;
+alter table public.stats add constraint stats_game_check check (game in
+  ('demicercle','cameleon','imposteur','loup','garou','classement','quiaecrit','crousprison','bots','soiree','emoji','enchere','chaine','esprits'));
+alter table public.room_invites drop constraint if exists room_invites_route_check;
+alter table public.room_invites add constraint room_invites_route_check check (route in
+  ('demicercle','cameleon','imposteur','loup','garou','classement','quiaecrit','crousprison','bots','soiree','emoji','enchere','chaine','esprits'));

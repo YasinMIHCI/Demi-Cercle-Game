@@ -541,6 +541,7 @@
      - onReconnecting()       lien perdu, tentatives automatiques en cours
      - onReconnected()        place récupérée (seat_assigned reçu à nouveau)
      - onLost(reason)         abandon définitif
+     - onKicked(msg)          (facultatif) l'hôte t'a exclu de la salle (voir net.kick)
      - onPromote(info)        (facultatif) l'hôte a disparu et c'est toi qui le
                               remplaces : la salle est rouverte avec le même code,
                               tu es la place 0. info = {oldSeat, ids} où ids[place]
@@ -555,6 +556,7 @@
     var reconnectAttempt=0, hostLastSeen=0, hostIdRetries=0;
     var roster=null, rosterLive=null, lostAt=0, promoting=false, beats=0;
     var seatIds=[];               /* hôte : identifiant client de chaque place (même déconnectée) */
+    var banned={};                /* hôte : identifiants clients exclus de la salle (net.kick) */
     var openGen=0;                /* ignore une ouverture en attente des relais si on a changé d'avis entre-temps */
 
     function status(cls,label){ if(cfg.onStatus) cfg.onStatus(cls,label); }
@@ -604,6 +606,7 @@
       net.close();
       intentional=false;
       hostIdRetries=0;
+      banned={};
       wantedCode=cleanRoomCode(code);
       status('connecting','CRÉATION DE LA SALLE...');
       var gen=++openGen;
@@ -710,7 +713,7 @@
         msg.clientId = typeof msg.clientId==='string' ? msg.clientId.slice(0,64) : null;
         if(msg.color!==undefined && !(typeof msg.color==='string' && /^#[0-9a-fA-F]{3,8}$/.test(msg.color))) delete msg.color;
         if(c._seat!==null){ call('onSeatJoined', c._seat, msg, true); return; } /* renvoi : l'invité n'a pas reçu la réponse */
-        var seat=call('onJoinRequest', msg);
+        var seat=(msg.clientId && banned[msg.clientId]) ? "TU AS ÉTÉ EXCLU(E) DE CETTE SALLE" : call('onJoinRequest', msg);
         if(typeof seat!=='number' || seat<1){
           safeSend(c,{type:'room_full', reason:(typeof seat==='string'?seat:'SALLE COMPLÈTE')});
           setTimeout(function(){ c._dead=true; try{ c.close(); }catch(e){} }, 600);
@@ -892,6 +895,15 @@
         if(msg.type==='_ping'){ safeSend(c,{type:'_pong'}); return; }
         if(msg.type==='_chat'){ emitChat(msg); return; }
         if(msg.type==='_roster'){ if(Array.isArray(msg.ids)){ roster=msg.ids.slice(); rosterLive=(msg.live||[]).slice(); } return; }
+        if(msg.type==='_kicked'){
+          /* l'hôte nous a exclus : on ne cherche pas à revenir */
+          joinTimer=clearTimer(joinTimer);
+          intentional=true;
+          status('error','EXCLU(E) PAR L’HÔTE');
+          if(cfg.onKicked) call('onKicked', msg);
+          else { net.close(); call('onLost', "L'hôte t'a exclu(e) de la salle."); }
+          return;
+        }
         if(msg.type==='room_full'){
           joinTimer=clearTimer(joinTimer);
           intentional=true;
@@ -1053,6 +1065,23 @@
     net.send = function(msg){
       if(net.role==='host'){ net.sendToAll(msg); return true; }
       return safeSend(conn,msg);
+    };
+    /* hôte : exclut l'invité de cette place. Il est prévenu (cfg.onKicked chez lui),
+       sa connexion est fermée et il ne peut plus revenir dans cette salle.
+       onSeatLost n'est pas appelé : c'est au jeu de libérer la place. */
+    net.kick = function(seat){
+      if(net.role!=='host' || !(seat>=1)) return false;
+      var id=seatIds[seat]; if(id) banned[id]=true;
+      seatIds[seat]=null;
+      var c=net.conns[seat];
+      net.conns[seat]=null;
+      if(c){
+        c._dead=true;
+        safeSend(c, {type:'_kicked'});
+        setTimeout(function(){ try{ c.close(); }catch(e){} }, 500);
+      }
+      sendRoster();
+      return true;
     };
     net.isSeatConnected = function(seat){
       if(net.role!=='host') return false;
