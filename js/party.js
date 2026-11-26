@@ -21,6 +21,7 @@
     imposteur:   {p:'imp',  label:"L'Imposteur",       icon:'🕵️', min:3, max:8},
     emoji:       {p:'emo',  label:'Emoji Quiz',        icon:'🤔', min:2, max:10},
     enchere:     {p:'adj',  label:'Adjugé, vendu !',   icon:'🔨', min:2, max:10},
+    chaine:      {p:'chn',  label:'Chaîne de mots',    icon:'🔗', min:2, max:10},
     loup:        {p:'loup', label:'Le Loup des mots',  icon:'🐺', min:4, max:10},
     garou:       {p:'garou',label:'Les Loups-Garous',  icon:'🌕', min:5, max:12},
     cameleon:    {p:'cham', label:'Le Caméléon',       icon:'🦎', min:3, max:8},

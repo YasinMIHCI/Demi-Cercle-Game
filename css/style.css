@@ -1200,3 +1200,20 @@ button.cls-slot{-webkit-tap-highlight-color:transparent;touch-action:manipulatio
 .adj-photo img{display:block;width:100%;height:clamp(180px,48vw,300px);object-fit:contain;background:#0d0d0d;border:3px solid #000;box-shadow:5px 5px 0 #000;}
 .adj-photo figcaption{font-size:0.68rem;color:#777;margin-top:4px;}
 .adj-photo figcaption a{color:#999;}
+
+/* ===== CHAÎNE DE MOTS ===== */
+.chn-screen{display:none;animation:fadeIn .35s ease;}
+.chn-screen.active{display:block;}
+.chn-themes{flex-wrap:wrap;}
+.chn-letter{text-align:center;font-family:var(--font-display);font-size:clamp(1.4rem,6vw,2rem);margin:6px 0 2px;}
+.chn-letter b{color:var(--yellow);font-size:1.5em;display:inline-block;min-width:1.2em;}
+.chn-turn{text-align:center;color:#ddd;margin-bottom:8px;font-size:1.05rem;}
+.chn-turn.me{color:#7cff6e;font-weight:bold;animation:chnPulse .8s ease-in-out infinite alternate;}
+@keyframes chnPulse{from{transform:scale(1);}to{transform:scale(1.06);}}
+#chnInputBox.waiting{opacity:.55;}
+.chn-note{text-align:center;color:#ffb3b3;min-height:1.2em;margin:6px 0;font-size:.95rem;}
+.chn-chain{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:10px 0 14px;}
+.chn-word{border:2px solid #555;border-radius:14px;padding:3px 10px;font-size:.95rem;background:#111;}
+.chn-word.last{background:#222;font-weight:bold;transform:scale(1.08);}
+.chn-word.bad{text-decoration:line-through;color:#ff6b6b;}
+.chn-more{color:#999;font-size:.85rem;align-self:center;}

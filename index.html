@@ -21,7 +21,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Permanent+Marker&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
 <!-- ?v= : à augmenter à chaque mise à jour, pour que le navigateur ne mélange
      jamais d'anciens fichiers en cache avec les nouveaux. -->
-<link rel="stylesheet" href="css/style.css?v=58">
+<link rel="stylesheet" href="css/style.css?v=59">
 </head>
 <body>
 
@@ -32,8 +32,8 @@
   <button id="introSkip" type="button" tabindex="-1"><span>PASSER ▶</span></button>
   <div id="introSoundHint">🔊 Touche l'écran pour le son</div>
 </div>
-<script src="js/audio.js?v=58"></script>
-<script src="js/intro.js?v=58"></script>
+<script src="js/audio.js?v=59"></script>
+<script src="js/intro.js?v=59"></script>
 
 <!-- ================= HUB ================= -->
 <div id="view-hub" class="view active">
@@ -117,6 +117,13 @@
         <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
         <p>De vrais objets fous vendus aux enchères : devine leur prix. Le plus proche rafle la mise.</p>
         <button class="btn yellow" id="playEnchereBtn" aria-label="Jouer : Adjugé, vendu !"><span>▶ JOUER</span></button>
+      </div>
+      <div class="game-card available" data-min="2" data-max="10">
+        <div class="game-card-icon" aria-hidden="true">🔗</div>
+        <h3>CHAÎNE DE MOTS</h3>
+        <span class="game-pill" title="Nombre de joueurs">👥 2-10</span>
+        <p>5 secondes pour trouver un pays, un Pokémon… qui commence par la dernière lettre du mot d'avant. Trop lent : éliminé !</p>
+        <button class="btn yellow" id="playChaineBtn" aria-label="Jouer : Chaîne de mots"><span>▶ JOUER</span></button>
       </div>
       <div class="game-card available" data-min="3" data-max="8">
         <div class="game-card-icon" aria-hidden="true">🕵️</div>
@@ -984,6 +991,113 @@
         <div class="btn-row center" style="margin-top:16px;">
           <button class="btn yellow" id="adjReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
           <span class="waiting-label" id="adjOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ================= CHAÎNE DE MOTS ================= -->
+<div id="view-chaine" class="view">
+  <div class="hub-return-bar">
+    <button class="btn ghost small" id="chnHubReturnBtn"><span>🏠 Retour au Hub</span></button>
+  </div>
+  <div style="max-width:900px;margin:0 auto;padding:0 16px 60px;">
+    <div class="topbar">
+      <div class="logo-block">
+        <div class="logo"><span>CHAÎNE <em>DE MOTS</em></span></div>
+        <div class="badge-round" id="chnRoundBadge" style="display:none;">MANCHE 1</div>
+      </div>
+      <div class="net-status offline" id="chnNetStatus"><span class="net-dot"></span><span class="net-label">HORS LIGNE</span></div>
+    </div>
+    <div class="net-banner" id="chnNetBanner" role="status"><span id="chnNetBannerText"></span></div>
+
+    <section class="chn-screen active" id="chn-screen-online">
+      <div class="panel">
+        <h1 class="screen-title">CHAÎNE DE MOTS</h1>
+        <p class="subtitle">2 à 10 joueurs. Chacun son tour, tape un mot du thème qui commence par la dernière lettre du mot d'avant. Trop lent ou mot déjà dit : éliminé !</p>
+        <div class="btn-row"><button class="btn ghost small" id="chnRulesBtn"><span>📖 Règles du jeu</span></button></div>
+        <label for="chnName" style="margin-top:16px;">Ton nom</label>
+        <input type="text" id="chnName" placeholder="Ton pseudo" maxlength="18">
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🚪 REJOINDRE UNE SALLE</h2>
+        <label for="chnJoinCode">Code de la salle</label>
+        <div class="join-row">
+          <input type="text" id="chnJoinCode" data-enter="chnJoinRoomBtn" placeholder="Code" maxlength="20" style="text-transform:uppercase;" autocomplete="off" autocapitalize="characters" enterkeyhint="go">
+          <button class="btn yellow" id="chnJoinRoomBtn"><span>▶ Rejoindre</span></button>
+        </div>
+        <p class="theme-count join-hint">Ou ouvre le lien d'invitation / scanne le QR code de l'hôte.</p>
+      </div>
+      <div class="panel">
+        <h2 class="screen-title panel-title">🔑 CRÉER UNE SALLE</h2>
+        <label>Thème</label>
+        <div class="format-toggle chn-themes" id="chnThemeToggle">
+          <button class="btn ghost small format-opt active" data-theme="hasard"><span>🎲 Au hasard</span></button>
+          <button class="btn ghost small format-opt" data-theme="pays"><span>🌍 Pays</span></button>
+          <button class="btn ghost small format-opt" data-theme="animaux"><span>🐾 Animaux</span></button>
+          <button class="btn ghost small format-opt" data-theme="pokemon"><span>⚡ Pokémon</span></button>
+          <button class="btn ghost small format-opt" data-theme="marques"><span>🏷️ Marques</span></button>
+          <button class="btn ghost small format-opt" data-theme="fruits"><span>🥕 Fruits &amp; légumes</span></button>
+          <button class="btn ghost small format-opt" data-theme="villes"><span>🏙️ Villes de France</span></button>
+        </div>
+        <label>Temps par mot</label>
+        <div class="format-toggle" id="chnSpeedToggle">
+          <button class="btn ghost small format-opt active" data-ms="5000"><span>5 s</span></button>
+          <button class="btn ghost small format-opt" data-ms="8000"><span>8 s</span></button>
+          <button class="btn ghost small format-opt" data-ms="12000"><span>12 s</span></button>
+        </div>
+        <label>Nombre de manches</label>
+        <div class="format-toggle" id="chnMancheToggle">
+          <button class="btn ghost small format-opt" data-manches="1"><span>1</span></button>
+          <button class="btn ghost small format-opt active" data-manches="3"><span>3</span></button>
+          <button class="btn ghost small format-opt" data-manches="5"><span>5</span></button>
+        </div>
+        <label for="chnHostCode">Code de la salle (choisis-le, tes amis tapent le même)</label>
+        <input type="text" id="chnHostCode" data-room-code="chnCreateRoomBtn" placeholder="Ex : SOIREE-YASIN" maxlength="20" style="text-transform:uppercase;" autocomplete="off">
+        <div class="btn-row"><button class="btn yellow small" id="chnCreateRoomBtn"><span>Créer la salle</span></button></div>
+      </div>
+    </section>
+
+    <section class="chn-screen" id="chn-screen-lobby">
+      <div class="panel">
+        <span class="back-link" id="chnBackFromLobby">◀ Quitter la salle</span>
+        <h1 class="screen-title">LOBBY</h1>
+        <div class="room-code-display" id="chnCodeDisplay">------</div>
+        <div class="btn-row center">
+          <button class="btn ghost small" id="chnCopyCodeBtn"><span>📋 Copier le code</span></button>
+          <button class="btn ghost small" id="chnCopyLinkBtn"><span>🔗 Copier le lien</span></button>
+        </div>
+        <div class="cham-player-list" id="chnPlayerList"></div>
+        <p class="lobby-status" id="chnLobbyStatus">En attente de joueurs...</p>
+        <div class="btn-row center lobby-start"><button class="btn yellow" id="chnStartBtn" style="display:none;"><span>🎮 Lancer la partie</span></button></div>
+      </div>
+    </section>
+
+    <section class="chn-screen" id="chn-screen-play">
+      <div class="panel">
+        <div class="emo-cat" id="chnTheme"></div>
+        <div class="chn-letter" id="chnLetter"></div>
+        <div class="chn-turn" id="chnTurn"></div>
+        <div class="bots-timer" style="margin-bottom:12px;"><div class="bots-timer-fill" id="chnTimerFill"></div><span id="chnTimerText"></span></div>
+        <div class="loup-ask" id="chnInputBox">
+          <input type="text" id="chnInput" aria-label="Ton mot" maxlength="60" placeholder="Prépare ton mot…" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="send">
+          <button class="btn yellow small" id="chnSendBtn"><span>Valider</span></button>
+        </div>
+        <p class="chn-note" id="chnNote"></p>
+        <div class="chn-chain" id="chnChain"></div>
+        <div class="cham-player-list" id="chnPlayers"></div>
+      </div>
+    </section>
+
+    <section class="chn-screen" id="chn-screen-over">
+      <div class="panel">
+        <h1 class="screen-title" style="text-align:center;">🏆 FIN DE LA PARTIE</h1>
+        <div class="end-winner-text" id="chnWinnerText"></div>
+        <div class="cls-podium" id="chnFinalList"></div>
+        <div class="btn-row center" style="margin-top:16px;">
+          <button class="btn yellow" id="chnReplayBtn" style="display:none;"><span>🔁 Rejouer (mêmes joueurs)</span></button>
+          <span class="waiting-label" id="chnOverWait" style="display:none;">⏳ En attente de l'hôte...</span>
         </div>
       </div>
     </section>
@@ -2220,6 +2334,27 @@
 </div>
 
 <!-- EMOJI QUIZ : règles et déconnexion -->
+<div class="modal-overlay" id="chnRulesModal">
+  <div class="modal-box">
+    <button class="modal-close" id="chnRulesModalClose" aria-label="Fermer">✕</button>
+    <h2 class="screen-title" style="font-size:1.6rem;">RÈGLES — CHAÎNE DE MOTS</h2>
+    <ol class="rules-list">
+      <li>Un thème est tiré (pays, animaux, Pokémon de 1re génération, marques, fruits &amp; légumes, villes de France), ou choisi par l'hôte.</li>
+      <li>Chacun son tour, tape un mot du thème qui commence par la <b>dernière lettre</b> du mot précédent. Ex. en Pays : Franc<b>e</b> → <b>E</b>spagn<b>e</b> → <b>É</b>gypte… Accents, tirets et majuscules ne comptent pas.</li>
+      <li>Tu as <b>5 secondes</b> (ou 8 / 12, au choix de l'hôte). Trop lent : <b>éliminé</b>. Mot <b>déjà dit</b> dans la manche : <b>éliminé</b>.</li>
+      <li>Un mot hors thème, mal écrit ou qui ne commence pas par la bonne lettre est juste refusé : retente tant qu'il te reste du temps.</li>
+      <li>S'il ne reste plus aucun mot avec la lettre demandée, le jeu en tire une nouvelle.</li>
+      <li><b>Points</b> : à chaque manche, 1 point par joueur éliminé avant toi ; le dernier debout en gagne un de plus. 1, 3 ou 5 manches.</li>
+    </ol>
+  </div>
+</div>
+<div class="modal-overlay" id="chnDisconnectModal">
+  <div class="modal-box" style="text-align:center;">
+    <h2 class="screen-title" style="font-size:1.6rem;">⚠ CONNEXION PERDUE</h2>
+    <p class="subtitle" id="chnDisconnectModalText">La connexion a été interrompue.</p>
+    <div class="btn-row center"><button class="btn yellow" id="chnDisconnectBackBtn"><span>◀ Retour au menu</span></button></div>
+  </div>
+</div>
 <div class="modal-overlay" id="adjRulesModal">
   <div class="modal-box">
     <button class="modal-close" id="adjRulesModalClose" aria-label="Fermer">✕</button>
@@ -2449,6 +2584,7 @@
       <li><b>Le Caméléon :</b> jeu de dessin partagé et de déduction sociale, 3 à 8 joueurs en ligne. Un mot secret, un infiltré, un vote final.</li>
       <li><b>Emoji Quiz :</b> des emojis cachent un film, une série, une expression… Le plus rapide à trouver marque le plus. 2 à 10 joueurs en ligne.</li>
       <li><b>Adjugé, vendu ! :</b> de vrais objets fous vendus aux enchères (toilettes en or, carte Pokémon…) : devine leur prix, le plus proche gagne. 2 à 10 joueurs en ligne.</li>
+      <li><b>Chaîne de mots :</b> chacun son tour, un mot du thème qui commence par la dernière lettre du précédent, en 5 secondes. Trop lent ou mot déjà dit : éliminé. 2 à 10 joueurs en ligne.</li>
       <li><b>L'Imposteur :</b> bluff et déduction, 3 à 8 joueurs en ligne. Une question (réponse en nombre ou en texte libre), et un joueur qui a reçu une autre question sans le savoir.</li>
       <li><b>Battle Bots :</b> combat de tanks en 2D sur terrain destructible, actions simultanées. 1 vs 1, 2 vs 2, chacun pour soi (jusqu'à 6) ou survie contre des bots (1 à 4), en ligne.</li>
       <li><b>Le Loup des mots :</b> questions fermées au Maire pour trouver son mot secret, avec un Loup caché qui sabote et un Voyant à protéger. 4 à 10 joueurs en ligne.</li>
@@ -2506,25 +2642,26 @@
 <!-- PeerJS 1.5.4, copie identique au paquet npm officiel (sha256 ad5d8870…36fe5) -->
 <script src="js/vendor/peerjs.min.js?v=1"></script>
 <script src="js/vendor/qrcode.js?v=1"></script>
-<script src="js/common.js?v=58"></script>
-<script src="js/net.js?v=58"></script>
-<script src="js/demicercle.js?v=58"></script>
-<script src="js/cameleon.js?v=58"></script>
-<script src="js/imposteur.js?v=58"></script>
-<script src="js/loup.js?v=58"></script>
-<script src="js/garou.js?v=58"></script>
-<script src="js/classement.js?v=58"></script>
-<script src="js/quiaecrit.js?v=58"></script>
-<script src="js/emoji.js?v=58"></script>
-<script src="js/enchere-photos.js?v=58"></script>
-<script src="js/enchere.js?v=58"></script>
-<script src="js/crousprison-photos.js?v=58"></script>
-<script src="js/crousprison.js?v=58"></script>
-<script src="js/bots-maps.js?v=58"></script>
-<script src="js/bots.js?v=58"></script>
-<script src="js/pwa.js?v=58"></script>
-<script src="js/party.js?v=58"></script>
-<script src="js/account.js?v=58"></script>
-<script src="js/hub.js?v=58"></script>
+<script src="js/common.js?v=59"></script>
+<script src="js/net.js?v=59"></script>
+<script src="js/demicercle.js?v=59"></script>
+<script src="js/cameleon.js?v=59"></script>
+<script src="js/imposteur.js?v=59"></script>
+<script src="js/loup.js?v=59"></script>
+<script src="js/garou.js?v=59"></script>
+<script src="js/classement.js?v=59"></script>
+<script src="js/quiaecrit.js?v=59"></script>
+<script src="js/emoji.js?v=59"></script>
+<script src="js/chaine.js?v=59"></script>
+<script src="js/enchere-photos.js?v=59"></script>
+<script src="js/enchere.js?v=59"></script>
+<script src="js/crousprison-photos.js?v=59"></script>
+<script src="js/crousprison.js?v=59"></script>
+<script src="js/bots-maps.js?v=59"></script>
+<script src="js/bots.js?v=59"></script>
+<script src="js/pwa.js?v=59"></script>
+<script src="js/party.js?v=59"></script>
+<script src="js/account.js?v=59"></script>
+<script src="js/hub.js?v=59"></script>
 </body>
 </html>
