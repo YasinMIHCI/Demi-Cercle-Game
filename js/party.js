@@ -22,6 +22,7 @@
     emoji:       {p:'emo',  label:'Emoji Quiz',        icon:'🤔', min:2, max:10},
     enchere:     {p:'adj',  label:'Adjugé, vendu !',   icon:'🔨', min:2, max:10},
     loup:        {p:'loup', label:'Le Loup des mots',  icon:'🐺', min:4, max:10},
+    garou:       {p:'garou',label:'Les Loups-Garous',  icon:'🌕', min:5, max:12},
     cameleon:    {p:'cham', label:'Le Caméléon',       icon:'🦎', min:3, max:8},
     crousprison: {p:'cop',  label:'Crous ou Prison ?', icon:'🛏️', min:2, max:8},
     bots:        {p:'bots', label:'Battle Bots',       icon:'🤖', min:2, max:6}

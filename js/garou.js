@@ -356,6 +356,11 @@
     gs.news=gs.news.concat([t]); gs.log.push(t);
     setNetStatus('connected','PARTIE TERMINÉE');
     hostPush();
+    /* Soirée : camp gagnant = 2 pts, survivant = +1 (départage les gagnants) */
+    if(CG.partyEnd) CG.partyEnd(gs.players, gs.players.map(function(p,s){
+      if(gs.gameSeats.indexOf(s)===-1) return 0;
+      return (ROLES[gs.roles[s]].camp===w ? 2 : 0) + (gs.alive[s] ? 1 : 0);
+    }));
   }
   /* actions des joueurs (hôte compris, en place 0) */
   function hostAct(seat, msg){
